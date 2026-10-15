@@ -1,0 +1,226 @@
+[
+ {
+  "id": "hero-storm-emeralda",
+  "src": "/images/inicio/hero-storm-emeralda.webp",
+  "width": 770,
+  "height": 475,
+  "alt": "Ilustración de Mega Rayquaza ex de la carta 095/076 de Storm Emeralda",
+  "bytes": 191872,
+  "sha256": "7d1f8a7606458096a9c22bfc0556ed5da6bbebae5d66886ce87e058724d91fca",
+  "status": "reference",
+  "origin": "Buscador oficial de cartas (pokemon-card.com), ficha de la carta 50536 (メガレックウザex, 095/076 M6)",
+  "sourceUrl": "https://www.pokemon-card.com/assets/images/card_images/large/M6/050536_P_MREKKUUZAIEKKUSU.jpg",
+  "derivedFrom": {
+   "collectionId": "storm-emeralda",
+   "cardId": "50536",
+   "sourceSha256": "843fea3a3f35a13a69dae584b6f3cdc317d90a9bac5e0f6fb41bebb3ff6018b7",
+   "sourceSize": "868x1212",
+   "crop": {
+    "left": 60,
+    "top": 165,
+    "width": 770,
+    "height": 475
+   },
+   "operacion": "recorte de la zona de ilustración; sin escalado ni retoque"
+  },
+  "permissionStatus": "not_granted_by_source_link",
+  "license": "Sin permiso de uso concedido por el enlace de origen (referencia). Arte oficial de la carta: no acredita el estado del inventario de la tienda.",
+  "createdAt": "2026-10-13"
+ },
+ {
+  "id": "hero-black-bolt",
+  "src": "/images/inicio/hero-black-bolt.webp",
+  "width": 722,
+  "height": 446,
+  "alt": "Ilustración de Zekrom ex de la colección Black Bolt",
+  "bytes": 158662,
+  "sha256": "f93cc31a46848b78d407f10aa5f56fb917b26c7d20c6dff408432c0d1c9b269d",
+  "status": "reference",
+  "origin": "Buscador oficial de cartas (pokemon-card.com), ficha de la carta 47993 (ゼクロムex, 169/086 SV11B)",
+  "sourceUrl": "https://www.pokemon-card.com/assets/images/card_images/large/SV11B/047993_P_ZEKUROMUEX.jpg",
+  "derivedFrom": {
+   "collectionId": "black-bolt",
+   "cardId": "47993",
+   "sourceSha256": "5ca85a85519361670d7ca6d7ea99f4b167342cd4c96325911ea7257e0a6acef1",
+   "sourceSize": "868x1212",
+   "crop": {
+    "left": 70,
+    "top": 135,
+    "width": 722,
+    "height": 446
+   },
+   "operacion": "recorte de la zona de ilustración; sin escalado ni retoque"
+  },
+  "permissionStatus": "not_granted_by_source_link",
+  "license": "Sin permiso de uso concedido por el enlace de origen (referencia). Arte oficial de la carta: no acredita el estado del inventario de la tienda.",
+  "createdAt": "2026-10-13"
+ },
+ {
+  "id": "hero-white-flare",
+  "src": "/images/inicio/hero-white-flare.webp",
+  "width": 722,
+  "height": 446,
+  "alt": "Ilustración de Reshiram ex de la colección White Flare",
+  "bytes": 140754,
+  "sha256": "9abd5393db52bb55d8da07ee4aa282ef65653f5e20e174e00f9616e587e0d441",
+  "status": "reference",
+  "origin": "Buscador oficial de cartas (pokemon-card.com), ficha de la carta 48080 (レシラムex, 168/086 SV11W)",
+  "sourceUrl": "https://www.pokemon-card.com/assets/images/card_images/large/SV11W/048080_P_RESHIRAMUEX.jpg",
+  "derivedFrom": {
+   "collectionId": "white-flare",
+   "cardId": "48080",
+   "sourceSha256": "6e41ec1cfc4dd13bdc5230e91ed109d77d79ed2d4354b848f3834833cd621ca8",
+   "sourceSize": "868x1212",
+   "crop": {
+    "left": 70,
+    "top": 135,
+    "width": 722,
+    "height": 446
+   },
+   "operacion": "recorte de la zona de ilustración; sin escalado ni retoque"
+  },
+  "permissionStatus": "not_granted_by_source_link",
+  "license": "Sin permiso de uso concedido por el enlace de origen (referencia). Arte oficial de la carta: no acredita el estado del inventario de la tienda.",
+  "createdAt": "2026-10-13"
+ },
+ {
+  "id": "hero-heat-wave-arena",
+  "src": "/images/inicio/hero-heat-wave-arena.webp",
+  "width": 722,
+  "height": 446,
+  "alt": "Ilustración de Ho-Oh ex de Heat Wave Arena",
+  "bytes": 149012,
+  "sha256": "30ed2ec4ace3dec17ee12e50c77f3b17ee1304cd7e2f59c6f0d0273c9a58074c",
+  "status": "reference",
+  "origin": "Buscador oficial de cartas (pokemon-card.com), ficha de la carta 47387 (ヒビキのホウオウex, 086/063 SV9a)",
+  "sourceUrl": "https://www.pokemon-card.com/assets/images/card_images/large/SV9a/047387_P_HIBIKINOHOUOUEX.jpg",
+  "derivedFrom": {
+   "collectionId": "heat-wave-arena",
+   "cardId": "47387",
+   "sourceSha256": "a8964345d374a9cb63de9167cdd09dc259dd805fa2c8f21862729aa59ce572ba",
+   "sourceSize": "868x1212",
+   "crop": {
+    "left": 70,
+    "top": 135,
+    "width": 722,
+    "height": 446
+   },
+   "operacion": "recorte de la zona de ilustración; sin escalado ni retoque"
+  },
+  "permissionStatus": "not_granted_by_source_link",
+  "license": "Sin permiso de uso concedido por el enlace de origen (referencia). Arte oficial de la carta: no acredita el estado del inventario de la tienda.",
+  "createdAt": "2026-10-13"
+ },
+ {
+  "id": "hero-inferno-x",
+  "src": "/images/inicio/hero-inferno-x.webp",
+  "width": 722,
+  "height": 446,
+  "alt": "Ilustración de Mega Charizard X ex de Inferno X",
+  "bytes": 145496,
+  "sha256": "33bcc0a230e399dc3f540eb96cee05b5511d0c300db75c6491a7cd2b896797ed",
+  "status": "reference",
+  "origin": "Buscador oficial de cartas (pokemon-card.com), ficha de la carta 48516 (メガリザードンXex, 110/080 M2)",
+  "sourceUrl": "https://www.pokemon-card.com/assets/images/card_images/large/M2/048516_P_MRIZADONXEX.jpg",
+  "derivedFrom": {
+   "collectionId": "inferno-x",
+   "cardId": "48516",
+   "sourceSha256": "18c115653039ea5c556e2a95b9cc8e7020fc36dab6a4d373dc5ccf0c43943cf5",
+   "sourceSize": "868x1212",
+   "crop": {
+    "left": 112,
+    "top": 170,
+    "width": 722,
+    "height": 446
+   },
+   "operacion": "recorte de la zona de ilustración; sin escalado ni retoque"
+  },
+  "permissionStatus": "not_granted_by_source_link",
+  "license": "Sin permiso de uso concedido por el enlace de origen (referencia). Arte oficial de la carta: no acredita el estado del inventario de la tienda.",
+  "createdAt": "2026-10-13"
+ },
+ {
+  "id": "hero-mega-dream-ex",
+  "src": "/images/inicio/hero-mega-dream-ex.webp",
+  "width": 722,
+  "height": 446,
+  "alt": "Ilustración de Mega Gengar ex de MEGA Dream ex",
+  "bytes": 153298,
+  "sha256": "f899d46338384ece8f546111b629b34eaf2208518e5ac7f222f86bdb860bda54",
+  "status": "reference",
+  "origin": "Buscador oficial de cartas (pokemon-card.com), ficha de la carta 50000 (メガゲンガーex, 240/193 M2a)",
+  "sourceUrl": "https://www.pokemon-card.com/assets/images/card_images/large/M2a/050000_P_MGENGAEX.jpg",
+  "derivedFrom": {
+   "collectionId": "mega-dream-ex",
+   "cardId": "50000",
+   "sourceSha256": "9e6802faf19448a041537e0ea1b5b532baee49e9847b8def95f68d7c3c0fb5d3",
+   "sourceSize": "868x1212",
+   "crop": {
+    "left": 112,
+    "top": 170,
+    "width": 722,
+    "height": 446
+   },
+   "operacion": "recorte de la zona de ilustración; sin escalado ni retoque"
+  },
+  "permissionStatus": "not_granted_by_source_link",
+  "license": "Sin permiso de uso concedido por el enlace de origen (referencia). Arte oficial de la carta: no acredita el estado del inventario de la tienda.",
+  "createdAt": "2026-10-13"
+ },
+ {
+  "id": "hero-30th-celebration",
+  "src": "/images/inicio/hero-30th-celebration.webp",
+  "width": 722,
+  "height": 446,
+  "alt": "Ilustración de Zacian V de 30th CELEBRATION",
+  "bytes": 149342,
+  "sha256": "0eca5c03117b6b278134b3279184c15278dc886c87287303c59c1a0cf52dac7d",
+  "status": "reference",
+  "origin": "Buscador oficial de cartas (pokemon-card.com), ficha de la carta 50737 (ザシアンV, 161/103 M6a)",
+  "sourceUrl": "https://www.pokemon-card.com/assets/images/card_images/large/M6a/050737_P_ZASHIANBUI.jpg",
+  "derivedFrom": {
+   "collectionId": "30th-celebration",
+   "cardId": "50737",
+   "sourceSha256": "d2cdf78aec56296fb7033be67c8aca8e90586522acbdcde80439af0d3321d816",
+   "sourceSize": "868x1212",
+   "crop": {
+    "left": 70,
+    "top": 112,
+    "width": 722,
+    "height": 446
+   },
+   "operacion": "recorte de la zona de ilustración; sin escalado ni retoque"
+  },
+  "permissionStatus": "not_granted_by_source_link",
+  "license": "Sin permiso de uso concedido por el enlace de origen (referencia). Arte oficial de la carta: no acredita el estado del inventario de la tienda.",
+  "createdAt": "2026-10-13"
+ },
+ {
+  "id": "hero-abyss-eye",
+  "src": "/images/inicio/hero-abyss-eye.webp",
+  "width": 722,
+  "height": 446,
+  "alt": "Ilustración de Mega Darkrai ex de Abyss Eye",
+  "bytes": 177014,
+  "sha256": "00205becad04e60b7a5e95ebbe3c299b4ffa1f3b28b0299c9dfafecaf1ee7030",
+  "status": "reference",
+  "origin": "Buscador oficial de cartas (pokemon-card.com), ficha de la carta 50334 (メガダークライex, 114/081 M5)",
+  "sourceUrl": "https://www.pokemon-card.com/assets/images/card_images/large/M5/050334_P_MDAKURAIEX.jpg",
+  "derivedFrom": {
+   "collectionId": "abyss-eye",
+   "cardId": "50334",
+   "sourceSha256": "fb5095ab10bc739f8a03513457b0638b1db7f846db6f7637013f93f05b8f3081",
+   "sourceSize": "868x1212",
+   "crop": {
+    "left": 112,
+    "top": 170,
+    "width": 722,
+    "height": 446
+   },
+   "operacion": "recorte de la zona de ilustración; sin escalado ni retoque"
+  },
+  "permissionStatus": "not_granted_by_source_link",
+  "license": "Sin permiso de uso concedido por el enlace de origen (referencia). Arte oficial de la carta: no acredita el estado del inventario de la tienda.",
+  "createdAt": "2026-10-13"
+ }
+]

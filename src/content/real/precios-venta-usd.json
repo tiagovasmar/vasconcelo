@@ -1,0 +1,142 @@
+{
+  "_ayuda": "Precios finales de lista en USD enteros (venta al público, no costos). No llevan margen, envío ni impuestos adicionales. Se cargan con `npm run precios:cargar` (ver docs/PRECIOS-VENTA.md); no pisan lo que el dueño haya cargado en /admin.",
+  "fecha": "2026-10-14",
+  "items": [
+    {
+      "id": "abyss-eye-caja",
+      "usd": 152,
+      "fila": "Abyss Eye (JP, M5)"
+    },
+    {
+      "id": "mega-dream-ex-caja",
+      "usd": 99,
+      "fila": "MEGA Dream ex (JP, M2a)"
+    },
+    {
+      "id": "zh-30-zhounian-set-monedas",
+      "usd": 34,
+      "fila": "30th Celebration · set con monedas (CN)"
+    },
+    {
+      "id": "black-bolt-caja",
+      "usd": 144,
+      "fila": "Black Bolt (JP, SV11B)"
+    },
+    {
+      "id": "heat-wave-arena-caja",
+      "usd": 165,
+      "fila": "Heat Wave Arena (JP, SV9a)"
+    },
+    {
+      "id": "inferno-x-caja",
+      "usd": 145,
+      "fila": "Inferno X (JP, M2)"
+    },
+    {
+      "id": "storm-caja",
+      "usd": 163,
+      "fila": "Storm Emeralda (JP, M6)"
+    },
+    {
+      "id": "white-flare-caja",
+      "usd": 144,
+      "fila": "White Flare (JP, SV11W)"
+    },
+    {
+      "id": "zh-gongzhu-rongguang-sobre-5",
+      "usd": 5,
+      "fila": "共逐荣光 (CN) · Sobre de 5 cartas"
+    },
+    {
+      "id": "zh-xingcai-jingli-sobre-5",
+      "usd": 5,
+      "fila": "星彩晶璃 (CN) · Sobre de 5 cartas"
+    },
+    {
+      "id": "zh-cuican-guihuan-sobre-5",
+      "usd": 5,
+      "fila": "璀璨诡幻 (CN) · Sobre de 5 cartas"
+    },
+    {
+      "id": "zh-zhenshi-xuanxu-sobre-5",
+      "usd": 5,
+      "fila": "真实玄虚 (CN) · Sobre de 5 cartas"
+    },
+    {
+      "id": "zh-liren-mengxing-sobre-5",
+      "usd": 5,
+      "fila": "利刃猛醒 (CN) · Sobre de 5 cartas"
+    },
+    {
+      "id": "zh-jiajiang-huihe-sobre-5",
+      "usd": 5,
+      "fila": "嘉奖回合 (CN) · Sobre de 5 cartas"
+    },
+    {
+      "id": "zh-heijing-chicheng-sobre-5",
+      "usd": 5,
+      "fila": "黑晶炽诚 (CN) · Sobre de 5 cartas"
+    },
+    {
+      "id": "zh-wuwei-taijing-sobre-5",
+      "usd": 6,
+      "fila": "无畏太晶 (CN) · Sobre de 5 cartas · csv3C"
+    },
+    {
+      "id": "zh-nuyan-zhuotian-sobre-6",
+      "usd": 6,
+      "fila": "怒炎灼天 (CN) · Sobre de 6 cartas · cs3.5C"
+    },
+    {
+      "id": "zh-anying-duohui-sobre-6",
+      "usd": 6,
+      "fila": "暗影夺辉 (CN) · Sobre de 6 cartas · cs5.5C"
+    },
+    {
+      "id": "zh-jiju-gongfang-sobre-6",
+      "usd": 6,
+      "fila": "极巨攻防 (CN) · Sobre de 6 cartas · cs1.5C"
+    },
+    {
+      "id": "zh-gengu-kailai-sobre-5",
+      "usd": 6,
+      "fila": "亘古开来 (CN) · Sobre de 5 cartas · csv1C"
+    },
+    {
+      "id": "abyss-eye-sobre",
+      "usd": 8,
+      "fila": "Abyss Eye (JP, M5) · Sobre individual · M5"
+    },
+    {
+      "id": "terastal-festival-ex-caja",
+      "usd": 120,
+      "fila": "Terastal Festival ex (JP, SV8a)"
+    },
+    {
+      "id": "ninja-spinner-caja",
+      "usd": 115,
+      "fila": "Ninja Spinner (JP, M4)"
+    },
+    {
+      "id": "nihil-zero-caja",
+      "usd": 136,
+      "fila": "Nihil Zero (JP, M3)"
+    },
+    {
+      "id": "glory-of-team-rocket-caja",
+      "usd": 195,
+      "fila": "The Glory of Team Rocket (JP, SV10)"
+    },
+    {
+      "id": "mega-symphonia-caja",
+      "usd": 130,
+      "fila": "Mega Symphonia (JP, M1S)"
+    },
+    {
+      "id": "pokemon-card-151-caja",
+      "usd": 317,
+      "fila": "Pokémon Card 151 (JP)"
+    }
+  ],
+  "sinFicha": []
+}

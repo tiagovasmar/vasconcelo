@@ -1,0 +1,1210 @@
+{
+ "collectionId": "ninja-spinner",
+ "searchGroup": 953,
+ "searchTitle": "拡張パック「ニンジャスピナー」",
+ "officialCount": 120,
+ "fetchedAt": "2026-10-14",
+ "source": "https://www.pokemon-card.com/card-search/index.php",
+ "cards": [
+  {
+   "cardId": "50085",
+   "name": "ビードル",
+   "thumb": "/assets/images/card_images/large/M4/050085_P_BIDORU.jpg",
+   "setMark": "M4",
+   "number": "001",
+   "total": "083",
+   "rarityIcon": "ic_rare_c_c",
+   "kind": "No.013 けむしポケモン"
+  },
+  {
+   "cardId": "50086",
+   "name": "コクーン",
+   "thumb": "/assets/images/card_images/large/M4/050086_P_KOKUN.jpg",
+   "setMark": "M4",
+   "number": "002",
+   "total": "083",
+   "rarityIcon": "ic_rare_c_c",
+   "kind": "No.014 さなぎポケモン"
+  },
+  {
+   "cardId": "50087",
+   "name": "スピアーex",
+   "thumb": "/assets/images/card_images/large/M4/050087_P_SUPIAEX.jpg",
+   "setMark": "M4",
+   "number": "003",
+   "total": "083",
+   "rarityIcon": "ic_rare_rr",
+   "kind": "イラストレーター"
+  },
+  {
+   "cardId": "50088",
+   "name": "マスキッパ",
+   "thumb": "/assets/images/card_images/large/M4/050088_P_MASUKIPPA.jpg",
+   "setMark": "M4",
+   "number": "004",
+   "total": "083",
+   "rarityIcon": "ic_rare_c_c",
+   "kind": "No.455 むしとりポケモン"
+  },
+  {
+   "cardId": "50089",
+   "name": "ハリマロン",
+   "thumb": "/assets/images/card_images/large/M4/050089_P_HARIMARON.jpg",
+   "setMark": "M4",
+   "number": "005",
+   "total": "083",
+   "rarityIcon": "ic_rare_c_c",
+   "kind": "No.650 いがぐりポケモン"
+  },
+  {
+   "cardId": "50090",
+   "name": "ハリボーグ",
+   "thumb": "/assets/images/card_images/large/M4/050090_P_HARIBOGU.jpg",
+   "setMark": "M4",
+   "number": "006",
+   "total": "083",
+   "rarityIcon": "ic_rare_c_c",
+   "kind": "No.651 とげよろいポケモン"
+  },
+  {
+   "cardId": "50091",
+   "name": "ブリガロン",
+   "thumb": "/assets/images/card_images/large/M4/050091_P_BURIGARON.jpg",
+   "setMark": "M4",
+   "number": "007",
+   "total": "083",
+   "rarityIcon": "ic_rare_r_c",
+   "kind": "No.652 とげよろいポケモン"
+  },
+  {
+   "cardId": "50092",
+   "name": "ロコン",
+   "thumb": "/assets/images/card_images/large/M4/050092_P_ROKON.jpg",
+   "setMark": "M4",
+   "number": "008",
+   "total": "083",
+   "rarityIcon": "ic_rare_c_c",
+   "kind": "No.037 きつねポケモン"
+  },
+  {
+   "cardId": "50093",
+   "name": "キュウコン",
+   "thumb": "/assets/images/card_images/large/M4/050093_P_KIXYUUKON.jpg",
+   "setMark": "M4",
+   "number": "009",
+   "total": "083",
+   "rarityIcon": "ic_rare_u_c",
+   "kind": "No.038 きつねポケモン"
+  },
+  {
+   "cardId": "50094",
+   "name": "ホウオウ",
+   "thumb": "/assets/images/card_images/large/M4/050094_P_HOUOU.jpg",
+   "setMark": "M4",
+   "number": "010",
+   "total": "083",
+   "rarityIcon": "ic_rare_u_c",
+   "kind": "No.250 にじいろポケモン"
+  },
+  {
+   "cardId": "50095",
+   "name": "フォッコ",
+   "thumb": "/assets/images/card_images/large/M4/050095_P_FUOKKO.jpg",
+   "setMark": "M4",
+   "number": "011",
+   "total": "083",
+   "rarityIcon": "ic_rare_c_c",
+   "kind": "No.653 キツネポケモン"
+  },
+  {
+   "cardId": "50096",
+   "name": "テールナー",
+   "thumb": "/assets/images/card_images/large/M4/050096_P_TERUNA.jpg",
+   "setMark": "M4",
+   "number": "012",
+   "total": "083",
+   "rarityIcon": "ic_rare_c_c",
+   "kind": "No.654 キツネポケモン"
+  },
+  {
+   "cardId": "50097",
+   "name": "マフォクシー",
+   "thumb": "/assets/images/card_images/large/M4/050097_P_MAFUOKUSHI.jpg",
+   "setMark": "M4",
+   "number": "013",
+   "total": "083",
+   "rarityIcon": "ic_rare_r_c",
+   "kind": "No.655 キツネポケモン"
+  },
+  {
+   "cardId": "50098",
+   "name": "シシコ",
+   "thumb": "/assets/images/card_images/large/M4/050098_P_SHISHIKO.jpg",
+   "setMark": "M4",
+   "number": "014",
+   "total": "083",
+   "rarityIcon": "ic_rare_c_c",
+   "kind": "No.667 わかじしポケモン"
+  },
+  {
+   "cardId": "50099",
+   "name": "メガカエンジシex",
+   "thumb": "/assets/images/card_images/large/M4/050099_P_MKAENJISHIEX.jpg",
+   "setMark": "M4",
+   "number": "015",
+   "total": "083",
+   "rarityIcon": "ic_rare_rr",
+   "kind": "イラストレーター"
+  },
+  {
+   "cardId": "50100",
+   "name": "テッポウオ",
+   "thumb": "/assets/images/card_images/large/M4/050100_P_TEPPOUO.jpg",
+   "setMark": "M4",
+   "number": "016",
+   "total": "083",
+   "rarityIcon": "ic_rare_c_c",
+   "kind": "No.223 ふんしゃポケモン"
+  },
+  {
+   "cardId": "50101",
+   "name": "オクタン",
+   "thumb": "/assets/images/card_images/large/M4/050101_P_OKUTAN.jpg",
+   "setMark": "M4",
+   "number": "017",
+   "total": "083",
+   "rarityIcon": "ic_rare_c_c",
+   "kind": "No.224 ふんしゃポケモン"
+  },
+  {
+   "cardId": "50102",
+   "name": "デリバード",
+   "thumb": "/assets/images/card_images/large/M4/050102_P_DERIBADO.jpg",
+   "setMark": "M4",
+   "number": "018",
+   "total": "083",
+   "rarityIcon": "ic_rare_u_c",
+   "kind": "No.225 はこびやポケモン"
+  },
+  {
+   "cardId": "50103",
+   "name": "ケルディオ",
+   "thumb": "/assets/images/card_images/large/M4/050103_P_KERUDEIO.jpg",
+   "setMark": "M4",
+   "number": "019",
+   "total": "083",
+   "rarityIcon": "ic_rare_u_c",
+   "kind": "No.647 わかごまポケモン"
+  },
+  {
+   "cardId": "50104",
+   "name": "ケロマツ",
+   "thumb": "/assets/images/card_images/large/M4/050104_P_KEROMATSU.jpg",
+   "setMark": "M4",
+   "number": "020",
+   "total": "083",
+   "rarityIcon": "ic_rare_c_c",
+   "kind": "No.656 あわがえるポケモン"
+  },
+  {
+   "cardId": "50105",
+   "name": "ゲコガシラ",
+   "thumb": "/assets/images/card_images/large/M4/050105_P_GEKOGASHIRA.jpg",
+   "setMark": "M4",
+   "number": "021",
+   "total": "083",
+   "rarityIcon": "ic_rare_c_c",
+   "kind": "No.657 あわがえるポケモン"
+  },
+  {
+   "cardId": "50106",
+   "name": "メガゲッコウガex",
+   "thumb": "/assets/images/card_images/large/M4/050106_P_MGEKKOUGAEX.jpg",
+   "setMark": "M4",
+   "number": "022",
+   "total": "083",
+   "rarityIcon": "ic_rare_rr",
+   "kind": "イラストレーター"
+  },
+  {
+   "cardId": "50107",
+   "name": "カチコール",
+   "thumb": "/assets/images/card_images/large/M4/050107_P_KACHIKORU.jpg",
+   "setMark": "M4",
+   "number": "023",
+   "total": "083",
+   "rarityIcon": "ic_rare_c_c",
+   "kind": "No.712 ひょうかいポケモン"
+  },
+  {
+   "cardId": "50108",
+   "name": "クレベース",
+   "thumb": "/assets/images/card_images/large/M4/050108_P_KUREBESU.jpg",
+   "setMark": "M4",
+   "number": "024",
+   "total": "083",
+   "rarityIcon": "ic_rare_u_c",
+   "kind": "No.713 ひょうざんポケモン"
+  },
+  {
+   "cardId": "50109",
+   "name": "コソクムシ",
+   "thumb": "/assets/images/card_images/large/M4/050109_P_KOSOKUMUSHI.jpg",
+   "setMark": "M4",
+   "number": "025",
+   "total": "083",
+   "rarityIcon": "ic_rare_c_c",
+   "kind": "No.767 そうこうポケモン"
+  },
+  {
+   "cardId": "50110",
+   "name": "グソクムシャ",
+   "thumb": "/assets/images/card_images/large/M4/050110_P_GUSOKUMUSHIXYA.jpg",
+   "setMark": "M4",
+   "number": "026",
+   "total": "083",
+   "rarityIcon": "ic_rare_u_c",
+   "kind": "No.768 そうこうポケモン"
+  },
+  {
+   "cardId": "50111",
+   "name": "メリープ",
+   "thumb": "/assets/images/card_images/large/M4/050111_P_MERIPU.jpg",
+   "setMark": "M4",
+   "number": "027",
+   "total": "083",
+   "rarityIcon": "ic_rare_c_c",
+   "kind": "No.179 わたげポケモン"
+  },
+  {
+   "cardId": "50112",
+   "name": "モココ",
+   "thumb": "/assets/images/card_images/large/M4/050112_P_MOKOKO.jpg",
+   "setMark": "M4",
+   "number": "028",
+   "total": "083",
+   "rarityIcon": "ic_rare_c_c",
+   "kind": "No.180 わたげポケモン"
+  },
+  {
+   "cardId": "50113",
+   "name": "デンリュウ",
+   "thumb": "/assets/images/card_images/large/M4/050113_P_DENRIXYUU.jpg",
+   "setMark": "M4",
+   "number": "029",
+   "total": "083",
+   "rarityIcon": "ic_rare_r_c",
+   "kind": "No.181 ライトポケモン"
+  },
+  {
+   "cardId": "50114",
+   "name": "エモンガ",
+   "thumb": "/assets/images/card_images/large/M4/050114_P_EMONGA.jpg",
+   "setMark": "M4",
+   "number": "030",
+   "total": "083",
+   "rarityIcon": "ic_rare_c_c",
+   "kind": "No.587 モモンガポケモン"
+  },
+  {
+   "cardId": "50115",
+   "name": "デオキシス",
+   "thumb": "/assets/images/card_images/large/M4/050115_P_DEOKISHISU.jpg",
+   "setMark": "M4",
+   "number": "031",
+   "total": "083",
+   "rarityIcon": "ic_rare_u_c",
+   "kind": "No.386 ＤＮＡポケモン"
+  },
+  {
+   "cardId": "50116",
+   "name": "デオキシス",
+   "thumb": "/assets/images/card_images/large/M4/050116_P_DEOKISHISU.jpg",
+   "setMark": "M4",
+   "number": "032",
+   "total": "083",
+   "rarityIcon": "ic_rare_u_c",
+   "kind": "No.386 ＤＮＡポケモン"
+  },
+  {
+   "cardId": "50117",
+   "name": "デオキシス",
+   "thumb": "/assets/images/card_images/large/M4/050117_P_DEOKISHISU.jpg",
+   "setMark": "M4",
+   "number": "033",
+   "total": "083",
+   "rarityIcon": "ic_rare_u_c",
+   "kind": "No.386 ＤＮＡポケモン"
+  },
+  {
+   "cardId": "50118",
+   "name": "デオキシス",
+   "thumb": "/assets/images/card_images/large/M4/050118_P_DEOKISHISU.jpg",
+   "setMark": "M4",
+   "number": "034",
+   "total": "083",
+   "rarityIcon": "ic_rare_u_c",
+   "kind": "No.386 ＤＮＡポケモン"
+  },
+  {
+   "cardId": "50119",
+   "name": "メガフラエッテex",
+   "thumb": "/assets/images/card_images/large/M4/050119_P_MFURAETTEEX.jpg",
+   "setMark": "M4",
+   "number": "035",
+   "total": "083",
+   "rarityIcon": "ic_rare_rr",
+   "kind": "イラストレーター"
+  },
+  {
+   "cardId": "50120",
+   "name": "ニャスパー",
+   "thumb": "/assets/images/card_images/large/M4/050120_P_NIXYASUPA.jpg",
+   "setMark": "M4",
+   "number": "036",
+   "total": "083",
+   "rarityIcon": "ic_rare_c_c",
+   "kind": "No.677 じせいポケモン"
+  },
+  {
+   "cardId": "50121",
+   "name": "ニャオニクス",
+   "thumb": "/assets/images/card_images/large/M4/050121_P_NIXYAONIKUSU.jpg",
+   "setMark": "M4",
+   "number": "037",
+   "total": "083",
+   "rarityIcon": "ic_rare_u_c",
+   "kind": "No.678 よくせいポケモン"
+  },
+  {
+   "cardId": "50122",
+   "name": "ボクレー",
+   "thumb": "/assets/images/card_images/large/M4/050122_P_BOKURE.jpg",
+   "setMark": "M4",
+   "number": "038",
+   "total": "083",
+   "rarityIcon": "ic_rare_c_c",
+   "kind": "No.708 きりかぶポケモン"
+  },
+  {
+   "cardId": "50123",
+   "name": "オーロット",
+   "thumb": "/assets/images/card_images/large/M4/050123_P_OROTTO.jpg",
+   "setMark": "M4",
+   "number": "039",
+   "total": "083",
+   "rarityIcon": "ic_rare_r_c",
+   "kind": "No.709 ろうぼくポケモン"
+  },
+  {
+   "cardId": "50124",
+   "name": "バケッチャ",
+   "thumb": "/assets/images/card_images/large/M4/050124_P_BAKETCHIXYA.jpg",
+   "setMark": "M4",
+   "number": "040",
+   "total": "083",
+   "rarityIcon": "ic_rare_c_c",
+   "kind": "No.710 かぼちゃポケモン"
+  },
+  {
+   "cardId": "50125",
+   "name": "パンプジンex",
+   "thumb": "/assets/images/card_images/large/M4/050125_P_PANPUJINEX.jpg",
+   "setMark": "M4",
+   "number": "041",
+   "total": "083",
+   "rarityIcon": "ic_rare_rr",
+   "kind": "イラストレーター"
+  },
+  {
+   "cardId": "50126",
+   "name": "ゼルネアス",
+   "thumb": "/assets/images/card_images/large/M4/050126_P_ZERUNEASU.jpg",
+   "setMark": "M4",
+   "number": "042",
+   "total": "083",
+   "rarityIcon": "ic_rare_r_c",
+   "kind": "No.716 せいめいポケモン"
+  },
+  {
+   "cardId": "50127",
+   "name": "ウソッキー",
+   "thumb": "/assets/images/card_images/large/M4/050127_P_USOKKI.jpg",
+   "setMark": "M4",
+   "number": "043",
+   "total": "083",
+   "rarityIcon": "ic_rare_u_c",
+   "kind": "No.185 まねポケモン"
+  },
+  {
+   "cardId": "50128",
+   "name": "ゴマゾウ",
+   "thumb": "/assets/images/card_images/large/M4/050128_P_GOMAZOU.jpg",
+   "setMark": "M4",
+   "number": "044",
+   "total": "083",
+   "rarityIcon": "ic_rare_c_c",
+   "kind": "No.231 ながはなポケモン"
+  },
+  {
+   "cardId": "50129",
+   "name": "ドンファン",
+   "thumb": "/assets/images/card_images/large/M4/050129_P_DONFUAN.jpg",
+   "setMark": "M4",
+   "number": "045",
+   "total": "083",
+   "rarityIcon": "ic_rare_c_c",
+   "kind": "No.232 よろいポケモン"
+  },
+  {
+   "cardId": "50130",
+   "name": "ヤジロン",
+   "thumb": "/assets/images/card_images/large/M4/050130_P_YAJIRON.jpg",
+   "setMark": "M4",
+   "number": "046",
+   "total": "083",
+   "rarityIcon": "ic_rare_c_c",
+   "kind": "No.343 どぐうポケモン"
+  },
+  {
+   "cardId": "50131",
+   "name": "ネンドール",
+   "thumb": "/assets/images/card_images/large/M4/050131_P_NENDORU.jpg",
+   "setMark": "M4",
+   "number": "047",
+   "total": "083",
+   "rarityIcon": "ic_rare_u_c",
+   "kind": "No.344 どぐうポケモン"
+  },
+  {
+   "cardId": "50132",
+   "name": "ズバット",
+   "thumb": "/assets/images/card_images/large/M4/050132_P_ZUBATTO.jpg",
+   "setMark": "M4",
+   "number": "048",
+   "total": "083",
+   "rarityIcon": "ic_rare_c_c",
+   "kind": "No.041 こうもりポケモン"
+  },
+  {
+   "cardId": "50133",
+   "name": "ゴルバット",
+   "thumb": "/assets/images/card_images/large/M4/050133_P_GORUBATTO.jpg",
+   "setMark": "M4",
+   "number": "049",
+   "total": "083",
+   "rarityIcon": "ic_rare_c_c",
+   "kind": "No.042 こうもりポケモン"
+  },
+  {
+   "cardId": "50134",
+   "name": "クロバット",
+   "thumb": "/assets/images/card_images/large/M4/050134_P_KUROBATTO.jpg",
+   "setMark": "M4",
+   "number": "050",
+   "total": "083",
+   "rarityIcon": "ic_rare_u_c",
+   "kind": "No.169 こうもりポケモン"
+  },
+  {
+   "cardId": "50135",
+   "name": "ハリーセン",
+   "thumb": "/assets/images/card_images/large/M4/050135_P_HARISEN.jpg",
+   "setMark": "M4",
+   "number": "051",
+   "total": "083",
+   "rarityIcon": "ic_rare_c_c",
+   "kind": "No.211 ふうせんポケモン"
+  },
+  {
+   "cardId": "50136",
+   "name": "スカンプー",
+   "thumb": "/assets/images/card_images/large/M4/050136_P_SUKANPU.jpg",
+   "setMark": "M4",
+   "number": "052",
+   "total": "083",
+   "rarityIcon": "ic_rare_c_c",
+   "kind": "No.434 スカンクポケモン"
+  },
+  {
+   "cardId": "50137",
+   "name": "スカタンク",
+   "thumb": "/assets/images/card_images/large/M4/050137_P_SUKATANKU.jpg",
+   "setMark": "M4",
+   "number": "053",
+   "total": "083",
+   "rarityIcon": "ic_rare_u_c",
+   "kind": "No.435 スカンクポケモン"
+  },
+  {
+   "cardId": "50138",
+   "name": "ヤブクロン",
+   "thumb": "/assets/images/card_images/large/M4/050138_P_YABUKURON.jpg",
+   "setMark": "M4",
+   "number": "054",
+   "total": "083",
+   "rarityIcon": "ic_rare_c_c",
+   "kind": "No.568 ゴミぶくろポケモン"
+  },
+  {
+   "cardId": "50139",
+   "name": "ダストダス",
+   "thumb": "/assets/images/card_images/large/M4/050139_P_DASUTODASU.jpg",
+   "setMark": "M4",
+   "number": "055",
+   "total": "083",
+   "rarityIcon": "ic_rare_u_c",
+   "kind": "No.569 ゴミすてばポケモン"
+  },
+  {
+   "cardId": "50140",
+   "name": "クズモー",
+   "thumb": "/assets/images/card_images/large/M4/050140_P_KUZUMO.jpg",
+   "setMark": "M4",
+   "number": "056",
+   "total": "083",
+   "rarityIcon": "ic_rare_c_c",
+   "kind": "No.690 クサモドキポケモン"
+  },
+  {
+   "cardId": "50141",
+   "name": "ダンバル",
+   "thumb": "/assets/images/card_images/large/M4/050141_P_DANBARU.jpg",
+   "setMark": "M4",
+   "number": "057",
+   "total": "083",
+   "rarityIcon": "ic_rare_c_c",
+   "kind": "No.374 てっきゅうポケモン"
+  },
+  {
+   "cardId": "50142",
+   "name": "メタング",
+   "thumb": "/assets/images/card_images/large/M4/050142_P_METANGU.jpg",
+   "setMark": "M4",
+   "number": "058",
+   "total": "083",
+   "rarityIcon": "ic_rare_c_c",
+   "kind": "No.375 てつツメポケモン"
+  },
+  {
+   "cardId": "50143",
+   "name": "メタグロス",
+   "thumb": "/assets/images/card_images/large/M4/050143_P_METAGUROSU.jpg",
+   "setMark": "M4",
+   "number": "059",
+   "total": "083",
+   "rarityIcon": "ic_rare_u_c",
+   "kind": "No.376 てつあしポケモン"
+  },
+  {
+   "cardId": "50144",
+   "name": "テッシード",
+   "thumb": "/assets/images/card_images/large/M4/050144_P_TESSHIDO.jpg",
+   "setMark": "M4",
+   "number": "060",
+   "total": "083",
+   "rarityIcon": "ic_rare_c_c",
+   "kind": "No.597 とげのみポケモン"
+  },
+  {
+   "cardId": "50145",
+   "name": "ナットレイ",
+   "thumb": "/assets/images/card_images/large/M4/050145_P_NATTOREI.jpg",
+   "setMark": "M4",
+   "number": "061",
+   "total": "083",
+   "rarityIcon": "ic_rare_u_c",
+   "kind": "No.598 とげだまポケモン"
+  },
+  {
+   "cardId": "50146",
+   "name": "コバルオンex",
+   "thumb": "/assets/images/card_images/large/M4/050146_P_KOBARUONEX.jpg",
+   "setMark": "M4",
+   "number": "062",
+   "total": "083",
+   "rarityIcon": "ic_rare_rr",
+   "kind": "イラストレーター"
+  },
+  {
+   "cardId": "50147",
+   "name": "メガドラミドロex",
+   "thumb": "/assets/images/card_images/large/M4/050147_P_MDORAMIDOROEX.jpg",
+   "setMark": "M4",
+   "number": "063",
+   "total": "083",
+   "rarityIcon": "ic_rare_rr",
+   "kind": "イラストレーター"
+  },
+  {
+   "cardId": "50148",
+   "name": "ヌメラ",
+   "thumb": "/assets/images/card_images/large/M4/050148_P_NUMERA.jpg",
+   "setMark": "M4",
+   "number": "064",
+   "total": "083",
+   "rarityIcon": "ic_rare_c_c",
+   "kind": "No.704 なんたいポケモン"
+  },
+  {
+   "cardId": "50149",
+   "name": "ヌメイル",
+   "thumb": "/assets/images/card_images/large/M4/050149_P_NUMEIRU.jpg",
+   "setMark": "M4",
+   "number": "065",
+   "total": "083",
+   "rarityIcon": "ic_rare_c_c",
+   "kind": "No.705 なんたいポケモン"
+  },
+  {
+   "cardId": "50150",
+   "name": "ヌメルゴン",
+   "thumb": "/assets/images/card_images/large/M4/050150_P_NUMERUGON.jpg",
+   "setMark": "M4",
+   "number": "066",
+   "total": "083",
+   "rarityIcon": "ic_rare_u_c",
+   "kind": "No.706 ドラゴンポケモン"
+  },
+  {
+   "cardId": "50151",
+   "name": "ケンタロス",
+   "thumb": "/assets/images/card_images/large/M4/050151_P_KENTAROSU.jpg",
+   "setMark": "M4",
+   "number": "067",
+   "total": "083",
+   "rarityIcon": "ic_rare_u_c",
+   "kind": "No.128 あばれうしポケモン"
+  },
+  {
+   "cardId": "50152",
+   "name": "ミネズミ",
+   "thumb": "/assets/images/card_images/large/M4/050152_P_MINEZUMI.jpg",
+   "setMark": "M4",
+   "number": "068",
+   "total": "083",
+   "rarityIcon": "ic_rare_c_c",
+   "kind": "No.504 みはりポケモン"
+  },
+  {
+   "cardId": "50153",
+   "name": "ミルホッグ",
+   "thumb": "/assets/images/card_images/large/M4/050153_P_MIRUHOGGU.jpg",
+   "setMark": "M4",
+   "number": "069",
+   "total": "083",
+   "rarityIcon": "ic_rare_c_c",
+   "kind": "No.505 けいかいポケモン"
+  },
+  {
+   "cardId": "50154",
+   "name": "チラーミィ",
+   "thumb": "/assets/images/card_images/large/M4/050154_P_CHIRAMII.jpg",
+   "setMark": "M4",
+   "number": "070",
+   "total": "083",
+   "rarityIcon": "ic_rare_c_c",
+   "kind": "No.572 チンチラポケモン"
+  },
+  {
+   "cardId": "50155",
+   "name": "チラチーノex",
+   "thumb": "/assets/images/card_images/large/M4/050155_P_CHIRACHINOEX.jpg",
+   "setMark": "M4",
+   "number": "071",
+   "total": "083",
+   "rarityIcon": "ic_rare_rr",
+   "kind": "イラストレーター"
+  },
+  {
+   "cardId": "50183",
+   "name": "ハリマロン",
+   "thumb": "/assets/images/card_images/large/M4/050183_P_HARIMARON.jpg",
+   "setMark": "M4",
+   "number": "084",
+   "total": "083",
+   "rarityIcon": "ic_rare_ar",
+   "kind": "No.650 いがぐりポケモン"
+  },
+  {
+   "cardId": "50184",
+   "name": "フォッコ",
+   "thumb": "/assets/images/card_images/large/M4/050184_P_FUOKKO.jpg",
+   "setMark": "M4",
+   "number": "085",
+   "total": "083",
+   "rarityIcon": "ic_rare_ar",
+   "kind": "No.653 キツネポケモン"
+  },
+  {
+   "cardId": "50185",
+   "name": "ケロマツ",
+   "thumb": "/assets/images/card_images/large/M4/050185_P_KEROMATSU.jpg",
+   "setMark": "M4",
+   "number": "086",
+   "total": "083",
+   "rarityIcon": "ic_rare_ar",
+   "kind": "No.656 あわがえるポケモン"
+  },
+  {
+   "cardId": "50186",
+   "name": "ゲコガシラ",
+   "thumb": "/assets/images/card_images/large/M4/050186_P_GEKOGASHIRA.jpg",
+   "setMark": "M4",
+   "number": "087",
+   "total": "083",
+   "rarityIcon": "ic_rare_ar",
+   "kind": "No.657 あわがえるポケモン"
+  },
+  {
+   "cardId": "50187",
+   "name": "デンリュウ",
+   "thumb": "/assets/images/card_images/large/M4/050187_P_DENRIXYUU.jpg",
+   "setMark": "M4",
+   "number": "088",
+   "total": "083",
+   "rarityIcon": "ic_rare_ar",
+   "kind": "No.181 ライトポケモン"
+  },
+  {
+   "cardId": "50188",
+   "name": "ゼルネアス",
+   "thumb": "/assets/images/card_images/large/M4/050188_P_ZERUNEASU.jpg",
+   "setMark": "M4",
+   "number": "089",
+   "total": "083",
+   "rarityIcon": "ic_rare_ar",
+   "kind": "No.716 せいめいポケモン"
+  },
+  {
+   "cardId": "50189",
+   "name": "ネンドール",
+   "thumb": "/assets/images/card_images/large/M4/050189_P_NENDORU.jpg",
+   "setMark": "M4",
+   "number": "090",
+   "total": "083",
+   "rarityIcon": "ic_rare_ar",
+   "kind": "No.344 どぐうポケモン"
+  },
+  {
+   "cardId": "50190",
+   "name": "クロバット",
+   "thumb": "/assets/images/card_images/large/M4/050190_P_KUROBATTO.jpg",
+   "setMark": "M4",
+   "number": "091",
+   "total": "083",
+   "rarityIcon": "ic_rare_ar",
+   "kind": "No.169 こうもりポケモン"
+  },
+  {
+   "cardId": "50191",
+   "name": "メタング",
+   "thumb": "/assets/images/card_images/large/M4/050191_P_METANGU.jpg",
+   "setMark": "M4",
+   "number": "092",
+   "total": "083",
+   "rarityIcon": "ic_rare_ar",
+   "kind": "No.375 てつツメポケモン"
+  },
+  {
+   "cardId": "50192",
+   "name": "ヌメイル",
+   "thumb": "/assets/images/card_images/large/M4/050192_P_NUMEIRU.jpg",
+   "setMark": "M4",
+   "number": "093",
+   "total": "083",
+   "rarityIcon": "ic_rare_ar",
+   "kind": "No.705 なんたいポケモン"
+  },
+  {
+   "cardId": "50193",
+   "name": "ケンタロス",
+   "thumb": "/assets/images/card_images/large/M4/050193_P_KENTAROSU.jpg",
+   "setMark": "M4",
+   "number": "094",
+   "total": "083",
+   "rarityIcon": "ic_rare_ar",
+   "kind": "No.128 あばれうしポケモン"
+  },
+  {
+   "cardId": "50194",
+   "name": "ミルホッグ",
+   "thumb": "/assets/images/card_images/large/M4/050194_P_MIRUHOGGU.jpg",
+   "setMark": "M4",
+   "number": "095",
+   "total": "083",
+   "rarityIcon": "ic_rare_ar",
+   "kind": "No.505 けいかいポケモン"
+  },
+  {
+   "cardId": "50195",
+   "name": "スピアーex",
+   "thumb": "/assets/images/card_images/large/M4/050195_P_SUPIAEX.jpg",
+   "setMark": "M4",
+   "number": "096",
+   "total": "083",
+   "rarityIcon": "ic_rare_sr_c",
+   "kind": "イラストレーター"
+  },
+  {
+   "cardId": "50196",
+   "name": "メガカエンジシex",
+   "thumb": "/assets/images/card_images/large/M4/050196_P_MKAENJISHIEX.jpg",
+   "setMark": "M4",
+   "number": "097",
+   "total": "083",
+   "rarityIcon": "ic_rare_sr_c",
+   "kind": "イラストレーター"
+  },
+  {
+   "cardId": "50197",
+   "name": "メガゲッコウガex",
+   "thumb": "/assets/images/card_images/large/M4/050197_P_MGEKKOUGAEX.jpg",
+   "setMark": "M4",
+   "number": "098",
+   "total": "083",
+   "rarityIcon": "ic_rare_sr_c",
+   "kind": "イラストレーター"
+  },
+  {
+   "cardId": "50198",
+   "name": "メガフラエッテex",
+   "thumb": "/assets/images/card_images/large/M4/050198_P_MFURAETTEEX.jpg",
+   "setMark": "M4",
+   "number": "099",
+   "total": "083",
+   "rarityIcon": "ic_rare_sr_c",
+   "kind": "イラストレーター"
+  },
+  {
+   "cardId": "50199",
+   "name": "パンプジンex",
+   "thumb": "/assets/images/card_images/large/M4/050199_P_PANPUJINEX.jpg",
+   "setMark": "M4",
+   "number": "100",
+   "total": "083",
+   "rarityIcon": "ic_rare_sr_c",
+   "kind": "イラストレーター"
+  },
+  {
+   "cardId": "50200",
+   "name": "コバルオンex",
+   "thumb": "/assets/images/card_images/large/M4/050200_P_KOBARUONEX.jpg",
+   "setMark": "M4",
+   "number": "101",
+   "total": "083",
+   "rarityIcon": "ic_rare_sr_c",
+   "kind": "イラストレーター"
+  },
+  {
+   "cardId": "50201",
+   "name": "メガドラミドロex",
+   "thumb": "/assets/images/card_images/large/M4/050201_P_MDORAMIDOROEX.jpg",
+   "setMark": "M4",
+   "number": "102",
+   "total": "083",
+   "rarityIcon": "ic_rare_sr_c",
+   "kind": "イラストレーター"
+  },
+  {
+   "cardId": "50202",
+   "name": "チラチーノex",
+   "thumb": "/assets/images/card_images/large/M4/050202_P_CHIRACHINOEX.jpg",
+   "setMark": "M4",
+   "number": "103",
+   "total": "083",
+   "rarityIcon": "ic_rare_sr_c",
+   "kind": "イラストレーター"
+  },
+  {
+   "cardId": "50213",
+   "name": "メガゲッコウガex",
+   "thumb": "/assets/images/card_images/large/M4/050213_P_MGEKKOUGAEX.jpg",
+   "setMark": "M4",
+   "number": "114",
+   "total": "083",
+   "rarityIcon": "ic_rare_sar",
+   "kind": "イラストレーター"
+  },
+  {
+   "cardId": "50214",
+   "name": "メガフラエッテex",
+   "thumb": "/assets/images/card_images/large/M4/050214_P_MFURAETTEEX.jpg",
+   "setMark": "M4",
+   "number": "115",
+   "total": "083",
+   "rarityIcon": "ic_rare_sar",
+   "kind": "イラストレーター"
+  },
+  {
+   "cardId": "50215",
+   "name": "メガドラミドロex",
+   "thumb": "/assets/images/card_images/large/M4/050215_P_MDORAMIDOROEX.jpg",
+   "setMark": "M4",
+   "number": "116",
+   "total": "083",
+   "rarityIcon": "ic_rare_sar",
+   "kind": "イラストレーター"
+  },
+  {
+   "cardId": "50216",
+   "name": "チラチーノex",
+   "thumb": "/assets/images/card_images/large/M4/050216_P_CHIRACHINOEX.jpg",
+   "setMark": "M4",
+   "number": "117",
+   "total": "083",
+   "rarityIcon": "ic_rare_sar",
+   "kind": "イラストレーター"
+  },
+  {
+   "cardId": "50219",
+   "name": "メガゲッコウガex",
+   "thumb": "/assets/images/card_images/large/M4/050219_P_MGEKKOUGAEX.jpg",
+   "setMark": "M4",
+   "number": "120",
+   "total": "083",
+   "rarityIcon": "ic_rare_MUR",
+   "kind": "イラストレーター"
+  },
+  {
+   "cardId": "50156",
+   "name": "スペシャルレッドカード",
+   "thumb": "/assets/images/card_images/large/M4/050156_T_SUPESHIXYARUREDDOKADO.jpg",
+   "setMark": "M4",
+   "number": "072",
+   "total": "083",
+   "rarityIcon": "ic_rare_u_c",
+   "kind": "イラストレーター"
+  },
+  {
+   "cardId": "50157",
+   "name": "大漁ネット",
+   "thumb": "/assets/images/card_images/large/M4/050157_T_TAIRIXYOUNETTO.jpg",
+   "setMark": "M4",
+   "number": "073",
+   "total": "083",
+   "rarityIcon": "ic_rare_u_c",
+   "kind": "イラストレーター"
+  },
+  {
+   "cardId": "50158",
+   "name": "変化の書",
+   "thumb": "/assets/images/card_images/large/M4/050158_T_HENKANOSHIXYO.jpg",
+   "setMark": "M4",
+   "number": "074",
+   "total": "083",
+   "rarityIcon": "ic_rare_u_c",
+   "kind": "イラストレーター"
+  },
+  {
+   "cardId": "50159",
+   "name": "AZの安らぎ",
+   "thumb": "/assets/images/card_images/large/M4/050159_T_AZNOYASURAGI.jpg",
+   "setMark": "M4",
+   "number": "075",
+   "total": "083",
+   "rarityIcon": "ic_rare_u_c",
+   "kind": "イラストレーター"
+  },
+  {
+   "cardId": "50160",
+   "name": "ジプソ",
+   "thumb": "/assets/images/card_images/large/M4/050160_T_JIPUSO.jpg",
+   "setMark": "M4",
+   "number": "076",
+   "total": "083",
+   "rarityIcon": "ic_rare_u_c",
+   "kind": "イラストレーター"
+  },
+  {
+   "cardId": "50161",
+   "name": "ホミカの演奏",
+   "thumb": "/assets/images/card_images/large/M4/050161_T_HOMIKANOENSOU.jpg",
+   "setMark": "M4",
+   "number": "077",
+   "total": "083",
+   "rarityIcon": "ic_rare_u_c",
+   "kind": "イラストレーター"
+  },
+  {
+   "cardId": "50162",
+   "name": "マチエール",
+   "thumb": "/assets/images/card_images/large/M4/050162_T_MACHIERU.jpg",
+   "setMark": "M4",
+   "number": "078",
+   "total": "083",
+   "rarityIcon": "ic_rare_u_c",
+   "kind": "イラストレーター"
+  },
+  {
+   "cardId": "50163",
+   "name": "アンジュフラエッテ",
+   "thumb": "/assets/images/card_images/large/M4/050163_T_ANJIXYUFURAETTE.jpg",
+   "setMark": "M4",
+   "number": "079",
+   "total": "083",
+   "rarityIcon": "ic_rare_u_c",
+   "kind": "イラストレーター"
+  },
+  {
+   "cardId": "50164",
+   "name": "プリズムタワー",
+   "thumb": "/assets/images/card_images/large/M4/050164_T_PURIZUMUTAWA.jpg",
+   "setMark": "M4",
+   "number": "080",
+   "total": "083",
+   "rarityIcon": "ic_rare_u_c",
+   "kind": "イラストレーター"
+  },
+  {
+   "cardId": "50203",
+   "name": "エネルギー回収",
+   "thumb": "/assets/images/card_images/large/M4/050203_T_ENERUGIKAISHIXYUU.jpg",
+   "setMark": "M4",
+   "number": "104",
+   "total": "083",
+   "rarityIcon": "ic_rare_sr_c",
+   "kind": "イラストレーター"
+  },
+  {
+   "cardId": "50204",
+   "name": "ジャンボアイス",
+   "thumb": "/assets/images/card_images/large/M4/050204_T_JIXYANBOAISU.jpg",
+   "setMark": "M4",
+   "number": "105",
+   "total": "083",
+   "rarityIcon": "ic_rare_sr_c",
+   "kind": "イラストレーター"
+  },
+  {
+   "cardId": "50205",
+   "name": "スペシャルレッドカード",
+   "thumb": "/assets/images/card_images/large/M4/050205_T_SUPESHIXYARUREDDOKADO.jpg",
+   "setMark": "M4",
+   "number": "106",
+   "total": "083",
+   "rarityIcon": "ic_rare_sr_c",
+   "kind": "イラストレーター"
+  },
+  {
+   "cardId": "50206",
+   "name": "ツールスクラッパー",
+   "thumb": "/assets/images/card_images/large/M4/050206_T_TSURUSUKURAPPA.jpg",
+   "setMark": "M4",
+   "number": "107",
+   "total": "083",
+   "rarityIcon": "ic_rare_sr_c",
+   "kind": "イラストレーター"
+  },
+  {
+   "cardId": "50207",
+   "name": "AZの安らぎ",
+   "thumb": "/assets/images/card_images/large/M4/050207_T_AZNOYASURAGI.jpg",
+   "setMark": "M4",
+   "number": "108",
+   "total": "083",
+   "rarityIcon": "ic_rare_sr_c",
+   "kind": "イラストレーター"
+  },
+  {
+   "cardId": "50208",
+   "name": "ジプソ",
+   "thumb": "/assets/images/card_images/large/M4/050208_T_JIPUSO.jpg",
+   "setMark": "M4",
+   "number": "109",
+   "total": "083",
+   "rarityIcon": "ic_rare_sr_c",
+   "kind": "イラストレーター"
+  },
+  {
+   "cardId": "50209",
+   "name": "ホミカの演奏",
+   "thumb": "/assets/images/card_images/large/M4/050209_T_HOMIKANOENSOU.jpg",
+   "setMark": "M4",
+   "number": "110",
+   "total": "083",
+   "rarityIcon": "ic_rare_sr_c",
+   "kind": "イラストレーター"
+  },
+  {
+   "cardId": "50210",
+   "name": "マチエール",
+   "thumb": "/assets/images/card_images/large/M4/050210_T_MACHIERU.jpg",
+   "setMark": "M4",
+   "number": "111",
+   "total": "083",
+   "rarityIcon": "ic_rare_sr_c",
+   "kind": "イラストレーター"
+  },
+  {
+   "cardId": "50211",
+   "name": "なみのりビーチ",
+   "thumb": "/assets/images/card_images/large/M4/050211_T_NAMINORIBICHI.jpg",
+   "setMark": "M4",
+   "number": "112",
+   "total": "083",
+   "rarityIcon": "ic_rare_sr_c",
+   "kind": "イラストレーター"
+  },
+  {
+   "cardId": "50212",
+   "name": "プリズムタワー",
+   "thumb": "/assets/images/card_images/large/M4/050212_T_PURIZUMUTAWA.jpg",
+   "setMark": "M4",
+   "number": "113",
+   "total": "083",
+   "rarityIcon": "ic_rare_sr_c",
+   "kind": "イラストレーター"
+  },
+  {
+   "cardId": "50217",
+   "name": "AZの安らぎ",
+   "thumb": "/assets/images/card_images/large/M4/050217_T_AZNOYASURAGI.jpg",
+   "setMark": "M4",
+   "number": "118",
+   "total": "083",
+   "rarityIcon": "ic_rare_sar",
+   "kind": "イラストレーター"
+  },
+  {
+   "cardId": "50218",
+   "name": "ホミカの演奏",
+   "thumb": "/assets/images/card_images/large/M4/050218_T_HOMIKANOENSOU.jpg",
+   "setMark": "M4",
+   "number": "119",
+   "total": "083",
+   "rarityIcon": "ic_rare_sar",
+   "kind": "イラストレーター"
+  },
+  {
+   "cardId": "50165",
+   "name": "ニトロ炎エネルギー",
+   "thumb": "/assets/images/card_images/large/M4/050165_E_NITOROHONOOENERUGI.jpg",
+   "setMark": "M4",
+   "number": "081",
+   "total": "083",
+   "rarityIcon": "ic_rare_r_c",
+   "kind": null
+  },
+  {
+   "cardId": "50166",
+   "name": "バブル水エネルギー",
+   "thumb": "/assets/images/card_images/large/M4/050166_E_BABURUMIZUENERUGI.jpg",
+   "setMark": "M4",
+   "number": "082",
+   "total": "083",
+   "rarityIcon": "ic_rare_r_c",
+   "kind": null
+  },
+  {
+   "cardId": "50167",
+   "name": "マグネット鋼エネルギー",
+   "thumb": "/assets/images/card_images/large/M4/050167_E_MAGUNETTOHAGANEENERUGI.jpg",
+   "setMark": "M4",
+   "number": "083",
+   "total": "083",
+   "rarityIcon": "ic_rare_r_c",
+   "kind": null
+  }
+ ]
+}

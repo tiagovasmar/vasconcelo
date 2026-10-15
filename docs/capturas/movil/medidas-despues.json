@@ -1,0 +1,194 @@
+{
+  "360/inicio": {
+    "desborde": false,
+    "alturaCarrusel": 458,
+    "primeraTarjetaTop": 740,
+    "primeraTarjetaAlto": 404,
+    "alturaDocumento": 8201,
+    "camposMenosDe16px": 0
+  },
+  "360/catalogo": {
+    "desborde": false,
+    "alturaCarrusel": null,
+    "primeraTarjetaTop": 506,
+    "primeraTarjetaAlto": 449,
+    "alturaDocumento": 4477,
+    "camposMenosDe16px": 0
+  },
+  "360/catalogo-completo": {
+    "desborde": false,
+    "alturaCarrusel": null,
+    "primeraTarjetaTop": 506,
+    "primeraTarjetaAlto": 419,
+    "alturaDocumento": 4086,
+    "camposMenosDe16px": 0
+  },
+  "360/ficha-bajo-stock": {
+    "desborde": false,
+    "alturaCarrusel": null,
+    "primeraTarjetaTop": 4718,
+    "primeraTarjetaAlto": 433,
+    "alturaDocumento": 6139,
+    "camposMenosDe16px": 0
+  },
+  "360/ficha-disponible": {
+    "desborde": false,
+    "alturaCarrusel": null,
+    "primeraTarjetaTop": 4186,
+    "primeraTarjetaAlto": 408,
+    "alturaDocumento": 5582,
+    "camposMenosDe16px": 0
+  },
+  "360/ficha-sin-stock": {
+    "desborde": false,
+    "alturaCarrusel": null,
+    "primeraTarjetaTop": null,
+    "primeraTarjetaAlto": null,
+    "alturaDocumento": 5848,
+    "camposMenosDe16px": 0
+  },
+  "360/ficha-titulo-largo": {
+    "desborde": false,
+    "alturaCarrusel": null,
+    "primeraTarjetaTop": 3222,
+    "primeraTarjetaAlto": 476,
+    "alturaDocumento": 4685,
+    "camposMenosDe16px": 0
+  },
+  "360/carrito-vacio": {
+    "desborde": false,
+    "alturaCarrusel": null,
+    "primeraTarjetaTop": null,
+    "primeraTarjetaAlto": null,
+    "alturaDocumento": 1753,
+    "camposMenosDe16px": 0
+  },
+  "390/inicio": {
+    "desborde": false,
+    "alturaCarrusel": 472,
+    "primeraTarjetaTop": 755,
+    "primeraTarjetaAlto": 378,
+    "alturaDocumento": 8070,
+    "camposMenosDe16px": 0
+  },
+  "390/catalogo": {
+    "desborde": false,
+    "alturaCarrusel": null,
+    "primeraTarjetaTop": 490,
+    "primeraTarjetaAlto": 409,
+    "alturaDocumento": 4249,
+    "camposMenosDe16px": 0
+  },
+  "390/catalogo-completo": {
+    "desborde": false,
+    "alturaCarrusel": null,
+    "primeraTarjetaTop": 490,
+    "primeraTarjetaAlto": 409,
+    "alturaDocumento": 4096,
+    "camposMenosDe16px": 0
+  },
+  "390/ficha-bajo-stock": {
+    "desborde": false,
+    "alturaCarrusel": null,
+    "primeraTarjetaTop": 4816,
+    "primeraTarjetaAlto": 407,
+    "alturaDocumento": 6211,
+    "camposMenosDe16px": 0
+  },
+  "390/ficha-disponible": {
+    "desborde": false,
+    "alturaCarrusel": null,
+    "primeraTarjetaTop": 4251,
+    "primeraTarjetaAlto": 418,
+    "alturaDocumento": 5657,
+    "camposMenosDe16px": 0
+  },
+  "390/ficha-sin-stock": {
+    "desborde": false,
+    "alturaCarrusel": null,
+    "primeraTarjetaTop": null,
+    "primeraTarjetaAlto": null,
+    "alturaDocumento": 5942,
+    "camposMenosDe16px": 0
+  },
+  "390/ficha-titulo-largo": {
+    "desborde": false,
+    "alturaCarrusel": null,
+    "primeraTarjetaTop": 3163,
+    "primeraTarjetaAlto": 438,
+    "alturaDocumento": 4589,
+    "camposMenosDe16px": 0
+  },
+  "390/carrito-vacio": {
+    "desborde": false,
+    "alturaCarrusel": null,
+    "primeraTarjetaTop": null,
+    "primeraTarjetaAlto": null,
+    "alturaDocumento": 1729,
+    "camposMenosDe16px": 0
+  },
+  "430/inicio": {
+    "desborde": false,
+    "alturaCarrusel": 496,
+    "primeraTarjetaTop": 761,
+    "primeraTarjetaAlto": 393,
+    "alturaDocumento": 7970,
+    "camposMenosDe16px": 0
+  },
+  "430/catalogo": {
+    "desborde": false,
+    "alturaCarrusel": null,
+    "primeraTarjetaTop": 480,
+    "primeraTarjetaAlto": 422,
+    "alturaDocumento": 4106,
+    "camposMenosDe16px": 0
+  },
+  "430/catalogo-completo": {
+    "desborde": false,
+    "alturaCarrusel": null,
+    "primeraTarjetaTop": 480,
+    "primeraTarjetaAlto": 407,
+    "alturaDocumento": 4134,
+    "camposMenosDe16px": 0
+  },
+  "430/ficha-bajo-stock": {
+    "desborde": false,
+    "alturaCarrusel": null,
+    "primeraTarjetaTop": 4918,
+    "primeraTarjetaAlto": 422,
+    "alturaDocumento": 6328,
+    "camposMenosDe16px": 0
+  },
+  "430/ficha-disponible": {
+    "desborde": false,
+    "alturaCarrusel": null,
+    "primeraTarjetaTop": 4391,
+    "primeraTarjetaAlto": 431,
+    "alturaDocumento": 5810,
+    "camposMenosDe16px": 0
+  },
+  "430/ficha-sin-stock": {
+    "desborde": false,
+    "alturaCarrusel": null,
+    "primeraTarjetaTop": null,
+    "primeraTarjetaAlto": null,
+    "alturaDocumento": 6012,
+    "camposMenosDe16px": 0
+  },
+  "430/ficha-titulo-largo": {
+    "desborde": false,
+    "alturaCarrusel": null,
+    "primeraTarjetaTop": 3011,
+    "primeraTarjetaAlto": 438,
+    "alturaDocumento": 4437,
+    "camposMenosDe16px": 0
+  },
+  "430/carrito-vacio": {
+    "desborde": false,
+    "alturaCarrusel": null,
+    "primeraTarjetaTop": null,
+    "primeraTarjetaAlto": null,
+    "alturaDocumento": 1715,
+    "camposMenosDe16px": 0
+  }
+}

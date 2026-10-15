@@ -1,0 +1,4 @@
+{
+  "_ayuda": "Datos comerciales del dueño por SKU. Un SKU ausente (o con precio/stock en null) queda como «Precio a confirmar» / «Disponibilidad a confirmar» y NO se puede agregar a una consulta. Completá datos/precios-y-stock.csv y ejecutá `npm run precios:importar -- --write` (ver docs/OPERACION.md).",
+  "items": {}
+}

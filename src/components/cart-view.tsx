@@ -1,0 +1,504 @@
+"use client";
+
+import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { cartActions, useCart, type DeliveryDraft } from "@/features/cart/store";
+import { DeliverySchema, provinces } from "@/features/inquiries/schemas";
+import { buildMessage } from "@/features/inquiries/message";
+import { paymentMethods, pickupPoints } from "@/content/checkout-options";
+import { encargo as politicaEncargo, promo } from "@/content/politicas";
+import { ENCARGO_EXPLICACION } from "@/features/politicas/encargos";
+import { isPromoPayment, PROMO_CONDITION, transferDiscountMinor } from "@/features/politicas/promociones";
+import { LanguageBadge } from "./language-badge";
+import { kindLabel, wideKinds, type Language } from "@/content/schema";
+import { formatARS } from "@/lib/format";
+import { formatRate, splitInstallments } from "@/features/fx/convert";
+import { BoxArt, PackArt } from "./art";
+import { toneBg } from "./tones";
+import { useAccount } from "./account-provider";
+import { useBarraInferior } from "./use-barra-inferior";
+
+type ServerLine = {
+  productId: string;
+  status: "retired" | "ok" | "price_changed" | "out_of_stock" | "unavailable" | "over_limit" | "pending_commercial" | "encargo";
+  requestedQuantity: number;
+  maxQuantity: number;
+  unitPriceMinor: number | null;
+  unitPriceUsdMinor?: number | null;
+  previousPriceMinor: number | null;
+  product?: { slug: string; title: string; sku: string; language: Language; kind: keyof typeof kindLabel; fallbackTone: keyof typeof toneBg; imageSrc: string | null; imageAlt: string };
+};
+
+const field = "h-12 w-full border border-ink/40 bg-white px-3 text-base sm:text-sm aria-[invalid=true]:border-vermilion aria-[invalid=true]:bg-vermilion/5";
+const label = "mb-1 block text-[.7rem] font-bold uppercase tracking-[.14em] text-ink/70";
+const money = (m: number) => formatARS(m);
+
+function Thumb({ line }: { line: ServerLine }) {
+  const p = line.product;
+  if (!p) return <div className="h-full w-full bg-ink/10" />;
+  if (p.imageSrc) return <Image src={p.imageSrc} alt={p.imageAlt} width={160} height={160} className="h-full w-full object-contain" />;
+  const wide = wideKinds.includes(p.kind);
+  const text = kindLabel[p.kind].toUpperCase();
+  return wide ? <BoxArt tone={p.fallbackTone} label={text} className="w-[88%]" /> : <PackArt tone={p.fallbackTone} label={text} className="h-[88%] w-auto" />;
+}
+
+function deliveryPayload(d: DeliveryDraft) {
+  if (d.method === "andreani") return { method: "andreani", locality: d.locality, province: d.province, postalCode: d.postalCode };
+  if (d.method === "moto") return { method: "moto", locality: d.locality, postalCode: d.postalCode };
+  if (d.method === "retiro") return { method: "retiro", pickupPoint: d.pickupPoint };
+  return { method: d.method };
+}
+
+export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }) {
+  const cart = useCart();
+  const { user } = useAccount();
+  const prefilled = useRef(false);
+  const router = useRouter();
+  // false en el servidor y true en el navegador: evita diferencias de hidratación con el carrito guardado.
+  const mounted = useSyncExternalStore(() => () => {}, () => true, () => false);
+  const [lines, setLines] = useState<Record<string, ServerLine> | null>(null);
+  /** ¿El pedido califica para cuotas / 10% OFF por transferencia? Lo informa el servidor (al menos una caja disponible). */
+  const [qualifies, setQualifies] = useState(false);
+  /** Cotización con la que el servidor convirtió los precios USD (null si ningún precio depende del dólar). */
+  const [fx, setFx] = useState<{ rate10k: number; mode: "auto" | "manual"; warn: boolean } | null>(null);
+  const [loadError, setLoadError] = useState("");
+  const [retry, setRetry] = useState(0);
+  const [notices, setNotices] = useState<string[]>([]);
+  const [attempted, setAttempted] = useState(false);
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [serverFieldErrors, setServerFieldErrors] = useState<Record<string, string>>({});
+  const seq = useRef(0);
+  // Barra inferior del celular (resumen + próximo paso): se oculta cuando el resumen ya se ve y mientras se escribe en un campo (teclado abierto).
+  const [resumenVisible, setResumenVisible] = useState(false);
+  const [escribiendo, setEscribiendo] = useState(false);
+  useBarraInferior(mounted && cart.items.length > 0 && !resumenVisible && !escribiendo);
+  useEffect(() => {
+    const el = document.getElementById("resumen-title");
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(([e]) => setResumenVisible(e.isIntersecting), { threshold: 0 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [mounted, cart.items.length]);
+  useEffect(() => {
+    const campo = (t: EventTarget | null) => t instanceof HTMLElement && /^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName) && !["radio", "checkbox"].includes((t as HTMLInputElement).type);
+    const on = (e: FocusEvent) => { if (campo(e.target)) setEscribiendo(true); };
+    const off = () => setEscribiendo(false);
+    document.addEventListener("focusin", on);
+    document.addEventListener("focusout", off);
+    return () => { document.removeEventListener("focusin", on); document.removeEventListener("focusout", off); };
+  }, []);
+
+  // Con sesión iniciada, se aprovecha el nombre del perfil (una sola vez); como invitado sigue siendo opcional.
+  useEffect(() => {
+    if (user && !prefilled.current && !cart.contactName) {
+      prefilled.current = true;
+      cartActions.setContactName(user.name);
+    }
+  }, [user, cart.contactName]);
+
+  const itemsKey = cart.items.map((i) => `${i.productId}:${i.quantity}:${i.priceMinor}:${i.mode}`).join("|");
+
+  // Revalida con el servidor cada vez que cambia el carrito (precios, disponibilidad y límites).
+  useEffect(() => {
+    if (!mounted || cart.items.length === 0) return;
+    const mine = ++seq.current;
+    const ctl = new AbortController();
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetch("/api/cart/validate", {
+          method: "POST", headers: { "Content-Type": "application/json" }, signal: ctl.signal,
+          body: JSON.stringify({ items: cart.items.map((i) => ({ productId: i.productId, quantity: i.quantity, mode: i.mode, ...(i.mode === "buy" ? { expectedPriceMinor: i.priceMinor } : {}) })) }),
+        });
+        if (!res.ok) throw new Error(String(res.status));
+        const data = (await res.json()) as { lines: ServerLine[]; qualifiesForPromo: boolean; fx?: { rate10k: number; mode: "auto" | "manual"; warn: boolean } | null };
+        if (mine !== seq.current) return;
+        setLoadError("");
+        setQualifies(Boolean(data.qualifiesForPromo));
+        setFx(data.fx ?? null);
+        setLines(Object.fromEntries(data.lines.map((l) => [l.productId, l])));
+        // Cantidades por encima de lo disponible: se ajustan y se avisa.
+        for (const l of data.lines) {
+          if (l.status === "over_limit" && l.maxQuantity > 0) {
+            cartActions.setQuantity(l.productId, l.maxQuantity);
+            setNotices((n) => [...n, `Ajustamos la cantidad de «${l.product?.title}» a ${l.maxQuantity}: es lo máximo disponible por pedido.`]);
+          }
+        }
+      } catch (e) {
+        if ((e as Error).name === "AbortError") return;
+        if (mine === seq.current) setLoadError("No pudimos verificar precios y disponibilidad.");
+      }
+    }, 150);
+    return () => {
+      clearTimeout(t);
+      ctl.abort();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mounted, itemsKey, retry]);
+
+  const view = cart.items.map((item) => ({ item, line: lines?.[item.productId] }));
+  const blocking = view.filter(({ line }) => line && line.status !== "ok" && line.status !== "encargo");
+  const verifying = !lines || view.some(({ line }) => !line);
+  const unitOf = (v: (typeof view)[number]) => v.line?.unitPriceMinor ?? v.item.priceMinor;
+  // Lo que se compra (con precio) y lo que se consulta por encargo (sin precio ni cotización) van separados.
+  const stockView = view.filter((v) => v.item.mode !== "encargo");
+  const encargoView = view.filter((v) => v.item.mode === "encargo");
+  const mixed = stockView.length > 0 && encargoView.length > 0;
+  const subtotal = stockView.reduce((n, v) => n + (v.line?.status === "unavailable" || v.line?.status === "retired" || v.line?.status === "out_of_stock" || v.line?.status === "pending_commercial" ? 0 : unitOf(v) * v.item.quantity), 0);
+  const units = stockView.reduce((n, v) => n + v.item.quantity, 0);
+  const encargoUnits = encargoView.reduce((n, v) => n + v.item.quantity, 0);
+  // Promoción: se evalúa con lo que se compra; el servidor la vuelve a validar al preparar la consulta.
+  const promoLines = stockView
+    .filter((v) => v.line?.product && v.line.unitPriceMinor !== null && (v.line.status === "ok" || v.line.status === "price_changed"))
+    .map((v) => ({ kind: v.line!.product!.kind, quantity: v.item.quantity, unitPriceMinor: v.line!.unitPriceMinor! }));
+  const discount = qualifies ? transferDiscountMinor(promoLines, cart.payment) : 0;
+
+  // Si el pedido dejó de calificar (p. ej. se quitó la última caja), no puede quedar elegido un medio de pago de promoción.
+  useEffect(() => {
+    if (lines && !qualifies && isPromoPayment(cart.payment)) cartActions.setPayment("coordinar");
+  }, [lines, qualifies, cart.payment]);
+
+  const delivery = cart.delivery;
+  const parsed = useMemo(() => (delivery.method ? DeliverySchema.safeParse(deliveryPayload(delivery)) : null), [delivery]);
+  const errors = useMemo(() => {
+    const out: Record<string, string> = {};
+    if (!delivery.method) out.method = "Elegí cómo querés recibirlo.";
+    else if (parsed && !parsed.success) for (const i of parsed.error.issues) out[String(i.path[0])] ??= i.message;
+    return { ...out, ...serverFieldErrors };
+  }, [delivery.method, parsed, serverFieldErrors]);
+  const show = (k: string) => (attempted || touched[k]) && errors[k];
+  const touch = (k: string) => setTouched((t) => ({ ...t, [k]: true }));
+  const deliveryOk = Boolean(parsed?.success);
+
+  const preview = (() => {
+    if (cart.items.length === 0 || verifying) return "";
+    const okLines = view.filter((v) => v.line?.product && v.line.status !== "unavailable");
+    const method = parsed?.success ? parsed.data : { method: "retiro" as const, pickupPoint: pickupPoints[0].id };
+    let text = buildMessage({
+      reference: "(se asigna al preparar la consulta)", contactName: cart.contactName.trim() || undefined,
+      lines: okLines.map((v) => ({ quantity: v.item.quantity, title: v.line!.product!.title, language: v.line!.product!.language, sku: v.line!.product!.sku, unitPriceMinor: v.item.mode === "encargo" ? null : unitOf(v) })),
+      subtotalMinor: subtotal, discountMinor: discount, delivery: method, paymentLabel: paymentMethods.find((p) => p.id === cart.payment)?.label ?? "",
+    });
+    if (!parsed?.success) text = text.replace(/Entrega: .*/, "Entrega: (completá los datos de entrega)");
+    return text;
+  })();
+
+  const canContinue = cart.items.length > 0 && !verifying && blocking.length === 0 && !loadError && !submitting;
+
+  const renderLine = ({ item, line }: (typeof view)[number]) => {
+    const porEncargo = item.mode === "encargo";
+    const pendingPrice = line?.status === "pending_commercial";
+    const unit = line?.unitPriceMinor ?? item.priceMinor;
+    const bad = line && line.status !== "ok" && line.status !== "encargo";
+    return (
+      <li key={item.productId} className="py-4" data-testid={`linea-${item.productId}`}>
+        <div className="grid grid-cols-[84px_1fr] gap-3 sm:grid-cols-[96px_1fr_auto] sm:gap-4">
+          <div className={`flex aspect-square items-center justify-center overflow-hidden ${line?.product ? (line.product.imageSrc ? "bg-white" : toneBg[line.product.fallbackTone]) : "bg-ink/10"}`}>{line && <Thumb line={line} />}</div>
+          <div className="min-w-0">
+            {line?.product ? (
+              <>
+                <Link href={`/productos/${line.product.slug}`} className="font-bold leading-tight hover:underline">{line.product.title}</Link>
+                <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-ink/65"><LanguageBadge language={line.product.language} size="plain" /> · {kindLabel[line.product.kind]} sellado · SKU {line.product.sku}</p>
+              </>
+            ) : (
+              <p className="font-bold">{line ? "Producto ya no disponible" : "Cargando…"}</p>
+            )}
+            <p className="mt-1 text-sm">
+              {porEncargo ? <b data-testid={`cotizacion-${item.productId}`}>Cotización a confirmar</b> : (
+                <>
+                  {line?.status === "price_changed" && line.previousPriceMinor !== null && <s className="mr-2 text-ink/50">{money(line.previousPriceMinor)}</s>}
+                  {pendingPrice ? <b>Precio a confirmar</b> : (<><b>{money(unit)}</b> <span className="text-ink/60">c/u</span></>)}
+                </>
+              )}
+            </p>
+          </div>
+          <div className="col-span-2 flex items-center justify-between gap-3 sm:col-span-1 sm:flex-col sm:items-end">
+            <div className="flex h-12 items-center border border-ink/40 bg-white" role="group" aria-label={`Cantidad de ${line?.product?.title ?? "producto"}`}>
+              <button type="button" onClick={() => (item.quantity <= 1 ? cartActions.remove(item.productId) : cartActions.setQuantity(item.productId, item.quantity - 1))} aria-label={item.quantity <= 1 ? "Quitar del carrito" : "Menos"} className="h-12 w-11 text-xl hover:bg-gold">−</button>
+              <output className="w-9 text-center font-bold" aria-live="polite" data-testid={`cantidad-${item.productId}`}>{item.quantity}</output>
+              <button type="button" onClick={() => cartActions.setQuantity(item.productId, item.quantity + 1)} disabled={Boolean(line && item.quantity >= (line.maxQuantity || 99))} aria-label="Más" className="h-12 w-11 text-xl hover:bg-gold disabled:opacity-40">+</button>
+            </div>
+            <p className="text-lg font-extrabold" data-testid={`subtotal-${item.productId}`}>{porEncargo || pendingPrice ? "—" : money(unit * item.quantity)}</p>
+            <button type="button" onClick={() => cartActions.remove(item.productId)} className="min-h-11 text-sm font-semibold underline hover:text-vermilion" aria-label={`Quitar ${line?.product?.title ?? "producto"} del carrito`}>Quitar</button>
+          </div>
+        </div>
+        {bad && line.status === "price_changed" && (
+          <div role="alert" className="mt-3 border-l-4 border-vermilion bg-vermilion/10 p-3 text-sm">
+            <p><b>Cambió el precio.</b> Antes {money(line.previousPriceMinor ?? 0)}, ahora {money(line.unitPriceMinor ?? 0)}. Confirmalo para continuar.</p>
+            <button type="button" onClick={() => cartActions.acceptPrice(item.productId, line.unitPriceMinor ?? item.priceMinor)} className="mt-2 min-h-11 bg-ink px-4 font-bold text-paper hover:bg-emerald">Aceptar el nuevo precio</button>
+          </div>
+        )}
+        {bad && line.status === "pending_commercial" && (
+          <div role="alert" className="mt-3 border-l-4 border-vermilion bg-vermilion/10 p-3 text-sm" data-testid="aviso-pendiente">
+            <p><b>Todavía no se puede comprar.</b> El precio y la disponibilidad de este producto están por confirmarse. Podés consultarlo por encargo o quitarlo del carrito.</p>
+            <button type="button" onClick={() => cartActions.setMode(item.productId, "encargo")} className="mt-2 min-h-11 bg-ink px-4 font-bold text-paper hover:bg-emerald">Consultar por encargo</button>
+          </div>
+        )}
+        {bad && line.status === "retired" && (
+          <p role="alert" className="mt-3 border-l-4 border-vermilion bg-vermilion/10 p-3 text-sm" data-testid="aviso-retirado">
+            <b>Este producto fue retirado de la tienda.</b> Ya no se puede comprar ni consultar por encargo: quitalo del carrito para continuar.
+          </p>
+        )}
+        {bad && (line.status === "out_of_stock" || line.status === "unavailable") && (
+          <div role="alert" className="mt-3 border-l-4 border-vermilion bg-vermilion/10 p-3 text-sm">
+            <p><b>{line.status === "out_of_stock" ? "Sin stock por ahora." : "Este producto ya no está en el catálogo."}</b> {line.status === "out_of_stock" ? "Podés consultarlo por encargo o quitarlo del carrito para continuar." : "Quitalo del carrito para continuar."}</p>
+            {line.status === "out_of_stock" && <button type="button" onClick={() => cartActions.setMode(item.productId, "encargo")} className="mt-2 min-h-11 bg-ink px-4 font-bold text-paper hover:bg-emerald">Consultar por encargo</button>}
+          </div>
+        )}
+      </li>
+    );
+  };
+
+  async function submit() {
+    setAttempted(true);
+    setSubmitError("");
+    setServerFieldErrors({});
+    if (!canContinue) return;
+    if (!parsed?.success) {
+      document.getElementById("entrega")?.scrollIntoView({ block: "start" });
+      return;
+    }
+    const itemsPayload = cart.items.map((i) => ({ productId: i.productId, quantity: i.quantity, mode: i.mode, ...(i.mode === "buy" ? { expectedPriceMinor: i.priceMinor } : {}) }));
+    const sig = JSON.stringify([[...itemsPayload].sort((a, b) => a.productId.localeCompare(b.productId)).map((i) => [i.productId, i.quantity, i.mode]), parsed.data, cart.payment, cart.contactName.trim()]);
+    // Misma clave mientras el contenido no cambie; si cambia, clave nueva.
+    const key = cart.idem?.sig === sig ? cart.idem.key : crypto.randomUUID().replace(/-/g, "");
+    if (cart.idem?.sig !== sig) cartActions.setIdempotency({ sig, key });
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/inquiries", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: itemsPayload, delivery: parsed.data, payment: cart.payment, contactName: cart.contactName.trim() || undefined, idempotencyKey: key }),
+      });
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.reference) {
+        router.push(`/carrito/consulta/${data.reference}?abrir=1`);
+        return; // el carrito se conserva
+      }
+      const err = data?.error;
+      if (err?.code === "invalid_input" && Array.isArray(err.details)) {
+        const fe: Record<string, string> = {};
+        for (const d of err.details as Array<{ path: string; message: string }>) fe[d.path.split(".")[1] ?? d.path] ??= d.message;
+        setServerFieldErrors(fe);
+      }
+      if (["price_changed", "pending_commercial", "out_of_stock", "unavailable", "retired", "over_limit", "promo_not_eligible"].includes(err?.code)) setRetry((n) => n + 1);
+      setSubmitError(err?.message ?? "No pudimos preparar tu consulta. Intentá de nuevo.");
+    } catch {
+      setSubmitError("No pudimos conectarnos. Tu consulta no se guardó: revisá tu conexión e intentá de nuevo.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (!mounted) {
+    return <p className="py-16 text-center text-ink/60" role="status">Cargando tu carrito…</p>;
+  }
+
+  if (cart.items.length === 0) {
+    return (
+      <div className="border border-dashed border-ink/40 bg-white/60 p-8 text-center sm:p-16">
+        <p className="display text-4xl normal-case sm:text-5xl">Tu carrito está vacío.</p>
+        <p className="mx-auto mt-3 max-w-md text-sm text-ink/70">Explorá los sellados y sumá lo que quieras: después coordinamos por WhatsApp.</p>
+        <Link href="/sellados" className="mt-6 inline-block bg-gold px-6 py-3.5 font-bold hover:bg-ink hover:text-paper">Ver todos los sellados</Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-4 pb-20 sm:gap-6 lg:grid-cols-[1.55fr_1fr] lg:items-start lg:pb-0">
+      <div className="space-y-4 sm:space-y-6">
+        {notices.length > 0 && (
+          <div role="status" className="border-l-4 border-emerald bg-emerald/10 p-4 text-sm">
+            {notices.map((n, i) => <p key={i}>{n}</p>)}
+            <button type="button" onClick={() => setNotices([])} className="mt-2 font-semibold underline">Entendido</button>
+          </div>
+        )}
+        {loadError && (
+          <div role="alert" className="border-l-4 border-vermilion bg-vermilion/10 p-4 text-sm">
+            <p>{loadError} No podemos continuar hasta verificar tu pedido.</p>
+            <button type="button" onClick={() => setRetry((n) => n + 1)} className="mt-2 font-semibold underline">Reintentar</button>
+          </div>
+        )}
+
+        <section aria-labelledby="carrito-items" className="border border-ink/25 bg-white/70 p-4 sm:p-6">
+          <h2 id="carrito-items" className="display text-3xl normal-case">Tu carrito</h2>
+          {verifying && !loadError && <p className="mt-1 text-xs text-ink/60" role="status">Verificando precios y disponibilidad…</p>}
+          {stockView.length > 0 && (
+            <>
+              {mixed && <h3 className="mt-4 text-sm font-bold uppercase tracking-[.12em] text-ink/70">Para comprar (disponibles)</h3>}
+              <ul className="mt-4 divide-y divide-ink/15" data-testid="lineas-compra">{stockView.map(renderLine)}</ul>
+            </>
+          )}
+          {encargoView.length > 0 && (
+            <div className={stockView.length > 0 ? "mt-8 border-t border-ink/25 pt-5" : ""} data-testid="seccion-encargo">
+              <h3 id="encargo-title" className="text-sm font-bold uppercase tracking-[.12em] text-ink/70">Por encargo · sin cotizar</h3>
+              <p className="mt-2 text-sm text-ink/80">{ENCARGO_EXPLICACION}</p>
+              <p className="mt-1 text-xs text-ink/65">Consultar no reserva mercadería ni compromete el pedido: el proveedor, la disponibilidad, la cotización y la fecha se confirman antes. No hay precio ni seña hasta que se cotice.</p>
+              <ul className="mt-3 divide-y divide-ink/15" data-testid="lineas-encargo">{encargoView.map(renderLine)}</ul>
+            </div>
+          )}
+          <p className="mt-4 border-t border-ink/15 pt-3 text-sm lg:hidden" data-testid="proximo-paso">
+            {stockView.length > 0 && <><b data-testid="proximo-paso-subtotal">{money(subtotal)}</b> en productos · </>}
+            <a href="#entrega" className="font-semibold underline">Siguiente: elegí cómo lo recibís ↓</a>
+          </p>
+        </section>
+
+        <section id="entrega" aria-labelledby="entrega-title" className="scroll-mt-4 border border-ink/25 bg-white/70 p-4 sm:p-6">
+          <h2 id="entrega-title" className="display text-3xl normal-case">¿Cómo lo recibís?</h2>
+          <fieldset className="mt-4" aria-describedby={show("method") ? "err-method" : undefined}>
+            <legend className="sr-only">Modalidad de entrega</legend>
+            <div className="grid gap-3 sm:grid-cols-3">
+              {([
+                ["andreani", "Andreani", "Envío a todo el país. Costo y plazo a coordinar."],
+                ["moto", "Moto — CABA y AMBA", "Cobertura a confirmar por WhatsApp."],
+                ["retiro", "Retiro — Ramos Mejía / Haedo", "Día y horario a coordinar por WhatsApp."],
+              ] as const).map(([id, title, hint]) => (
+                <label key={id} className={`flex min-h-20 cursor-pointer gap-3 border p-3 text-sm ${delivery.method === id ? "border-ink bg-gold/30" : "border-ink/30 bg-white hover:border-ink"}`}>
+                  <input type="radio" name="entrega" value={id} checked={delivery.method === id} onChange={() => { cartActions.setDelivery({ method: id }); setServerFieldErrors({}); touch("method"); }} className="mt-1 h-5 w-5 accent-[#0b4032]" />
+                  <span><b className="block">{title}</b><span className="text-ink/65">{hint}</span></span>
+                </label>
+              ))}
+            </div>
+            {show("method") && <p id="err-method" role="alert" className="mt-2 text-sm font-semibold text-vermilion">{errors.method}</p>}
+          </fieldset>
+
+          {(delivery.method === "andreani" || delivery.method === "moto") && (
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              <Field id="locality" label="Localidad" error={show("locality") ? errors.locality : undefined}>
+                <input id="locality" autoComplete="address-level2" value={delivery.locality} onChange={(e) => cartActions.setDelivery({ locality: e.target.value })} onBlur={() => touch("locality")} aria-invalid={Boolean(show("locality"))} aria-describedby={show("locality") ? "err-locality" : undefined} className={field} />
+              </Field>
+              {delivery.method === "andreani" && (
+                <Field id="province" label="Provincia" error={show("province") ? errors.province : undefined}>
+                  <select id="province" autoComplete="address-level1" value={delivery.province} onChange={(e) => cartActions.setDelivery({ province: e.target.value })} onBlur={() => touch("province")} aria-invalid={Boolean(show("province"))} aria-describedby={show("province") ? "err-province" : undefined} className={field}>
+                    <option value="">Elegí una provincia</option>
+                    {provinces.map((p) => <option key={p}>{p}</option>)}
+                  </select>
+                </Field>
+              )}
+              <Field id="postalCode" label="Código postal" error={show("postalCode") ? errors.postalCode : undefined}>
+                <input id="postalCode" autoComplete="postal-code" inputMode="text" value={delivery.postalCode} onChange={(e) => cartActions.setDelivery({ postalCode: e.target.value })} onBlur={() => touch("postalCode")} aria-invalid={Boolean(show("postalCode"))} aria-describedby={show("postalCode") ? "err-postalCode" : undefined} placeholder="Ej.: 1704" className={field} />
+              </Field>
+              <p className="self-end text-xs text-ink/65">{delivery.method === "moto" ? "Solo CABA y AMBA: confirmamos la cobertura por WhatsApp. " : "El costo y el plazo se coordinan por WhatsApp. "}No pedimos DNI ni dirección completa ahora.</p>
+            </div>
+          )}
+          {delivery.method === "retiro" && (
+            <div className="mt-5 max-w-sm">
+              <Field id="pickupPoint" label="Punto de retiro" error={show("pickupPoint") ? errors.pickupPoint : undefined}>
+                <select id="pickupPoint" value={delivery.pickupPoint} onChange={(e) => cartActions.setDelivery({ pickupPoint: e.target.value })} onBlur={() => touch("pickupPoint")} aria-invalid={Boolean(show("pickupPoint"))} aria-describedby={show("pickupPoint") ? "err-pickupPoint" : undefined} className={field}>
+                  <option value="">Elegí un punto</option>
+                  {pickupPoints.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
+                </select>
+              </Field>
+              <p className="mt-2 text-xs text-ink/65">La dirección y el horario exactos se acuerdan por WhatsApp.</p>
+            </div>
+          )}
+
+          <div className="mt-6 max-w-sm border-t border-ink/15 pt-4">
+            <label htmlFor="contactName" className={label}>Tu nombre (opcional)</label>
+            <input id="contactName" autoComplete="name" maxLength={60} value={cart.contactName} onChange={(e) => cartActions.setContactName(e.target.value)} className={field} />
+          </div>
+        </section>
+
+        <section aria-labelledby="pago-title" className="border border-ink/25 bg-white/70 p-4 sm:p-6">
+          <h2 id="pago-title" className="display text-3xl normal-case">¿Cómo preferís pagar?</h2>
+          <p className={`mt-2 text-sm ${qualifies ? "font-semibold text-emerald" : "text-ink/75"}`} data-testid="promo-estado" role="status">
+            {qualifies
+              ? `Tu pedido incluye una caja: podés elegir ${promo.installments} cuotas sin interés o ${promo.transferDiscountPercent}% OFF por transferencia (alternativas, no se acumulan).`
+              : `${promo.installments} cuotas sin interés o ${promo.transferDiscountPercent}% OFF por transferencia: para ${PROMO_CONDITION}. Con sobres solos o con productos por encargo no aplican.`}
+          </p>
+          <div className="mt-4 space-y-2">
+            {paymentMethods.map((m) => {
+              const locked = isPromoPayment(m.id) && !qualifies;
+              return (
+                <label key={m.id} className={`flex min-h-12 items-center gap-3 border p-3 text-sm ${locked ? "cursor-not-allowed border-ink/20 bg-ink/5 text-ink/55" : `cursor-pointer ${cart.payment === m.id ? "border-ink bg-gold/30" : "border-ink/30 bg-white"}`}`}>
+                  <input type="radio" name="pago" value={m.id} checked={cart.payment === m.id} disabled={locked} onChange={() => cartActions.setPayment(m.id)} className="h-5 w-5 accent-[#0b4032]" />
+                  <span><b>{m.label}</b>{locked && <span className="block text-xs font-normal">Disponible al sumar una caja a tu pedido.</span>}</span>
+                </label>
+              );
+            })}
+          </div>
+          <p className="mt-2 text-xs text-ink/65">El pago se acuerda con la tienda en el chat. No se cobra nada en esta web ni te pedimos datos bancarios.</p>
+        </section>
+        <p className="text-sm">¿Ya tenés cuenta? <Link href="/cuenta" className="font-semibold underline">Iniciá sesión</Link> (opcional: podés consultar como invitado).</p>
+      </div>
+
+      <aside id="resumen" className="scroll-mt-4 space-y-4 sm:space-y-6 lg:sticky lg:top-4" aria-label="Resumen del pedido">
+        <section className="border border-emerald/40 bg-emerald/10 p-5 sm:p-6" aria-labelledby="resumen-title">
+          <h2 id="resumen-title" className="display text-3xl normal-case">Resumen del pedido</h2>
+          {stockView.length > 0 ? (
+            <>
+              <dl className="mt-4 space-y-2 text-base">
+                <div className="flex justify-between"><dt>{mixed ? "Productos disponibles" : "Productos"} ({units})</dt><dd data-testid="resumen-productos">{money(subtotal)}</dd></div>
+                {discount > 0 && <div className="flex justify-between text-emerald"><dt>Descuento por transferencia ({promo.transferDiscountPercent}%)</dt><dd className="font-semibold" data-testid="resumen-descuento">−{money(discount)}</dd></div>}
+                <div className="flex justify-between"><dt>Envío</dt><dd className="font-semibold" data-testid="resumen-envio">A coordinar</dd></div>
+                <div className="flex items-end justify-between border-t border-ink/20 pt-3"><dt className="text-lg font-bold">{discount > 0 ? "Subtotal sin descuento" : "Subtotal de productos"}</dt><dd className="text-3xl font-extrabold" data-testid="resumen-subtotal">{money(subtotal)}</dd></div>
+                {discount > 0 && <div className="flex items-end justify-between"><dt className="font-bold">Productos con descuento</dt><dd className="text-2xl font-extrabold" data-testid="resumen-total-descuento">{money(subtotal - discount)}</dd></div>}
+              </dl>
+              {cart.payment === "tarjeta-3-cuotas" && qualifies && subtotal > 0 && (
+                <p className="mt-2 text-sm font-semibold" data-testid="resumen-cuotas">{promo.installments} cuotas sin interés: {splitInstallments(subtotal, promo.installments).map((c) => money(c)).join(" + ")} = {money(subtotal)}</p>
+              )}
+              {fx && stockView.some((v) => v.line?.unitPriceUsdMinor) && <p className="mt-1 text-xs text-ink/70" data-testid="resumen-fx">Precios en pesos calculados con {fx.mode === "manual" ? "la cotización fijada por la tienda" : "el dólar blue (venta)"} a {formatRate(fx.rate10k)} por dólar, redondeados a múltiplos de $100 por unidad. La consulta que prepares guarda esta cotización.</p>}
+              <p className="mt-1 text-xs text-ink/70">{discount > 0 ? "El 10% OFF se calcula sobre los productos disponibles de un pedido con caja; el envío no entra. " : ""}{mixed ? "No incluye los productos por encargo (sin cotizar). " : ""}Envío e importe final se confirman por WhatsApp.</p>
+            </>
+          ) : (
+            <dl className="mt-4 space-y-2 text-base">
+              <div className="flex justify-between"><dt>Productos con precio</dt><dd data-testid="resumen-productos">—</dd></div>
+              <div className="flex justify-between"><dt>Envío</dt><dd className="font-semibold" data-testid="resumen-envio">A coordinar</dd></div>
+            </dl>
+          )}
+          {encargoView.length > 0 && (
+            <div className="mt-3 border-t border-ink/15 pt-3 text-sm" data-testid="resumen-encargo">
+              <p><b>Por encargo:</b> {encargoView.length} {encargoView.length === 1 ? "producto" : "productos"} ({encargoUnits} {encargoUnits === 1 ? "unidad" : "unidades"}) · cotización a confirmar.</p>
+              <p className="mt-1 text-xs text-ink/70">Si se confirman la disponibilidad y la cotización, la seña es del {politicaEncargo.senaPercent}% de lo cotizado y el saldo del {100 - politicaEncargo.senaPercent}%. Todavía no hay importe ni seña que pagar. Los descuentos no se aplican a los encargos.</p>
+            </div>
+          )}
+          <dl className="mt-3 space-y-1 border-t border-ink/15 pt-3 text-sm">
+            <div className="flex justify-between gap-3"><dt className="text-ink/65">Entrega</dt><dd className="text-right font-semibold">{delivery.method === "andreani" ? "Andreani" : delivery.method === "moto" ? "Moto CABA/AMBA" : delivery.method === "retiro" ? "Retiro" : "Sin elegir"}</dd></div>
+            <div className="flex justify-between gap-3"><dt className="text-ink/65">Pago</dt><dd className="text-right font-semibold">{paymentMethods.find((p) => p.id === cart.payment)?.label}</dd></div>
+          </dl>
+
+          {blocking.length > 0 && <p role="alert" className="mt-4 text-sm font-semibold text-vermilion">Resolvé los avisos del carrito para continuar.</p>}
+          {submitError && <p role="alert" className="mt-4 border-l-4 border-vermilion bg-vermilion/10 p-3 text-sm font-semibold">{submitError}</p>}
+          <button type="button" onClick={submit} disabled={!canContinue} aria-describedby="cta-nota" className="mt-5 flex min-h-14 w-full items-center justify-center gap-2 bg-emerald px-6 text-lg font-bold text-paper hover:bg-emerald-2 disabled:cursor-not-allowed disabled:opacity-50">
+            {submitting ? "Preparando tu consulta…" : stockView.length === 0 && encargoView.length > 0 ? "Consultar por encargo por WhatsApp" : "Continuar por WhatsApp"}
+          </button>
+          {attempted && !deliveryOk && canContinue && <p role="alert" className="mt-2 text-sm font-semibold text-vermilion">Completá los datos de entrega para continuar.</p>}
+          <p id="cta-nota" className="mt-3 text-center text-sm">
+            {whatsappConfigured ? "Se abrirá el chat con tu pedido listo. Solo tenés que enviarlo." : "Modo demostración: se prepara tu consulta y verás el mensaje para copiarlo; todavía no hay un chat configurado."}
+          </p>
+          <p className="mt-2 text-center text-xs text-ink/65">Abrir WhatsApp no confirma pago, reserva ni venta. Disponibilidad y pago sujetos a confirmación.</p>
+        </section>
+
+        <section className="border border-ink/25 bg-white/70 p-5 sm:p-6" aria-labelledby="preview-title">
+          <h2 id="preview-title" className="display text-2xl normal-case">Así llega tu consulta</h2>
+          <pre tabIndex={0} aria-label="Vista previa del mensaje" className="mt-3 max-h-80 overflow-auto whitespace-pre-wrap break-words border border-ink/15 bg-paper-2 p-3 font-mono text-xs leading-relaxed" data-testid="vista-previa">{preview || "Estamos verificando tu pedido…"}</pre>
+          <p className="mt-2 text-xs text-ink/60">Vista previa: la referencia y los importes finales los fija el servidor al preparar la consulta.</p>
+        </section>
+      </aside>
+      {!resumenVisible && !escribiendo && (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-ink bg-paper px-3 py-2 pb-[max(.5rem,env(safe-area-inset-bottom))] shadow-[0_-6px_16px_rgba(18,23,21,.18)] lg:hidden" data-testid="barra-carrito">
+          <div className="mx-auto flex max-w-[640px] items-center gap-3">
+            <p className="min-w-0 flex-1 text-sm leading-tight">
+              {stockView.length > 0 ? <><span className="block text-xs text-ink/70">Subtotal de productos ({units})</span><b className="text-lg">{money(subtotal)}</b></> : <b>Consulta por encargo</b>}
+            </p>
+            <button type="button" onClick={() => document.getElementById("resumen")?.scrollIntoView({ behavior: "smooth", block: "start" })} className="h-11 shrink-0 bg-emerald px-4 text-sm font-bold text-paper hover:bg-emerald-2">
+              Ver resumen y continuar
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Field({ id, label: text, error, children }: { id: string; label: string; error?: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label htmlFor={id} className={label}>{text}</label>
+      {children}
+      {error && <p id={`err-${id}`} role="alert" className="mt-1 text-sm font-semibold text-vermilion">{error}</p>}
+    </div>
+  );
+}

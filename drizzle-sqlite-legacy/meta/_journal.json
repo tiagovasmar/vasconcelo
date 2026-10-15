@@ -1,0 +1,55 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1791835440689,
+      "tag": "0000_hesitant_bloodaxe",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1791837254958,
+      "tag": "0001_woozy_talos",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1791860433628,
+      "tag": "0002_outgoing_rhodey",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1791936240501,
+      "tag": "0003_powerful_anthem",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1791948576719,
+      "tag": "0004_tanda6_usd_fx_media",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1791957789171,
+      "tag": "0005_serious_darwin",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1791993089668,
+      "tag": "0006_ancient_spacker_dave",
+      "breakpoints": true
+    }
+  ]
+}

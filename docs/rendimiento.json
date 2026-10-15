@@ -1,0 +1,152 @@
+{
+  "medidoEl": "2026-10-12T22:40:35.852Z",
+  "base": "http://localhost:3300",
+  "corridas": 7,
+  "filas": [
+    {
+      "perfil": "móvil",
+      "página": "inicio",
+      "FCP ms": 1084,
+      "LCP ms": 1084,
+      "CLS": 0,
+      "TBT ms": 97,
+      "KB transferidos": 279
+    },
+    {
+      "perfil": "móvil",
+      "página": "catálogo",
+      "FCP ms": 932,
+      "LCP ms": 932,
+      "CLS": 0,
+      "TBT ms": 94,
+      "KB transferidos": 303
+    },
+    {
+      "perfil": "móvil",
+      "página": "ficha (lista no disponible)",
+      "FCP ms": 1072,
+      "LCP ms": 1072,
+      "CLS": 0,
+      "TBT ms": 89,
+      "KB transferidos": 264
+    },
+    {
+      "perfil": "móvil",
+      "página": "ficha (lista completa)",
+      "FCP ms": 1148,
+      "LCP ms": 1148,
+      "CLS": 0,
+      "TBT ms": 94,
+      "KB transferidos": 268
+    },
+    {
+      "perfil": "móvil",
+      "página": "expansión",
+      "FCP ms": 936,
+      "LCP ms": 936,
+      "CLS": 0,
+      "TBT ms": 93,
+      "KB transferidos": 255
+    },
+    {
+      "perfil": "móvil",
+      "página": "carrito",
+      "FCP ms": 836,
+      "LCP ms": 836,
+      "CLS": 0,
+      "TBT ms": 117,
+      "KB transferidos": 279
+    },
+    {
+      "perfil": "móvil",
+      "página": "cómo comprar",
+      "FCP ms": 884,
+      "LCP ms": 884,
+      "CLS": 0,
+      "TBT ms": 92,
+      "KB transferidos": 234
+    },
+    {
+      "perfil": "móvil",
+      "página": "ingresar",
+      "FCP ms": 848,
+      "LCP ms": 848,
+      "CLS": 0,
+      "TBT ms": 94,
+      "KB transferidos": 254
+    },
+    {
+      "perfil": "escritorio",
+      "página": "inicio",
+      "FCP ms": 152,
+      "LCP ms": 152,
+      "CLS": 0,
+      "TBT ms": 0,
+      "KB transferidos": 280
+    },
+    {
+      "perfil": "escritorio",
+      "página": "catálogo",
+      "FCP ms": 148,
+      "LCP ms": 148,
+      "CLS": 0,
+      "TBT ms": 0,
+      "KB transferidos": 304
+    },
+    {
+      "perfil": "escritorio",
+      "página": "ficha (lista no disponible)",
+      "FCP ms": 152,
+      "LCP ms": 152,
+      "CLS": 0,
+      "TBT ms": 0,
+      "KB transferidos": 267
+    },
+    {
+      "perfil": "escritorio",
+      "página": "ficha (lista completa)",
+      "FCP ms": 160,
+      "LCP ms": 160,
+      "CLS": 0,
+      "TBT ms": 0,
+      "KB transferidos": 271
+    },
+    {
+      "perfil": "escritorio",
+      "página": "expansión",
+      "FCP ms": 136,
+      "LCP ms": 136,
+      "CLS": 0,
+      "TBT ms": 0,
+      "KB transferidos": 257
+    },
+    {
+      "perfil": "escritorio",
+      "página": "carrito",
+      "FCP ms": 80,
+      "LCP ms": 80,
+      "CLS": 0,
+      "TBT ms": 0,
+      "KB transferidos": 292
+    },
+    {
+      "perfil": "escritorio",
+      "página": "cómo comprar",
+      "FCP ms": 84,
+      "LCP ms": 84,
+      "CLS": 0,
+      "TBT ms": 0,
+      "KB transferidos": 240
+    },
+    {
+      "perfil": "escritorio",
+      "página": "ingresar",
+      "FCP ms": 88,
+      "LCP ms": 88,
+      "CLS": 0,
+      "TBT ms": 0,
+      "KB transferidos": 264
+    }
+  ],
+  "incumplimientos": []
+}

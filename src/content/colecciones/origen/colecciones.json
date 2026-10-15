@@ -1,0 +1,466 @@
+{
+  "schemaVersion": 1,
+  "reviewedAt": "2026-10-12",
+  "collections": [
+    {
+      "id": "black-bolt",
+      "code": "SV11B",
+      "displayName": "Black Bolt",
+      "japaneseName": "ブラックボルト",
+      "series": "Scarlet & Violet",
+      "language": "ja",
+      "region": "JP",
+      "releaseDate": "2025-06-06",
+      "expansionSource": "https://www.pokemon-card.com/ex/sv11/",
+      "boxSource": "https://www.pokemoncenter-online.com/9900000006082.html",
+      "reviewedAt": "2026-10-12",
+      "physicalContents": {
+        "cardsPerBooster": 7,
+        "boostersPerBox": 20,
+        "cardSlotsPerBox": 140,
+        "randomCards": true,
+        "doesNotImplyUniqueCards": true
+      },
+      "guarantees": [
+        {
+          "type": "physical_contents",
+          "scope": "booster",
+          "statement": "7 cartas por sobre.",
+          "sourceUrls": [
+            "https://www.pokemon-card.com/ex/sv11/",
+            "https://www.pokemoncenter-online.com/9900000006082.html"
+          ]
+        },
+        {
+          "type": "physical_contents",
+          "scope": "box",
+          "statement": "20 sobres por caja.",
+          "sourceUrls": [
+            "https://www.pokemoncenter-online.com/9900000006082.html"
+          ]
+        }
+      ],
+      "probabilityData": {
+        "status": "no_verified_rates_in_this_package",
+        "rates": [],
+        "note": "Una garantía de composición no es la probabilidad de una carta específica."
+      },
+      "cards": {
+        "status": "requires_metadata_verification",
+        "referenceIndexFile": "referencias-cartas.json",
+        "completeListVerified": false
+      },
+      "notes": [
+        "Formato estándar: NO Deluxe. La garantía de una AR por sobre del formato Deluxe no aplica a estos SKUs."
+      ],
+      "visualThemeHints": [
+        "Zekrom"
+      ]
+    },
+    {
+      "id": "white-flare",
+      "code": "SV11W",
+      "displayName": "White Flare",
+      "japaneseName": "ホワイトフレア",
+      "series": "Scarlet & Violet",
+      "language": "ja",
+      "region": "JP",
+      "releaseDate": "2025-06-06",
+      "expansionSource": "https://www.pokemon-card.com/ex/sv11/",
+      "boxSource": "https://www.pokemoncenter-online.com/9900000006075.html",
+      "reviewedAt": "2026-10-12",
+      "physicalContents": {
+        "cardsPerBooster": 7,
+        "boostersPerBox": 20,
+        "cardSlotsPerBox": 140,
+        "randomCards": true,
+        "doesNotImplyUniqueCards": true
+      },
+      "guarantees": [
+        {
+          "type": "physical_contents",
+          "scope": "booster",
+          "statement": "7 cartas por sobre.",
+          "sourceUrls": [
+            "https://www.pokemon-card.com/ex/sv11/",
+            "https://www.pokemoncenter-online.com/9900000006075.html"
+          ]
+        },
+        {
+          "type": "physical_contents",
+          "scope": "box",
+          "statement": "20 sobres por caja.",
+          "sourceUrls": [
+            "https://www.pokemoncenter-online.com/9900000006075.html"
+          ]
+        }
+      ],
+      "probabilityData": {
+        "status": "no_verified_rates_in_this_package",
+        "rates": [],
+        "note": "Una garantía de composición no es la probabilidad de una carta específica."
+      },
+      "cards": {
+        "status": "requires_metadata_verification",
+        "referenceIndexFile": "referencias-cartas.json",
+        "completeListVerified": false
+      },
+      "notes": [
+        "Formato estándar: NO Deluxe. La garantía de una AR por sobre del formato Deluxe no aplica a estos SKUs."
+      ],
+      "visualThemeHints": [
+        "Reshiram"
+      ]
+    },
+    {
+      "id": "heat-wave-arena",
+      "code": "SV9a",
+      "displayName": "Heat Wave Arena",
+      "japaneseName": "熱風のアリーナ",
+      "series": "Scarlet & Violet",
+      "language": "ja",
+      "region": "JP",
+      "releaseDate": "2025-03-14",
+      "expansionSource": "https://www.pokemon-card.com/products/sv/sv9a.html",
+      "boxSource": "https://www.pokemoncenter-online.com/9900000006013.html",
+      "reviewedAt": "2026-10-12",
+      "physicalContents": {
+        "cardsPerBooster": 5,
+        "boostersPerBox": 30,
+        "cardSlotsPerBox": 150,
+        "randomCards": true,
+        "doesNotImplyUniqueCards": true
+      },
+      "guarantees": [
+        {
+          "type": "physical_contents",
+          "scope": "booster",
+          "statement": "5 cartas por sobre.",
+          "sourceUrls": [
+            "https://www.pokemon-card.com/products/sv/sv9a.html",
+            "https://www.pokemoncenter-online.com/9900000006013.html"
+          ]
+        },
+        {
+          "type": "physical_contents",
+          "scope": "box",
+          "statement": "30 sobres por caja.",
+          "sourceUrls": [
+            "https://www.pokemoncenter-online.com/9900000006013.html"
+          ]
+        }
+      ],
+      "probabilityData": {
+        "status": "no_verified_rates_in_this_package",
+        "rates": [],
+        "note": "Una garantía de composición no es la probabilidad de una carta específica."
+      },
+      "cards": {
+        "status": "requires_metadata_verification",
+        "referenceIndexFile": "referencias-cartas.json",
+        "completeListVerified": false
+      },
+      "notes": [],
+      "visualThemeHints": [
+        "Ho-Oh de Ethan",
+        "Garchomp de Cynthia"
+      ]
+    },
+    {
+      "id": "inferno-x",
+      "code": "M2",
+      "displayName": "Inferno X",
+      "japaneseName": "インフェルノX",
+      "series": "MEGA",
+      "language": "ja",
+      "region": "JP",
+      "releaseDate": "2025-09-26",
+      "expansionSource": "https://www.pokemon-card.com/ex/m2/",
+      "boxSource": "https://www.pokemoncenter-online.com/9900000006679.html",
+      "reviewedAt": "2026-10-12",
+      "physicalContents": {
+        "cardsPerBooster": 5,
+        "boostersPerBox": 30,
+        "cardSlotsPerBox": 150,
+        "randomCards": true,
+        "doesNotImplyUniqueCards": true
+      },
+      "guarantees": [
+        {
+          "type": "physical_contents",
+          "scope": "booster",
+          "statement": "5 cartas por sobre.",
+          "sourceUrls": [
+            "https://www.pokemon-card.com/ex/m2/",
+            "https://www.pokemoncenter-online.com/9900000006679.html"
+          ]
+        },
+        {
+          "type": "physical_contents",
+          "scope": "box",
+          "statement": "30 sobres por caja.",
+          "sourceUrls": [
+            "https://www.pokemoncenter-online.com/9900000006679.html"
+          ]
+        }
+      ],
+      "probabilityData": {
+        "status": "no_verified_rates_in_this_package",
+        "rates": [],
+        "note": "Una garantía de composición no es la probabilidad de una carta específica."
+      },
+      "cards": {
+        "status": "requires_metadata_verification",
+        "referenceIndexFile": "referencias-cartas.json",
+        "completeListVerified": false
+      },
+      "notes": [],
+      "visualThemeHints": [
+        "Mega Charizard X"
+      ]
+    },
+    {
+      "id": "mega-dream-ex",
+      "code": "M2a",
+      "displayName": "MEGA Dream ex",
+      "japaneseName": "MEGAドリームex",
+      "series": "MEGA",
+      "language": "ja",
+      "region": "JP",
+      "releaseDate": "2025-11-28",
+      "expansionSource": "https://www.pokemon-card.com/ex/m2a/",
+      "boxSource": "https://www.pokemoncenter-online.com/9900000006808.html",
+      "reviewedAt": "2026-10-12",
+      "physicalContents": {
+        "cardsPerBooster": 10,
+        "boostersPerBox": 10,
+        "cardSlotsPerBox": 100,
+        "randomCards": true,
+        "doesNotImplyUniqueCards": true
+      },
+      "guarantees": [
+        {
+          "type": "physical_contents",
+          "scope": "booster",
+          "statement": "10 cartas por sobre.",
+          "sourceUrls": [
+            "https://www.pokemon-card.com/ex/m2a/",
+            "https://www.pokemoncenter-online.com/9900000006808.html"
+          ]
+        },
+        {
+          "type": "physical_contents",
+          "scope": "box",
+          "statement": "10 sobres por caja.",
+          "sourceUrls": [
+            "https://www.pokemoncenter-online.com/9900000006808.html"
+          ]
+        },
+        {
+          "type": "pack_composition",
+          "scope": "booster",
+          "statement": "El envase oficial indica una carta Pokémon ex o Mega Evolution ex garantizada por sobre; no una carta concreta.",
+          "sourceUrls": [
+            "https://www.pokemoncenter-online.com/9900000006808.html"
+          ],
+          "evidenceLocation": "Texto japonés en la parte superior de la fotografía oficial de caja cerrada, caja-referencia-2-original.jpg",
+          "evidenceMethod": "lectura visual del envase oficial",
+          "requiresImporterCrossCheck": true
+        }
+      ],
+      "probabilityData": {
+        "status": "no_verified_rates_in_this_package",
+        "rates": [],
+        "note": "Una garantía de composición no es la probabilidad de una carta específica."
+      },
+      "cards": {
+        "status": "requires_metadata_verification",
+        "referenceIndexFile": "referencias-cartas.json",
+        "completeListVerified": false
+      },
+      "notes": [],
+      "visualThemeHints": [
+        "Mega Dragonite",
+        "Mega Gengar"
+      ]
+    },
+    {
+      "id": "30th-celebration",
+      "code": "M6a",
+      "displayName": "30th CELEBRATION",
+      "japaneseName": "30th CELEBRATION",
+      "series": "MEGA",
+      "language": "ja",
+      "region": "JP",
+      "releaseDate": "2026-09-16",
+      "expansionSource": "https://www.30th.pokemon-card.com/product/m6a",
+      "boxSource": "https://www.pokemoncenter-online.com/9900000008284.html",
+      "reviewedAt": "2026-10-12",
+      "physicalContents": {
+        "cardsPerBooster": 6,
+        "boostersPerBox": 20,
+        "cardSlotsPerBox": 120,
+        "randomCards": true,
+        "doesNotImplyUniqueCards": true
+      },
+      "guarantees": [
+        {
+          "type": "physical_contents",
+          "scope": "booster",
+          "statement": "6 cartas por sobre.",
+          "sourceUrls": [
+            "https://www.30th.pokemon-card.com/product/m6a",
+            "https://www.pokemoncenter-online.com/9900000008284.html"
+          ]
+        },
+        {
+          "type": "physical_contents",
+          "scope": "box",
+          "statement": "20 sobres por caja.",
+          "sourceUrls": [
+            "https://www.pokemoncenter-online.com/9900000008284.html"
+          ]
+        },
+        {
+          "type": "pack_composition",
+          "scope": "booster",
+          "statement": "Cada sobre incluye una carta especial de Pikachu del 30.º aniversario y una carta de Energía básica, dentro de sus 6 cartas.",
+          "sourceUrls": [
+            "https://www.pokemoncenter-online.com/9900000008284.html"
+          ],
+          "doesNotGuaranteeSpecificArtwork": true
+        },
+        {
+          "type": "finish",
+          "scope": "booster",
+          "statement": "El sobre contiene 6 cartas con acabado brillante (holo), según la ficha oficial japonesa.",
+          "sourceUrls": [
+            "https://www.30th.pokemon-card.com/product/m6a"
+          ]
+        }
+      ],
+      "probabilityData": {
+        "status": "no_verified_rates_in_this_package",
+        "rates": [],
+        "note": "Una garantía de composición no es la probabilidad de una carta específica."
+      },
+      "cards": {
+        "status": "requires_metadata_verification",
+        "referenceIndexFile": "referencias-cartas.json",
+        "completeListVerified": false
+      },
+      "notes": [],
+      "visualThemeHints": [
+        "Pikachu",
+        "Mew",
+        "Mewtwo"
+      ]
+    },
+    {
+      "id": "storm-emeralda",
+      "code": "M6",
+      "displayName": "Storm Emeralda",
+      "japaneseName": "ストームエメラルダ",
+      "series": "MEGA",
+      "language": "ja",
+      "region": "JP",
+      "releaseDate": "2026-07-31",
+      "expansionSource": "https://www.pokemon-card.com/ex/m6/",
+      "boxSource": "https://www.pokemoncenter-online.com/9900000008109.html",
+      "reviewedAt": "2026-10-12",
+      "physicalContents": {
+        "cardsPerBooster": 5,
+        "boostersPerBox": 30,
+        "cardSlotsPerBox": 150,
+        "randomCards": true,
+        "doesNotImplyUniqueCards": true
+      },
+      "guarantees": [
+        {
+          "type": "physical_contents",
+          "scope": "booster",
+          "statement": "5 cartas por sobre.",
+          "sourceUrls": [
+            "https://www.pokemon-card.com/ex/m6/",
+            "https://www.pokemoncenter-online.com/9900000008109.html"
+          ]
+        },
+        {
+          "type": "physical_contents",
+          "scope": "box",
+          "statement": "30 sobres por caja.",
+          "sourceUrls": [
+            "https://www.pokemoncenter-online.com/9900000008109.html"
+          ]
+        }
+      ],
+      "probabilityData": {
+        "status": "no_verified_rates_in_this_package",
+        "rates": [],
+        "note": "Una garantía de composición no es la probabilidad de una carta específica."
+      },
+      "cards": {
+        "status": "requires_metadata_verification",
+        "referenceIndexFile": "referencias-cartas.json",
+        "completeListVerified": false
+      },
+      "notes": [],
+      "visualThemeHints": [
+        "Mega Rayquaza"
+      ]
+    },
+    {
+      "id": "abyss-eye",
+      "code": "M5",
+      "displayName": "Abyss Eye",
+      "japaneseName": "アビスアイ",
+      "series": "MEGA",
+      "language": "ja",
+      "region": "JP",
+      "releaseDate": "2026-05-22",
+      "expansionSource": "https://www.pokemon-card.com/ex/m5/",
+      "boxSource": "https://www.pokemoncenter-online.com/9900000007904.html",
+      "reviewedAt": "2026-10-12",
+      "physicalContents": {
+        "cardsPerBooster": 5,
+        "boostersPerBox": 30,
+        "cardSlotsPerBox": 150,
+        "randomCards": true,
+        "doesNotImplyUniqueCards": true
+      },
+      "guarantees": [
+        {
+          "type": "physical_contents",
+          "scope": "booster",
+          "statement": "5 cartas por sobre.",
+          "sourceUrls": [
+            "https://www.pokemon-card.com/ex/m5/",
+            "https://www.pokemoncenter-online.com/9900000007904.html"
+          ]
+        },
+        {
+          "type": "physical_contents",
+          "scope": "box",
+          "statement": "30 sobres por caja.",
+          "sourceUrls": [
+            "https://www.pokemoncenter-online.com/9900000007904.html"
+          ]
+        }
+      ],
+      "probabilityData": {
+        "status": "no_verified_rates_in_this_package",
+        "rates": [],
+        "note": "Una garantía de composición no es la probabilidad de una carta específica."
+      },
+      "cards": {
+        "status": "requires_metadata_verification",
+        "referenceIndexFile": "referencias-cartas.json",
+        "completeListVerified": false
+      },
+      "notes": [],
+      "visualThemeHints": [
+        "Mega Darkrai"
+      ]
+    }
+  ]
+}

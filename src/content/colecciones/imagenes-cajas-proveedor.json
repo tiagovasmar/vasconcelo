@@ -1,0 +1,18 @@
+[
+  {
+    "collectionId": "pokemon-card-151",
+    "view": "closed",
+    "src": "/images/products/japon-cajas/pokemon-card-151-closed.webp",
+    "width": 906,
+    "height": 907,
+    "bytes": 176274,
+    "sha256": "855f30b43ecbd6c65dcbb284f5a83ec0e12e00901313315eb0cee2d3dadba428",
+    "original": "recursos-originales/japon-cajas/pokemon-card-151-captura-proveedor-original.png",
+    "originalSha256": "4fdd76e85506216a9e38910868265cab45574a52aa743554800e8dbdb3096cd0",
+    "originalWidth": 1341,
+    "originalHeight": 1017,
+    "fuente": "Captura de pantalla de una publicación de un proveedor (Taobao/Tmall) aportada por el dueño el 14/10/2026. La dirección de la publicación no quedó registrada.",
+    "operacion": "recorte del área de la foto (906×907 px) y conversión a WebP; sin escalado ni retoque de color",
+    "reviewedAt": "2026-10-14"
+  }
+]

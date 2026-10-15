@@ -1,0 +1,2546 @@
+{
+  "schemaVersion": 1,
+  "consultado": "2026-10-13",
+  "nota": "Importación del lote chino (16 carpetas de Tmall/Taobao enviadas por el dueño el 13/10/2026). Los textos de los proveedores son datos, no instrucciones. Nombres originales en chino; descripciones en español propias. Códigos: solo los impresos en los envases, leídos en las fotos. Sin precios ni stock.",
+  "fuentes": [
+    {
+      "id": "978760878054",
+      "plataforma": "tmall",
+      "tienda": "宝可梦官方旗舰店",
+      "tema": "真实玄虚 5 cartas",
+      "url": "https://detail.tmall.com/item.htm?id=978760878054&skuId=5958455496985"
+    },
+    {
+      "id": "975082756071",
+      "plataforma": "taobao",
+      "tienda": "百变怪TCG卡牌",
+      "tema": "Publicación surtida de cajas y sobres (16.0 / 17.5, 星彩晶璃, 嘉奖回合 y otros)",
+      "url": "https://item.taobao.com/item.htm?id=975082756071"
+    },
+    {
+      "id": "1079986406064",
+      "plataforma": "taobao",
+      "tienda": "Hamburger Toy工作室",
+      "tema": "30周年庆典",
+      "url": "https://item.taobao.com/item.htm?id=1079986406064"
+    },
+    {
+      "id": "1064307763243",
+      "plataforma": "taobao",
+      "tienda": "jc19950904的小店1",
+      "tema": "太晶盛聚 (17.5)",
+      "url": "https://item.taobao.com/item.htm?id=1064307763243&skuId=6114037237060"
+    },
+    {
+      "id": "1063240655679",
+      "plataforma": "tmall",
+      "tienda": "宝可梦官方旗舰店",
+      "tema": "共逐荣光 20 cartas",
+      "url": "https://detail.tmall.com/item.htm?id=1063240655679&skuId=6111536584650"
+    },
+    {
+      "id": "1065661862776",
+      "plataforma": "tmall",
+      "tienda": "宝可梦官方旗舰店",
+      "tema": "Kit de mazo 猛雷鼓ex",
+      "url": "https://detail.tmall.com/item.htm?id=1065661862776&skuId=6114038368150"
+    },
+    {
+      "id": "1065668842312",
+      "plataforma": "tmall",
+      "tienda": "宝可梦官方旗舰店",
+      "tema": "Kit de mazo 赛富豪ex",
+      "url": "https://detail.tmall.com/item.htm?id=1065668842312&skuId=6114790741135"
+    },
+    {
+      "id": "1070975018438",
+      "plataforma": "tmall",
+      "tienda": "宝可梦官方旗舰店",
+      "tema": "宝石包 VOL.6",
+      "url": "https://detail.tmall.com/item.htm?id=1070975018438&skuId=6285978162895"
+    },
+    {
+      "id": "1008153816247",
+      "plataforma": "tmall",
+      "tienda": "宝可梦官方旗舰店",
+      "tema": "利刃猛醒 20 cartas",
+      "url": "https://detail.tmall.com/item.htm?id=1008153816247&skuId=6179560326837"
+    },
+    {
+      "id": "1070165751188",
+      "plataforma": "tmall",
+      "tienda": "宝可梦官方旗舰店",
+      "tema": "最初的伙伴 特别插画闪卡套装 Vol.3",
+      "url": "https://detail.tmall.com/item.htm?id=1070165751188&skuId=6121938069378"
+    },
+    {
+      "id": "1065354470710",
+      "plataforma": "tmall",
+      "tienda": "宝可梦官方旗舰店",
+      "tema": "嗨皮组合",
+      "url": "https://detail.tmall.com/item.htm?id=1065354470710&skuId=6113656668432"
+    },
+    {
+      "id": "1059308989628",
+      "plataforma": "tmall",
+      "tienda": "宝可梦官方旗舰店",
+      "tema": "最初的伙伴 特别插画闪卡套装 Vol.2",
+      "url": "https://detail.tmall.com/item.htm?id=1059308989628&skuId=6267133714161"
+    },
+    {
+      "id": "1065055849565",
+      "plataforma": "tmall",
+      "tienda": "宝可梦官方旗舰店",
+      "tema": "共逐荣光 5 cartas",
+      "url": "https://detail.tmall.com/item.htm?id=1065055849565&skuId=6276681015552"
+    },
+    {
+      "id": "1050867876169",
+      "plataforma": "tmall",
+      "tienda": "宝可梦官方旗舰店",
+      "tema": "星彩晶璃 5 cartas",
+      "url": "https://detail.tmall.com/item.htm?id=1050867876169&skuId=6078990300639"
+    },
+    {
+      "id": "1049188091485",
+      "plataforma": "tmall",
+      "tienda": "宝可梦官方旗舰店",
+      "tema": "厄诡椪 水井面具礼盒",
+      "url": "https://detail.tmall.com/item.htm?id=1049188091485&skuId=6245970290772"
+    },
+    {
+      "id": "1050912901200",
+      "plataforma": "tmall",
+      "tienda": "宝可梦官方旗舰店",
+      "tema": "厄诡椪 火灶面具礼盒",
+      "url": "https://detail.tmall.com/item.htm?id=1050912901200&skuId=6245967410012"
+    },
+    {
+      "id": "1024232254134",
+      "plataforma": "taobao",
+      "tienda": "圣城卡牌游戏",
+      "tema": "最初的伙伴 特别插画 P卡 (Bulbasaur, Totodile, Torchic)",
+      "url": "https://item.taobao.com/item.htm?id=1024232254134&skuId=6053279645670"
+    }
+  ],
+  "colecciones": [
+    {
+      "id": "zh-zhenshi-xuanxu",
+      "slug": "zh-zhenshi-xuanxu",
+      "nombre": "真实玄虚",
+      "aliases": "zhenshi xuanxu",
+      "codigoEnvase": "csv6C",
+      "serie": "朱&紫 (Escarlata y Púrpura)",
+      "tone": "mint",
+      "nombreEs": "Realidad y Misterio",
+      "nombreEnPrincipal": "Arcane Truth",
+      "nombreEnTipo": "comunitario",
+      "nombreEnCerteza": "variantes",
+      "nombreEnVariantes": [
+        "True Mystery",
+        "Paradox Veil",
+        "Mystic & Void"
+      ],
+      "nombreEnFuentes": [
+        "pikaqian",
+        "cardbinder",
+        "tcgcollector-cn",
+        "quicktcg"
+      ],
+      "nombreEnVerificadoEl": "2026-10-13"
+    },
+    {
+      "id": "zh-jiajiang-huihe",
+      "slug": "zh-jiajiang-huihe",
+      "nombre": "嘉奖回合",
+      "aliases": "jiajiang huihe",
+      "codigoEnvase": "csv4C",
+      "serie": "朱&紫 (Escarlata y Púrpura)",
+      "tone": "gold",
+      "nombreEs": "Ronda de Premios",
+      "nombreEnPrincipal": "Reward Round",
+      "nombreEnTipo": "comunitario",
+      "nombreEnCerteza": "variantes",
+      "nombreEnVariantes": [
+        "Bonus Round",
+        "Reward Turn"
+      ],
+      "nombreEnFuentes": [
+        "krystal-csv4c",
+        "pokeunlimited-csv4c",
+        "pikaqian",
+        "cardbinder"
+      ],
+      "nombreEnVerificadoEl": "2026-10-13"
+    },
+    {
+      "id": "zh-heijing-chicheng",
+      "slug": "zh-heijing-chicheng",
+      "nombre": "黑晶炽诚",
+      "aliases": "heijing chicheng",
+      "codigoEnvase": "csv5C",
+      "serie": "朱&紫 (Escarlata y Púrpura)",
+      "tone": "ink",
+      "nombreEs": "Fervor de Cristal Negro",
+      "nombreEnPrincipal": "Dark Crystal Blaze",
+      "nombreEnTipo": "comunitario",
+      "nombreEnCerteza": "variantes",
+      "nombreEnVariantes": [
+        "Black Fiery Crystal"
+      ],
+      "nombreEnFuentes": [
+        "pikaqian",
+        "cardbinder",
+        "quicktcg"
+      ],
+      "nombreEnVerificadoEl": "2026-10-13"
+    },
+    {
+      "id": "zh-wuwei-taijing",
+      "slug": "zh-wuwei-taijing",
+      "nombre": "无畏太晶",
+      "aliases": "wuwei taijing",
+      "codigoEnvase": "csv3C",
+      "serie": "朱&紫 (Escarlata y Púrpura)",
+      "tone": "gold",
+      "nombreEs": "Teracristal Intrépido",
+      "nombreEnPrincipal": "Fearless Terastal",
+      "nombreEnTipo": "comunitario",
+      "nombreEnCerteza": "coinciden",
+      "nombreEnVariantes": [],
+      "nombreEnFuentes": [
+        "pikaqian",
+        "cardbinder",
+        "pokipair-csv3"
+      ],
+      "nombreEnVerificadoEl": "2026-10-13"
+    },
+    {
+      "id": "zh-gengu-kailai",
+      "slug": "zh-gengu-kailai",
+      "nombre": "亘古开来",
+      "aliases": "gengu kailai",
+      "codigoEnvase": "csv1C",
+      "serie": "朱&紫 (Escarlata y Púrpura)",
+      "tone": "paper",
+      "nombreEs": "Antigüedad y Porvenir",
+      "nombreEnPrincipal": "Eternal Birth",
+      "nombreEnTipo": "comunitario",
+      "nombreEnCerteza": "variantes",
+      "nombreEnVariantes": [
+        "Eternal Beginnings"
+      ],
+      "nombreEnFuentes": [
+        "krystal-csv1c",
+        "pikaqian",
+        "cardbinder"
+      ],
+      "nombreEnVerificadoEl": "2026-10-13"
+    },
+    {
+      "id": "zh-liren-mengxing",
+      "slug": "zh-liren-mengxing",
+      "nombre": "利刃猛醒",
+      "aliases": "liren mengxing",
+      "codigoEnvase": "csv7C",
+      "serie": "朱&紫 (Escarlata y Púrpura)",
+      "tone": "violet",
+      "nombreEs": "Despertar del Filo",
+      "nombreEnPrincipal": "Blade Awakening",
+      "nombreEnTipo": "comunitario",
+      "nombreEnCerteza": "variantes",
+      "nombreEnVariantes": [
+        "Blade Awakened"
+      ],
+      "nombreEnFuentes": [
+        "cardbinder",
+        "pikaqian"
+      ],
+      "nombreEnVerificadoEl": "2026-10-13"
+    },
+    {
+      "id": "zh-cuican-guihuan",
+      "slug": "zh-cuican-guihuan",
+      "nombre": "璀璨诡幻",
+      "aliases": "cuican guihuan",
+      "codigoEnvase": "csv8C",
+      "serie": "朱&紫 (Escarlata y Púrpura)",
+      "tone": "mint",
+      "nombreEs": "Ilusión Resplandeciente",
+      "nombreEnPrincipal": "Brilliant Illusions",
+      "nombreEnTipo": "comunitario",
+      "nombreEnCerteza": "variantes",
+      "nombreEnVariantes": [
+        "Brilliant Fantasy",
+        "Sparkling Fantasy"
+      ],
+      "nombreEnFuentes": [
+        "krystal-csv8c",
+        "tcgcollector-cn",
+        "cardbinder",
+        "pikaqian"
+      ],
+      "nombreEnVerificadoEl": "2026-10-13"
+    },
+    {
+      "id": "zh-xingcai-jingli",
+      "slug": "zh-xingcai-jingli",
+      "nombre": "星彩晶璃",
+      "aliases": "xingcai jingli",
+      "codigoEnvase": "csv9C",
+      "serie": "朱&紫 (Escarlata y Púrpura)",
+      "tone": "gold",
+      "nombreEs": "Cristal de Colores Estelares",
+      "nombreEnPrincipal": "Stellar Crystal",
+      "nombreEnTipo": "comunitario",
+      "nombreEnCerteza": "coinciden",
+      "nombreEnVariantes": [],
+      "nombreEnFuentes": [
+        "pokipair-csv9",
+        "pikaqian",
+        "cardbinder"
+      ],
+      "nombreEnVerificadoEl": "2026-10-13"
+    },
+    {
+      "id": "zh-qiji-qicheng",
+      "slug": "zh-qiji-qicheng",
+      "nombre": "奇迹启程",
+      "aliases": "qiji qicheng",
+      "codigoEnvase": "csv2C",
+      "serie": "朱&紫 (Escarlata y Púrpura)",
+      "tone": "violet",
+      "nombreEs": "Partida Milagrosa",
+      "nombreEnPrincipal": "Miracle Journey",
+      "nombreEnTipo": "comunitario",
+      "nombreEnCerteza": "coinciden",
+      "nombreEnVariantes": [],
+      "nombreEnFuentes": [
+        "krystal-csv2c",
+        "pikaqian",
+        "cardbinder"
+      ],
+      "nombreEnVerificadoEl": "2026-10-13"
+    },
+    {
+      "id": "zh-taijing-shengju",
+      "slug": "zh-taijing-shengju",
+      "nombre": "太晶盛聚",
+      "aliases": "taijing shengju",
+      "codigoEnvase": "csv9.5C",
+      "serie": "朱&紫 (Escarlata y Púrpura)",
+      "tone": "paper",
+      "nombreEs": "Gran Reunión Teracristal",
+      "nombreEnPrincipal": "Terastal Gathering",
+      "nombreEnTipo": "comunitario",
+      "nombreEnCerteza": "variantes",
+      "nombreEnVariantes": [
+        "Terastal Grand Gathering",
+        "Grand Terastal Gathering"
+      ],
+      "nombreEnFuentes": [
+        "tcgsync-csv95",
+        "billsarchive-csv95",
+        "pikaqian",
+        "cardbinder"
+      ],
+      "nombreEnVerificadoEl": "2026-10-13"
+    },
+    {
+      "id": "zh-gongzhu-rongguang",
+      "slug": "zh-gongzhu-rongguang",
+      "nombre": "共逐荣光",
+      "aliases": "gongzhu rongguang",
+      "codigoEnvase": null,
+      "serie": "朱&紫 (Escarlata y Púrpura)",
+      "tone": "violet",
+      "nombreEs": "En Pos de la Gloria",
+      "nombreEnPrincipal": "Chasing Glory Together",
+      "nombreEnTipo": "comunitario",
+      "nombreEnCerteza": "coinciden",
+      "nombreEnVariantes": [
+        "Chasing Glory"
+      ],
+      "nombreEnFuentes": [
+        "pokipair-csv10",
+        "pikaqian",
+        "cardbinder"
+      ],
+      "nombreEnVerificadoEl": "2026-10-13"
+    },
+    {
+      "id": "zh-shengxiang-xingyin",
+      "slug": "zh-shengxiang-xingyin",
+      "nombre": "胜象星引",
+      "aliases": "shengxiang xingyin",
+      "codigoEnvase": "cs6.5C",
+      "serie": "剑&盾 (Espada y Escudo)",
+      "tone": "violet",
+      "nombreEs": "Estrella Guía de la Victoria",
+      "nombreEnPrincipal": "Victory Star Guide",
+      "nombreEnTipo": "comunitario",
+      "nombreEnCerteza": "variantes",
+      "nombreEnVariantes": [
+        "Victory Stars"
+      ],
+      "nombreEnFuentes": [
+        "pikaqian",
+        "pokipair-cs65"
+      ],
+      "nombreEnVerificadoEl": "2026-10-13"
+    },
+    {
+      "id": "zh-anying-duohui",
+      "slug": "zh-anying-duohui",
+      "nombre": "暗影夺辉",
+      "aliases": "anying duohui",
+      "codigoEnvase": "cs5.5C",
+      "serie": "剑&盾 (Espada y Escudo)",
+      "tone": "paper",
+      "nombreEs": "Sombras que Roban el Brillo",
+      "nombreEnPrincipal": "Shadow of Glory",
+      "nombreEnTipo": "comunitario",
+      "nombreEnCerteza": "coinciden",
+      "nombreEnVariantes": [],
+      "nombreEnFuentes": [
+        "krystal-cs55",
+        "pikaqian"
+      ],
+      "nombreEnVerificadoEl": "2026-10-13"
+    },
+    {
+      "id": "zh-nuyan-zhuotian",
+      "slug": "zh-nuyan-zhuotian",
+      "nombre": "怒炎灼天",
+      "aliases": "nuyan zhuotian",
+      "codigoEnvase": "cs3.5C",
+      "serie": "剑&盾 (Espada y Escudo)",
+      "tone": "ink",
+      "nombreEs": "Llama Furiosa en el Cielo",
+      "nombreEnPrincipal": "Scorching Skies",
+      "nombreEnTipo": "comunitario",
+      "nombreEnCerteza": "coinciden",
+      "nombreEnVariantes": [],
+      "nombreEnFuentes": [
+        "collectorsalchemy",
+        "pikaqian"
+      ],
+      "nombreEnVerificadoEl": "2026-10-13"
+    },
+    {
+      "id": "zh-jiju-gongfang",
+      "slug": "zh-jiju-gongfang",
+      "nombre": "极巨攻防",
+      "aliases": "jiju gongfang",
+      "codigoEnvase": "cs1.5C",
+      "serie": "剑&盾 (Espada y Escudo)",
+      "tone": "mint",
+      "nombreEs": "Ataque y Defensa Dinamax",
+      "nombreEnPrincipal": "Dynamax Tactics",
+      "nombreEnTipo": "comunitario",
+      "nombreEnCerteza": "coinciden",
+      "nombreEnVariantes": [],
+      "nombreEnFuentes": [
+        "collectorsalchemy",
+        "pikaqian"
+      ],
+      "nombreEnVerificadoEl": "2026-10-13"
+    },
+    {
+      "id": "zh-zhongmo-yanwu",
+      "slug": "zh-zhongmo-yanwu",
+      "nombre": "终末炎舞",
+      "aliases": "zhongmo yanwu",
+      "codigoEnvase": "cs4.5C",
+      "serie": "剑&盾 (Espada y Escudo)",
+      "tone": "gold",
+      "nombreEs": "Danza de Llamas del Final",
+      "nombreEnPrincipal": "Final Flame Dance",
+      "nombreEnTipo": "comunitario",
+      "nombreEnCerteza": "coinciden",
+      "nombreEnVariantes": [],
+      "nombreEnFuentes": [
+        "collectorsalchemy",
+        "pikaqian"
+      ],
+      "nombreEnVerificadoEl": "2026-10-13"
+    },
+    {
+      "id": "zh-baoshibao-vol6",
+      "slug": "zh-baoshibao-vol6",
+      "nombre": "宝石包 VOL.6",
+      "aliases": "baoshibao vol6 pokemon gem pack",
+      "codigoEnvase": null,
+      "serie": "朱&紫 (Escarlata y Púrpura)",
+      "tone": "mint",
+      "nombreEs": "Pack Gema Vol. 6",
+      "nombreEnPrincipal": "Gem Pack Vol. 6",
+      "nombreEnTipo": "comunitario",
+      "nombreEnCerteza": "coinciden",
+      "nombreEnVariantes": [
+        "Gem Pack Volume 6"
+      ],
+      "nombreEnFuentes": [
+        "pikaqian",
+        "cardbinder"
+      ],
+      "nombreEnVerificadoEl": "2026-10-13"
+    },
+    {
+      "id": "zh-30-zhounian",
+      "slug": "zh-30-zhounian",
+      "nombre": "30周年庆典",
+      "aliases": "30 zhounian qingdian 30th celebration aniversario",
+      "codigoEnvase": null,
+      "serie": "朱&紫 (Escarlata y Púrpura)",
+      "tone": "gold",
+      "nombreEs": "Celebración 30.º Aniversario",
+      "nombreEnPrincipal": "30th Celebration",
+      "nombreEnTipo": "oficial",
+      "nombreEnCerteza": "coinciden",
+      "nombreEnVariantes": [],
+      "nombreEnFuentes": [
+        "pikaqian"
+      ],
+      "nombreEnVerificadoEl": "2026-10-13"
+    }
+  ],
+  "productos": [
+    {
+      "id": "zh-zhenshi-xuanxu-sobre-5",
+      "sku": "ZH-978760878054",
+      "slug": "zh-zhenshi-xuanxu-sobre-5",
+      "fuente": "978760878054",
+      "coleccion": "zh-zhenshi-xuanxu",
+      "tipo": "booster",
+      "variante": "5 cartas",
+      "titulo": "Arcane Truth · Sobre de 5 cartas",
+      "nombreOriginal": "真实玄虚",
+      "aliases": [
+        "zhenshi xuanxu",
+        "sobre",
+        "booster",
+        "chino",
+        "china"
+      ],
+      "descripcion": "Sobre de 5 cartas de la colección china «真实玄虚» (serie 朱&紫 (Escarlata y Púrpura)), en chino simplificado (China continental). Las cartas vienen al azar. No equivale a las ediciones japonesas ni a las internacionales.",
+      "contenido": [
+        {
+          "label": "Cartas por sobre",
+          "quantity": 5,
+          "unit": "cartas",
+          "note": "Al azar (texto del envase: «随机封入5张卡牌»)."
+        }
+      ],
+      "evidencia": "Principal_04 «每包含有5张卡牌»; Detalle_10 «随机封入5张/包»; Principal_01 «补充包 5张装». Sin dato de sobres por caja.",
+      "imagenes": [
+        {
+          "fuente": "978760878054",
+          "archivo": "SKU_01.jpg",
+          "view": "front",
+          "alt": "Sobre de 5 cartas de 真实玄虚 (edición china simplificada), foto de referencia del proveedor"
+        }
+      ],
+      "tituloOriginal": "真实玄虚 · Sobre de 5 cartas",
+      "tituloEs": "Realidad y Misterio · Sobre de 5 cartas"
+    },
+    {
+      "id": "zh-zhenshi-xuanxu-sobre-20",
+      "sku": "ZH-975082756071-SKU13",
+      "slug": "zh-zhenshi-xuanxu-sobre-20",
+      "fuente": "975082756071",
+      "coleccion": "zh-zhenshi-xuanxu",
+      "tipo": "booster",
+      "variante": "20 cartas",
+      "titulo": "Arcane Truth · Sobre de 20 cartas",
+      "nombreOriginal": "真实玄虚",
+      "aliases": [
+        "zhenshi xuanxu",
+        "sobre",
+        "booster",
+        "chino",
+        "china"
+      ],
+      "descripcion": "Sobre de 20 cartas de la colección china «真实玄虚» (serie 朱&紫 (Escarlata y Púrpura)), en chino simplificado (China continental). Las cartas vienen al azar. No equivale a las ediciones japonesas ni a las internacionales.",
+      "contenido": [
+        {
+          "label": "Cartas por sobre",
+          "quantity": 20,
+          "unit": "cartas",
+          "note": "Al azar (texto del envase: «随机封入20张卡牌»)."
+        }
+      ],
+      "evidencia": "Insignia del envase «csv6C · 随机封入20张卡牌» (SKU_13); SKU_14 lo rotula «原盒» (caja original). Imagen de la publicación surtida de la tienda «百变怪TCG卡牌» (revendedor): la variante se identifica por el texto impreso en el envase.",
+      "imagenes": [
+        {
+          "fuente": "975082756071",
+          "archivo": "SKU_13.jpg",
+          "view": "front",
+          "alt": "Sobre de 20 cartas de 真实玄虚 (edición china simplificada), foto de referencia del proveedor"
+        }
+      ],
+      "tituloOriginal": "真实玄虚 · Sobre de 20 cartas",
+      "tituloEs": "Realidad y Misterio · Sobre de 20 cartas",
+      "retirado": {
+        "fecha": "2026-10-13",
+        "motivo": "Sobre individual de 20 cartas: retirado de la oferta pública por decisión del dueño (13/10/2026)."
+      }
+    },
+    {
+      "id": "zh-jiajiang-huihe-sobre-5",
+      "sku": "ZH-975082756071-SKU01",
+      "slug": "zh-jiajiang-huihe-sobre-5",
+      "fuente": "975082756071",
+      "coleccion": "zh-jiajiang-huihe",
+      "tipo": "booster",
+      "variante": "5 cartas",
+      "titulo": "Reward Round · Sobre de 5 cartas",
+      "nombreOriginal": "嘉奖回合",
+      "aliases": [
+        "jiajiang huihe",
+        "sobre",
+        "booster",
+        "chino",
+        "china"
+      ],
+      "descripcion": "Sobre de 5 cartas de la colección china «嘉奖回合» (serie 朱&紫 (Escarlata y Púrpura)), en chino simplificado (China continental). Las cartas vienen al azar. No equivale a las ediciones japonesas ni a las internacionales.",
+      "contenido": [
+        {
+          "label": "Cartas por sobre",
+          "quantity": 5,
+          "unit": "cartas",
+          "note": "Al azar (texto del envase: «随机封入5张卡牌»)."
+        }
+      ],
+      "evidencia": "Insignia «csv4C · 随机封入5张卡牌» (SKU_01). Imagen de la publicación surtida de la tienda «百变怪TCG卡牌» (revendedor): la variante se identifica por el texto impreso en el envase.",
+      "imagenes": [
+        {
+          "fuente": "975082756071",
+          "archivo": "SKU_01.jpg",
+          "view": "front",
+          "alt": "Sobre de 5 cartas de 嘉奖回合 (edición china simplificada), foto de referencia del proveedor"
+        }
+      ],
+      "tituloOriginal": "嘉奖回合 · Sobre de 5 cartas",
+      "tituloEs": "Ronda de Premios · Sobre de 5 cartas"
+    },
+    {
+      "id": "zh-jiajiang-huihe-sobre-20",
+      "sku": "ZH-975082756071-SKU04",
+      "slug": "zh-jiajiang-huihe-sobre-20",
+      "fuente": "975082756071",
+      "coleccion": "zh-jiajiang-huihe",
+      "tipo": "booster",
+      "variante": "20 cartas",
+      "titulo": "Reward Round · Sobre de 20 cartas",
+      "nombreOriginal": "嘉奖回合",
+      "aliases": [
+        "jiajiang huihe",
+        "sobre",
+        "booster",
+        "chino",
+        "china"
+      ],
+      "descripcion": "Sobre de 20 cartas de la colección china «嘉奖回合» (serie 朱&紫 (Escarlata y Púrpura)), en chino simplificado (China continental). Las cartas vienen al azar. No equivale a las ediciones japonesas ni a las internacionales.",
+      "contenido": [
+        {
+          "label": "Cartas por sobre",
+          "quantity": 20,
+          "unit": "cartas",
+          "note": "Al azar (texto del envase: «随机封入20张卡牌»)."
+        }
+      ],
+      "evidencia": "Insignia «csv4C · 随机封入20张卡牌» (SKU_04). Imagen de la publicación surtida de la tienda «百变怪TCG卡牌» (revendedor): la variante se identifica por el texto impreso en el envase.",
+      "imagenes": [
+        {
+          "fuente": "975082756071",
+          "archivo": "SKU_04.jpeg",
+          "view": "front",
+          "alt": "Sobre de 20 cartas de 嘉奖回合 (edición china simplificada), foto de referencia del proveedor"
+        }
+      ],
+      "tituloOriginal": "嘉奖回合 · Sobre de 20 cartas",
+      "tituloEs": "Ronda de Premios · Sobre de 20 cartas",
+      "retirado": {
+        "fecha": "2026-10-13",
+        "motivo": "Sobre individual de 20 cartas: retirado de la oferta pública por decisión del dueño (13/10/2026)."
+      }
+    },
+    {
+      "id": "zh-heijing-chicheng-sobre-5",
+      "sku": "ZH-975082756071-SKU07",
+      "slug": "zh-heijing-chicheng-sobre-5",
+      "fuente": "975082756071",
+      "coleccion": "zh-heijing-chicheng",
+      "tipo": "booster",
+      "variante": "5 cartas",
+      "titulo": "Dark Crystal Blaze · Sobre de 5 cartas",
+      "nombreOriginal": "黑晶炽诚",
+      "aliases": [
+        "heijing chicheng",
+        "sobre",
+        "booster",
+        "chino",
+        "china"
+      ],
+      "descripcion": "Sobre de 5 cartas de la colección china «黑晶炽诚» (serie 朱&紫 (Escarlata y Púrpura)), en chino simplificado (China continental). Las cartas vienen al azar. No equivale a las ediciones japonesas ni a las internacionales.",
+      "contenido": [
+        {
+          "label": "Cartas por sobre",
+          "quantity": 5,
+          "unit": "cartas",
+          "note": "Al azar (texto del envase: «随机封入5张卡牌»)."
+        }
+      ],
+      "evidencia": "Insignia «csv5C · 随机封入5张卡牌» (SKU_07). Imagen de la publicación surtida de la tienda «百变怪TCG卡牌» (revendedor): la variante se identifica por el texto impreso en el envase.",
+      "imagenes": [
+        {
+          "fuente": "975082756071",
+          "archivo": "SKU_07.jpg",
+          "view": "front",
+          "alt": "Sobre de 5 cartas de 黑晶炽诚 (edición china simplificada), foto de referencia del proveedor"
+        }
+      ],
+      "tituloOriginal": "黑晶炽诚 · Sobre de 5 cartas",
+      "tituloEs": "Fervor de Cristal Negro · Sobre de 5 cartas"
+    },
+    {
+      "id": "zh-heijing-chicheng-sobre-20",
+      "sku": "ZH-975082756071-SKU09",
+      "slug": "zh-heijing-chicheng-sobre-20",
+      "fuente": "975082756071",
+      "coleccion": "zh-heijing-chicheng",
+      "tipo": "booster",
+      "variante": "20 cartas",
+      "titulo": "Dark Crystal Blaze · Sobre de 20 cartas",
+      "nombreOriginal": "黑晶炽诚",
+      "aliases": [
+        "heijing chicheng",
+        "sobre",
+        "booster",
+        "chino",
+        "china"
+      ],
+      "descripcion": "Sobre de 20 cartas de la colección china «黑晶炽诚» (serie 朱&紫 (Escarlata y Púrpura)), en chino simplificado (China continental). Las cartas vienen al azar. No equivale a las ediciones japonesas ni a las internacionales.",
+      "contenido": [
+        {
+          "label": "Cartas por sobre",
+          "quantity": 20,
+          "unit": "cartas",
+          "note": "Al azar (texto del envase: «随机封入20张卡牌»)."
+        }
+      ],
+      "evidencia": "Insignia «csv5C · 随机封入20张卡牌» (SKU_09). Imagen de la publicación surtida de la tienda «百变怪TCG卡牌» (revendedor): la variante se identifica por el texto impreso en el envase.",
+      "imagenes": [
+        {
+          "fuente": "975082756071",
+          "archivo": "SKU_09.jpg",
+          "view": "front",
+          "alt": "Sobre de 20 cartas de 黑晶炽诚 (edición china simplificada), foto de referencia del proveedor"
+        }
+      ],
+      "tituloOriginal": "黑晶炽诚 · Sobre de 20 cartas",
+      "tituloEs": "Fervor de Cristal Negro · Sobre de 20 cartas",
+      "retirado": {
+        "fecha": "2026-10-13",
+        "motivo": "Sobre individual de 20 cartas: retirado de la oferta pública por decisión del dueño (13/10/2026)."
+      }
+    },
+    {
+      "id": "zh-wuwei-taijing-sobre-5",
+      "sku": "ZH-975082756071-SKU19",
+      "slug": "zh-wuwei-taijing-sobre-5",
+      "fuente": "975082756071",
+      "coleccion": "zh-wuwei-taijing",
+      "tipo": "booster",
+      "variante": "5 cartas",
+      "titulo": "Fearless Terastal · Sobre de 5 cartas",
+      "nombreOriginal": "无畏太晶",
+      "aliases": [
+        "wuwei taijing",
+        "sobre",
+        "booster",
+        "chino",
+        "china"
+      ],
+      "descripcion": "Sobre de 5 cartas de la colección china «无畏太晶» (serie 朱&紫 (Escarlata y Púrpura)), en chino simplificado (China continental). Las cartas vienen al azar. No equivale a las ediciones japonesas ni a las internacionales.",
+      "contenido": [
+        {
+          "label": "Cartas por sobre",
+          "quantity": 5,
+          "unit": "cartas",
+          "note": "Al azar (texto del envase: «随机封入5张卡牌»)."
+        }
+      ],
+      "evidencia": "Insignia «csv3C · 随机封入5张卡牌» (SKU_19, texto pequeño y borroso: lectura con zoom). Detalle_13 muestra el mismo sobre rotulado «朱紫 无畏太晶». Imagen de la publicación surtida de la tienda «百变怪TCG卡牌» (revendedor): la variante se identifica por el texto impreso en el envase.",
+      "imagenes": [
+        {
+          "fuente": "975082756071",
+          "archivo": "SKU_19.png",
+          "view": "front",
+          "alt": "Sobre de 5 cartas de 无畏太晶 (edición china simplificada), foto de referencia del proveedor"
+        }
+      ],
+      "tituloOriginal": "无畏太晶 · Sobre de 5 cartas",
+      "tituloEs": "Teracristal Intrépido · Sobre de 5 cartas"
+    },
+    {
+      "id": "zh-gengu-kailai-sobre-5",
+      "sku": "ZH-975082756071-SKU24",
+      "slug": "zh-gengu-kailai-sobre-5",
+      "fuente": "975082756071",
+      "coleccion": "zh-gengu-kailai",
+      "tipo": "booster",
+      "variante": "5 cartas",
+      "titulo": "Eternal Birth · Sobre de 5 cartas",
+      "nombreOriginal": "亘古开来",
+      "aliases": [
+        "gengu kailai",
+        "sobre",
+        "booster",
+        "chino",
+        "china"
+      ],
+      "descripcion": "Sobre de 5 cartas de la colección china «亘古开来» (serie 朱&紫 (Escarlata y Púrpura)), en chino simplificado (China continental). Las cartas vienen al azar. No equivale a las ediciones japonesas ni a las internacionales.",
+      "contenido": [
+        {
+          "label": "Cartas por sobre",
+          "quantity": 5,
+          "unit": "cartas",
+          "note": "Al azar (texto del envase: «随机封入5张卡牌»)."
+        }
+      ],
+      "evidencia": "Insignia «csv1C · 随机封入5张卡牌» (SKU_24). Imagen de la publicación surtida de la tienda «百变怪TCG卡牌» (revendedor): la variante se identifica por el texto impreso en el envase.",
+      "imagenes": [
+        {
+          "fuente": "975082756071",
+          "archivo": "SKU_24.jpg",
+          "view": "front",
+          "alt": "Sobre de 5 cartas de 亘古开来 (edición china simplificada), foto de referencia del proveedor"
+        }
+      ],
+      "tituloOriginal": "亘古开来 · Sobre de 5 cartas",
+      "tituloEs": "Antigüedad y Porvenir · Sobre de 5 cartas"
+    },
+    {
+      "id": "zh-gengu-kailai-sobre-20",
+      "sku": "ZH-975082756071-SKU25",
+      "slug": "zh-gengu-kailai-sobre-20",
+      "fuente": "975082756071",
+      "coleccion": "zh-gengu-kailai",
+      "tipo": "booster",
+      "variante": "20 cartas",
+      "titulo": "Eternal Birth · Sobre de 20 cartas",
+      "nombreOriginal": "亘古开来",
+      "aliases": [
+        "gengu kailai",
+        "sobre",
+        "booster",
+        "chino",
+        "china"
+      ],
+      "descripcion": "Sobre de 20 cartas de la colección china «亘古开来» (serie 朱&紫 (Escarlata y Púrpura)), en chino simplificado (China continental). Las cartas vienen al azar. Según el rótulo del proveedor, la caja de este formato trae 6 sobres; esta ficha es el sobre individual. No equivale a las ediciones japonesas ni a las internacionales.",
+      "contenido": [
+        {
+          "label": "Cartas por sobre",
+          "quantity": 20,
+          "unit": "cartas",
+          "note": "Al azar (texto del envase: «随机封入20张卡牌»)."
+        }
+      ],
+      "evidencia": "Insignia «csv1C · 随机封入20张卡牌» (SKU_25). La imagen trae el rótulo «【肥盒】×6 · 每包14平6闪» (el proveedor describe la caja gruesa como 6 sobres con 14 cartas comunes y 6 brillantes); se recortó solo el sobre. Imagen de la publicación surtida de la tienda «百变怪TCG卡牌» (revendedor): la variante se identifica por el texto impreso en el envase.",
+      "imagenes": [
+        {
+          "fuente": "975082756071",
+          "archivo": "SKU_25.jpg",
+          "view": "front",
+          "alt": "Sobre de 20 cartas de 亘古开来 (edición china simplificada), foto de referencia del proveedor",
+          "crop": [
+            0,
+            0,
+            0.5,
+            1
+          ]
+        }
+      ],
+      "tituloOriginal": "亘古开来 · Sobre de 20 cartas",
+      "tituloEs": "Antigüedad y Porvenir · Sobre de 20 cartas",
+      "retirado": {
+        "fecha": "2026-10-13",
+        "motivo": "Sobre individual de 20 cartas: retirado de la oferta pública por decisión del dueño (13/10/2026)."
+      }
+    },
+    {
+      "id": "zh-liren-mengxing-sobre-5",
+      "sku": "ZH-975082756071-SKU26",
+      "slug": "zh-liren-mengxing-sobre-5",
+      "fuente": "975082756071",
+      "coleccion": "zh-liren-mengxing",
+      "tipo": "booster",
+      "variante": "5 cartas",
+      "titulo": "Blade Awakening · Sobre de 5 cartas",
+      "nombreOriginal": "利刃猛醒",
+      "aliases": [
+        "liren mengxing",
+        "sobre",
+        "booster",
+        "chino",
+        "china"
+      ],
+      "descripcion": "Sobre de 5 cartas de la colección china «利刃猛醒» (serie 朱&紫 (Escarlata y Púrpura)), en chino simplificado (China continental). Las cartas vienen al azar. No equivale a las ediciones japonesas ni a las internacionales.",
+      "contenido": [
+        {
+          "label": "Cartas por sobre",
+          "quantity": 5,
+          "unit": "cartas",
+          "note": "Al azar (texto del envase: «随机封入5张卡牌»)."
+        }
+      ],
+      "evidencia": "Insignia «csv7C · 随机封入5张卡牌» (SKU_26). Imagen de la publicación surtida de la tienda «百变怪TCG卡牌» (revendedor): la variante se identifica por el texto impreso en el envase.",
+      "imagenes": [
+        {
+          "fuente": "975082756071",
+          "archivo": "SKU_26.jpeg",
+          "view": "front",
+          "alt": "Sobre de 5 cartas de 利刃猛醒 (edición china simplificada), foto de referencia del proveedor"
+        }
+      ],
+      "tituloOriginal": "利刃猛醒 · Sobre de 5 cartas",
+      "tituloEs": "Despertar del Filo · Sobre de 5 cartas"
+    },
+    {
+      "id": "zh-liren-mengxing-sobre-20",
+      "sku": "ZH-1008153816247",
+      "slug": "zh-liren-mengxing-sobre-20",
+      "fuente": "1008153816247",
+      "coleccion": "zh-liren-mengxing",
+      "tipo": "booster",
+      "variante": "20 cartas",
+      "titulo": "Blade Awakening · Sobre de 20 cartas",
+      "nombreOriginal": "利刃猛醒",
+      "aliases": [
+        "liren mengxing",
+        "sobre",
+        "booster",
+        "chino",
+        "china"
+      ],
+      "descripcion": "Sobre de 20 cartas de la colección china «利刃猛醒» (serie 朱&紫 (Escarlata y Púrpura)), en chino simplificado (China continental). Las cartas vienen al azar. La ficha de origen indica 6 sobres por caja; esta ficha es el sobre individual. No equivale a las ediciones japonesas ni a las internacionales.",
+      "contenido": [
+        {
+          "label": "Cartas por sobre",
+          "quantity": 20,
+          "unit": "cartas",
+          "note": "Al azar (texto del envase: «随机封入20张卡牌»)."
+        }
+      ],
+      "evidencia": "Detalle_03 «补充包 每包含有20张卡牌»; Detalle_09 «随机封入20张/包 每盒6包». La ficha indica 6 sobres por caja; esta ficha es el sobre individual.",
+      "imagenes": [
+        {
+          "fuente": "1008153816247",
+          "archivo": "SKU_01.jpg",
+          "view": "front",
+          "alt": "Sobre de 20 cartas de 利刃猛醒 (edición china simplificada), foto de referencia del proveedor"
+        }
+      ],
+      "tituloOriginal": "利刃猛醒 · Sobre de 20 cartas",
+      "tituloEs": "Despertar del Filo · Sobre de 20 cartas",
+      "retirado": {
+        "fecha": "2026-10-13",
+        "motivo": "Sobre individual de 20 cartas: retirado de la oferta pública por decisión del dueño (13/10/2026)."
+      }
+    },
+    {
+      "id": "zh-cuican-guihuan-sobre-5",
+      "sku": "ZH-975082756071-SKU30",
+      "slug": "zh-cuican-guihuan-sobre-5",
+      "fuente": "975082756071",
+      "coleccion": "zh-cuican-guihuan",
+      "tipo": "booster",
+      "variante": "5 cartas",
+      "titulo": "Brilliant Illusions · Sobre de 5 cartas",
+      "nombreOriginal": "璀璨诡幻",
+      "aliases": [
+        "cuican guihuan",
+        "sobre",
+        "booster",
+        "chino",
+        "china"
+      ],
+      "descripcion": "Sobre de 5 cartas de la colección china «璀璨诡幻» (serie 朱&紫 (Escarlata y Púrpura)), en chino simplificado (China continental). Las cartas vienen al azar. Según el rótulo del proveedor, la caja delgada de este formato trae 15 sobres; esta ficha es el sobre individual. No equivale a las ediciones japonesas ni a las internacionales.",
+      "contenido": [
+        {
+          "label": "Cartas por sobre",
+          "quantity": 5,
+          "unit": "cartas",
+          "note": "Al azar (texto del envase: «随机封入5张卡牌»)."
+        }
+      ],
+      "evidencia": "Insignia «csv8C · 随机封入5张卡牌» (SKU_30); SKU_31 lo rotula «【瘦盒】×15 · 每包4平1闪» (caja delgada de 15 sobres con 4 cartas comunes y 1 brillante). Imagen de la publicación surtida de la tienda «百变怪TCG卡牌» (revendedor): la variante se identifica por el texto impreso en el envase.",
+      "imagenes": [
+        {
+          "fuente": "975082756071",
+          "archivo": "SKU_30.jpeg",
+          "view": "front",
+          "alt": "Sobre de 5 cartas de 璀璨诡幻 (edición china simplificada), foto de referencia del proveedor"
+        }
+      ],
+      "tituloOriginal": "璀璨诡幻 · Sobre de 5 cartas",
+      "tituloEs": "Ilusión Resplandeciente · Sobre de 5 cartas"
+    },
+    {
+      "id": "zh-cuican-guihuan-sobre-20",
+      "sku": "ZH-975082756071-SKU32",
+      "slug": "zh-cuican-guihuan-sobre-20",
+      "fuente": "975082756071",
+      "coleccion": "zh-cuican-guihuan",
+      "tipo": "booster",
+      "variante": "20 cartas",
+      "titulo": "Brilliant Illusions · Sobre de 20 cartas",
+      "nombreOriginal": "璀璨诡幻",
+      "aliases": [
+        "cuican guihuan",
+        "sobre",
+        "booster",
+        "chino",
+        "china"
+      ],
+      "descripcion": "Sobre de 20 cartas de la colección china «璀璨诡幻» (serie 朱&紫 (Escarlata y Púrpura)), en chino simplificado (China continental). Las cartas vienen al azar. Según el rótulo del proveedor, la caja gruesa de este formato trae 6 sobres; esta ficha es el sobre individual. No equivale a las ediciones japonesas ni a las internacionales.",
+      "contenido": [
+        {
+          "label": "Cartas por sobre",
+          "quantity": 20,
+          "unit": "cartas",
+          "note": "Al azar (texto del envase: «随机封入20张卡牌»)."
+        }
+      ],
+      "evidencia": "Insignia «csv8C · 随机封入20张卡牌» (SKU_32); SKU_33 lo rotula «【肥盒】×6 · 每包14平6闪». Imagen de la publicación surtida de la tienda «百变怪TCG卡牌» (revendedor): la variante se identifica por el texto impreso en el envase.",
+      "imagenes": [
+        {
+          "fuente": "975082756071",
+          "archivo": "SKU_32.jpeg",
+          "view": "front",
+          "alt": "Sobre de 20 cartas de 璀璨诡幻 (edición china simplificada), foto de referencia del proveedor"
+        }
+      ],
+      "tituloOriginal": "璀璨诡幻 · Sobre de 20 cartas",
+      "tituloEs": "Ilusión Resplandeciente · Sobre de 20 cartas",
+      "retirado": {
+        "fecha": "2026-10-13",
+        "motivo": "Sobre individual de 20 cartas: retirado de la oferta pública por decisión del dueño (13/10/2026)."
+      }
+    },
+    {
+      "id": "zh-xingcai-jingli-sobre-5",
+      "sku": "ZH-1050867876169",
+      "slug": "zh-xingcai-jingli-sobre-5",
+      "fuente": "1050867876169",
+      "coleccion": "zh-xingcai-jingli",
+      "tipo": "booster",
+      "variante": "5 cartas",
+      "titulo": "Stellar Crystal · Sobre de 5 cartas",
+      "nombreOriginal": "星彩晶璃",
+      "aliases": [
+        "xingcai jingli",
+        "sobre",
+        "booster",
+        "chino",
+        "china"
+      ],
+      "descripcion": "Sobre de 5 cartas de la colección china «星彩晶璃» (serie 朱&紫 (Escarlata y Púrpura)), en chino simplificado (China continental). Las cartas vienen al azar. No equivale a las ediciones japonesas ni a las internacionales.",
+      "contenido": [
+        {
+          "label": "Cartas por sobre",
+          "quantity": 5,
+          "unit": "cartas",
+          "note": "Al azar (texto del envase: «随机封入5张卡牌»)."
+        }
+      ],
+      "evidencia": "Principal_04 «每包含有5张卡牌»; Detalle_12 «随机封入5张/包».",
+      "imagenes": [
+        {
+          "fuente": "1050867876169",
+          "archivo": "SKU_01.jpg",
+          "view": "front",
+          "alt": "Sobre de 5 cartas de 星彩晶璃 (edición china simplificada), foto de referencia del proveedor"
+        }
+      ],
+      "tituloOriginal": "星彩晶璃 · Sobre de 5 cartas",
+      "tituloEs": "Cristal de Colores Estelares · Sobre de 5 cartas"
+    },
+    {
+      "id": "zh-qiji-qicheng-sobre-20",
+      "sku": "ZH-975082756071-SKU38",
+      "slug": "zh-qiji-qicheng-sobre-20",
+      "fuente": "975082756071",
+      "coleccion": "zh-qiji-qicheng",
+      "tipo": "booster",
+      "variante": "20 cartas",
+      "titulo": "Miracle Journey · Sobre de 20 cartas",
+      "nombreOriginal": "奇迹启程",
+      "aliases": [
+        "qiji qicheng",
+        "sobre",
+        "booster",
+        "chino",
+        "china"
+      ],
+      "descripcion": "Sobre de 20 cartas de la colección china «奇迹启程» (serie 朱&紫 (Escarlata y Púrpura)), en chino simplificado (China continental). Las cartas vienen al azar. No equivale a las ediciones japonesas ni a las internacionales.",
+      "contenido": [
+        {
+          "label": "Cartas por sobre",
+          "quantity": 20,
+          "unit": "cartas",
+          "note": "Al azar (texto del envase: «随机封入20张卡牌»)."
+        }
+      ],
+      "evidencia": "Insignia «csv2C · 随机封入20张卡牌» (SKU_38). SKU_39 muestra el mismo diseño con la insignia «每盒随机封入20张卡牌» (probable caja; no se cargó). Imagen de la publicación surtida de la tienda «百变怪TCG卡牌» (revendedor): la variante se identifica por el texto impreso en el envase.",
+      "imagenes": [
+        {
+          "fuente": "975082756071",
+          "archivo": "SKU_38.jpg",
+          "view": "front",
+          "alt": "Sobre de 20 cartas de 奇迹启程 (edición china simplificada), foto de referencia del proveedor"
+        }
+      ],
+      "tituloOriginal": "奇迹启程 · Sobre de 20 cartas",
+      "tituloEs": "Partida Milagrosa · Sobre de 20 cartas",
+      "retirado": {
+        "fecha": "2026-10-13",
+        "motivo": "Sobre individual de 20 cartas: retirado de la oferta pública por decisión del dueño (13/10/2026)."
+      }
+    },
+    {
+      "id": "zh-taijing-shengju-sobre-10",
+      "sku": "ZH-975082756071-SKU40",
+      "slug": "zh-taijing-shengju-sobre-10",
+      "fuente": "975082756071",
+      "coleccion": "zh-taijing-shengju",
+      "tipo": "booster",
+      "variante": "10 cartas",
+      "titulo": "Terastal Gathering · Sobre de 10 cartas",
+      "nombreOriginal": "太晶盛聚",
+      "aliases": [
+        "taijing shengju",
+        "sobre",
+        "booster",
+        "chino",
+        "china"
+      ],
+      "descripcion": "Sobre de 10 cartas de la colección china «太晶盛聚» (serie 朱&紫 (Escarlata y Púrpura)), en chino simplificado (China continental). Las cartas vienen al azar. No equivale a las ediciones japonesas ni a las internacionales.",
+      "contenido": [
+        {
+          "label": "Cartas por sobre",
+          "quantity": 10,
+          "unit": "cartas",
+          "note": "Al azar (texto del envase: «随机封入10张卡牌»)."
+        }
+      ],
+      "evidencia": "Insignia «csv9.5C · 随机封入10张卡牌» (SKU_40–42, tres imágenes iguales). El título de la carpeta 1064307763243 también dice «补充包10张装». Imagen de la publicación surtida de la tienda «百变怪TCG卡牌» (revendedor): la variante se identifica por el texto impreso en el envase.",
+      "imagenes": [
+        {
+          "fuente": "975082756071",
+          "archivo": "SKU_40.png",
+          "view": "front",
+          "alt": "Sobre de 10 cartas de 太晶盛聚 (edición china simplificada), foto de referencia del proveedor"
+        }
+      ],
+      "tituloOriginal": "太晶盛聚 · Sobre de 10 cartas",
+      "tituloEs": "Gran Reunión Teracristal · Sobre de 10 cartas"
+    },
+    {
+      "id": "zh-gongzhu-rongguang-sobre-5",
+      "sku": "ZH-1065055849565",
+      "slug": "zh-gongzhu-rongguang-sobre-5",
+      "fuente": "1065055849565",
+      "coleccion": "zh-gongzhu-rongguang",
+      "tipo": "booster",
+      "variante": "5 cartas",
+      "titulo": "Chasing Glory Together · Sobre de 5 cartas",
+      "nombreOriginal": "共逐荣光",
+      "aliases": [
+        "gongzhu rongguang",
+        "sobre",
+        "booster",
+        "chino",
+        "china"
+      ],
+      "descripcion": "Sobre de 5 cartas de la colección china «共逐荣光» (serie 朱&紫 (Escarlata y Púrpura)), en chino simplificado (China continental). Las cartas vienen al azar. No equivale a las ediciones japonesas ni a las internacionales.",
+      "contenido": [
+        {
+          "label": "Cartas por sobre",
+          "quantity": 5,
+          "unit": "cartas",
+          "note": "Al azar (texto del envase: «随机封入5张卡牌»)."
+        }
+      ],
+      "evidencia": "Principal_04 «每包含有5张卡牌»; Detalle_11 «随机封入5张/包». Producto distinto del de 20 cartas.",
+      "imagenes": [
+        {
+          "fuente": "1065055849565",
+          "archivo": "SKU_01.jpg",
+          "view": "front",
+          "alt": "Sobre de 5 cartas de 共逐荣光 (edición china simplificada), foto de referencia del proveedor"
+        }
+      ],
+      "tituloOriginal": "共逐荣光 · Sobre de 5 cartas",
+      "tituloEs": "En Pos de la Gloria · Sobre de 5 cartas"
+    },
+    {
+      "id": "zh-gongzhu-rongguang-sobre-20",
+      "sku": "ZH-1063240655679",
+      "slug": "zh-gongzhu-rongguang-sobre-20",
+      "fuente": "1063240655679",
+      "coleccion": "zh-gongzhu-rongguang",
+      "tipo": "booster",
+      "variante": "20 cartas",
+      "titulo": "Chasing Glory Together · Sobre de 20 cartas",
+      "nombreOriginal": "共逐荣光",
+      "aliases": [
+        "gongzhu rongguang",
+        "sobre",
+        "booster",
+        "chino",
+        "china"
+      ],
+      "descripcion": "Sobre de 20 cartas de la colección china «共逐荣光» (serie 朱&紫 (Escarlata y Púrpura)), en chino simplificado (China continental). Las cartas vienen al azar. La ficha de origen indica 6 sobres por caja; esta ficha es el sobre individual. No equivale a las ediciones japonesas ni a las internacionales.",
+      "contenido": [
+        {
+          "label": "Cartas por sobre",
+          "quantity": 20,
+          "unit": "cartas",
+          "note": "Al azar (texto del envase: «随机封入20张卡牌»)."
+        }
+      ],
+      "evidencia": "Principal_04 «每包含有20张卡牌 每盒6包»; Detalle_11 «随机封入20张/包 每盒6包». La ficha indica 6 sobres por caja; esta ficha es el sobre individual.",
+      "imagenes": [
+        {
+          "fuente": "1063240655679",
+          "archivo": "SKU_01.jpg",
+          "view": "front",
+          "alt": "Sobre de 20 cartas de 共逐荣光 (edición china simplificada), foto de referencia del proveedor"
+        }
+      ],
+      "tituloOriginal": "共逐荣光 · Sobre de 20 cartas",
+      "tituloEs": "En Pos de la Gloria · Sobre de 20 cartas",
+      "retirado": {
+        "fecha": "2026-10-13",
+        "motivo": "Sobre individual de 20 cartas: retirado de la oferta pública por decisión del dueño (13/10/2026)."
+      }
+    },
+    {
+      "id": "zh-shengxiang-xingyin-sobre-6",
+      "sku": "ZH-975082756071-SKU15",
+      "slug": "zh-shengxiang-xingyin-sobre-6",
+      "fuente": "975082756071",
+      "coleccion": "zh-shengxiang-xingyin",
+      "tipo": "booster",
+      "variante": "6 cartas",
+      "titulo": "Victory Star Guide · Sobre de 6 cartas",
+      "nombreOriginal": "胜象星引",
+      "aliases": [
+        "shengxiang xingyin",
+        "sobre",
+        "booster",
+        "chino",
+        "china",
+        "espada y escudo"
+      ],
+      "descripcion": "Sobre de 6 cartas de la colección china «胜象星引» (serie 剑&盾 (Espada y Escudo)), en chino simplificado (China continental). Las cartas vienen al azar. No equivale a las ediciones japonesas ni a las internacionales.",
+      "contenido": [
+        {
+          "label": "Cartas por sobre",
+          "quantity": 6,
+          "unit": "cartas",
+          "note": "Al azar (texto del envase: «随机封入6张卡牌»)."
+        }
+      ],
+      "evidencia": "Insignia «cs6.5C · 随机封入6张卡牌» y rótulo «强化包» (pack de refuerzo) de la serie 剑&盾 (SKU_15). Imagen de la publicación surtida de la tienda «百变怪TCG卡牌» (revendedor): la variante se identifica por el texto impreso en el envase.",
+      "imagenes": [
+        {
+          "fuente": "975082756071",
+          "archivo": "SKU_15.jpg",
+          "view": "front",
+          "alt": "Sobre de 6 cartas de 胜象星引 (edición china simplificada), foto de referencia del proveedor"
+        }
+      ],
+      "tituloOriginal": "胜象星引 · Sobre de 6 cartas",
+      "tituloEs": "Estrella Guía de la Victoria · Sobre de 6 cartas"
+    },
+    {
+      "id": "zh-anying-duohui-sobre-6",
+      "sku": "ZH-975082756071-SKU17",
+      "slug": "zh-anying-duohui-sobre-6",
+      "fuente": "975082756071",
+      "coleccion": "zh-anying-duohui",
+      "tipo": "booster",
+      "variante": "6 cartas",
+      "titulo": "Shadow of Glory · Sobre de 6 cartas",
+      "nombreOriginal": "暗影夺辉",
+      "aliases": [
+        "anying duohui",
+        "sobre",
+        "booster",
+        "chino",
+        "china",
+        "espada y escudo"
+      ],
+      "descripcion": "Sobre de 6 cartas de la colección china «暗影夺辉» (serie 剑&盾 (Espada y Escudo)), en chino simplificado (China continental). Las cartas vienen al azar. No equivale a las ediciones japonesas ni a las internacionales.",
+      "contenido": [
+        {
+          "label": "Cartas por sobre",
+          "quantity": 6,
+          "unit": "cartas",
+          "note": "Al azar (texto del envase: «随机封入6张卡牌»)."
+        }
+      ],
+      "evidencia": "Insignia «cs5.5C · 随机封入6张卡牌» y rótulo «强化包» (pack de refuerzo) de la serie 剑&盾 (SKU_17). Imagen de la publicación surtida de la tienda «百变怪TCG卡牌» (revendedor): la variante se identifica por el texto impreso en el envase.",
+      "imagenes": [
+        {
+          "fuente": "975082756071",
+          "archivo": "SKU_17.jpg",
+          "view": "front",
+          "alt": "Sobre de 6 cartas de 暗影夺辉 (edición china simplificada), foto de referencia del proveedor"
+        }
+      ],
+      "tituloOriginal": "暗影夺辉 · Sobre de 6 cartas",
+      "tituloEs": "Sombras que Roban el Brillo · Sobre de 6 cartas"
+    },
+    {
+      "id": "zh-nuyan-zhuotian-sobre-6",
+      "sku": "ZH-975082756071-SKU20",
+      "slug": "zh-nuyan-zhuotian-sobre-6",
+      "fuente": "975082756071",
+      "coleccion": "zh-nuyan-zhuotian",
+      "tipo": "booster",
+      "variante": "6 cartas",
+      "titulo": "Scorching Skies · Sobre de 6 cartas",
+      "nombreOriginal": "怒炎灼天",
+      "aliases": [
+        "nuyan zhuotian",
+        "sobre",
+        "booster",
+        "chino",
+        "china",
+        "espada y escudo"
+      ],
+      "descripcion": "Sobre de 6 cartas de la colección china «怒炎灼天» (serie 剑&盾 (Espada y Escudo)), en chino simplificado (China continental). Las cartas vienen al azar. No equivale a las ediciones japonesas ni a las internacionales.",
+      "contenido": [
+        {
+          "label": "Cartas por sobre",
+          "quantity": 6,
+          "unit": "cartas",
+          "note": "Al azar (texto del envase: «随机封入6张卡牌»)."
+        }
+      ],
+      "evidencia": "Insignia «cs3.5C · 随机封入6张卡牌» y rótulo «强化包» (pack de refuerzo) de la serie 剑&盾 (SKU_20). Imagen de la publicación surtida de la tienda «百变怪TCG卡牌» (revendedor): la variante se identifica por el texto impreso en el envase.",
+      "imagenes": [
+        {
+          "fuente": "975082756071",
+          "archivo": "SKU_20.jpeg",
+          "view": "front",
+          "alt": "Sobre de 6 cartas de 怒炎灼天 (edición china simplificada), foto de referencia del proveedor"
+        }
+      ],
+      "tituloOriginal": "怒炎灼天 · Sobre de 6 cartas",
+      "tituloEs": "Llama Furiosa en el Cielo · Sobre de 6 cartas"
+    },
+    {
+      "id": "zh-jiju-gongfang-sobre-6",
+      "sku": "ZH-975082756071-SKU22",
+      "slug": "zh-jiju-gongfang-sobre-6",
+      "fuente": "975082756071",
+      "coleccion": "zh-jiju-gongfang",
+      "tipo": "booster",
+      "variante": "6 cartas",
+      "titulo": "Dynamax Tactics · Sobre de 6 cartas",
+      "nombreOriginal": "极巨攻防",
+      "aliases": [
+        "jiju gongfang",
+        "sobre",
+        "booster",
+        "chino",
+        "china",
+        "espada y escudo"
+      ],
+      "descripcion": "Sobre de 6 cartas de la colección china «极巨攻防» (serie 剑&盾 (Espada y Escudo)), en chino simplificado (China continental). Las cartas vienen al azar. No equivale a las ediciones japonesas ni a las internacionales.",
+      "contenido": [
+        {
+          "label": "Cartas por sobre",
+          "quantity": 6,
+          "unit": "cartas",
+          "note": "Al azar (texto del envase: «随机封入6张卡牌»)."
+        }
+      ],
+      "evidencia": "Insignia «cs1.5C · 随机封入6张卡牌» y rótulo «强化包» (pack de refuerzo) de la serie 剑&盾 (SKU_22). Imagen de la publicación surtida de la tienda «百变怪TCG卡牌» (revendedor): la variante se identifica por el texto impreso en el envase.",
+      "imagenes": [
+        {
+          "fuente": "975082756071",
+          "archivo": "SKU_22.jpg",
+          "view": "front",
+          "alt": "Sobre de 6 cartas de 极巨攻防 (edición china simplificada), foto de referencia del proveedor"
+        }
+      ],
+      "tituloOriginal": "极巨攻防 · Sobre de 6 cartas",
+      "tituloEs": "Ataque y Defensa Dinamax · Sobre de 6 cartas"
+    },
+    {
+      "id": "zh-zhongmo-yanwu-sobre-6",
+      "sku": "ZH-975082756071-SKU23",
+      "slug": "zh-zhongmo-yanwu-sobre-6",
+      "fuente": "975082756071",
+      "coleccion": "zh-zhongmo-yanwu",
+      "tipo": "booster",
+      "variante": "6 cartas",
+      "titulo": "Final Flame Dance · Sobre de 6 cartas",
+      "nombreOriginal": "终末炎舞",
+      "aliases": [
+        "zhongmo yanwu",
+        "sobre",
+        "booster",
+        "chino",
+        "china",
+        "espada y escudo"
+      ],
+      "descripcion": "Sobre de 6 cartas de la colección china «终末炎舞» (serie 剑&盾 (Espada y Escudo)), en chino simplificado (China continental). Las cartas vienen al azar. No equivale a las ediciones japonesas ni a las internacionales.",
+      "contenido": [
+        {
+          "label": "Cartas por sobre",
+          "quantity": 6,
+          "unit": "cartas",
+          "note": "Al azar (texto del envase: «随机封入6张卡牌»)."
+        }
+      ],
+      "evidencia": "Insignia «cs4.5C · 随机封入6张卡牌» y rótulo «强化包» (pack de refuerzo) de la serie 剑&盾 (SKU_23). Imagen de la publicación surtida de la tienda «百变怪TCG卡牌» (revendedor): la variante se identifica por el texto impreso en el envase.",
+      "imagenes": [
+        {
+          "fuente": "975082756071",
+          "archivo": "SKU_23.jpg",
+          "view": "front",
+          "alt": "Sobre de 6 cartas de 终末炎舞 (edición china simplificada), foto de referencia del proveedor"
+        }
+      ],
+      "tituloOriginal": "终末炎舞 · Sobre de 6 cartas",
+      "tituloEs": "Danza de Llamas del Final · Sobre de 6 cartas"
+    },
+    {
+      "id": "zh-shengxiang-xingyin-caja",
+      "sku": "ZH-975082756071-SKU16",
+      "slug": "zh-shengxiang-xingyin-caja",
+      "fuente": "975082756071",
+      "coleccion": "zh-shengxiang-xingyin",
+      "tipo": "box",
+      "variante": null,
+      "titulo": "Victory Star Guide · Caja",
+      "nombreOriginal": "胜象星引",
+      "aliases": [
+        "shengxiang xingyin",
+        "caja",
+        "box",
+        "chino",
+        "china",
+        "espada y escudo"
+      ],
+      "descripcion": "Caja de sobres de la colección china «胜象星引» (serie 剑&盾 (Espada y Escudo)), en chino simplificado. Cada sobre de esta colección trae 6 cartas al azar según su envase. La cantidad de sobres por caja no figura en el material suministrado y queda pendiente de confirmar. No equivale a las ediciones japonesas ni a las internacionales.",
+      "contenido": [
+        {
+          "label": "Cartas por sobre",
+          "quantity": 6,
+          "unit": "cartas",
+          "note": "Al azar (texto del envase de los sobres)."
+        },
+        {
+          "label": "Sobres por caja",
+          "note": "Dato pendiente: no figura en el material suministrado."
+        }
+      ],
+      "evidencia": "SKU_16: foto de la caja rotulada «胜象星引» y «强化包»; la foto es pequeña y no muestra la cantidad de sobres. Imagen de la publicación surtida de la tienda «百变怪TCG卡牌» (revendedor): la variante se identifica por el texto impreso en el envase.",
+      "imagenes": [
+        {
+          "fuente": "975082756071",
+          "archivo": "SKU_16.jpg",
+          "view": "closed",
+          "alt": "Caja de 胜象星引 (edición china simplificada), foto de referencia del proveedor"
+        }
+      ],
+      "tituloOriginal": "胜象星引 · Caja",
+      "tituloEs": "Estrella Guía de la Victoria · Caja"
+    },
+    {
+      "id": "zh-anying-duohui-caja",
+      "sku": "ZH-975082756071-SKU18",
+      "slug": "zh-anying-duohui-caja",
+      "fuente": "975082756071",
+      "coleccion": "zh-anying-duohui",
+      "tipo": "box",
+      "variante": null,
+      "titulo": "Shadow of Glory · Caja",
+      "nombreOriginal": "暗影夺辉",
+      "aliases": [
+        "anying duohui",
+        "caja",
+        "box",
+        "chino",
+        "china",
+        "espada y escudo"
+      ],
+      "descripcion": "Caja de sobres de la colección china «暗影夺辉» (serie 剑&盾 (Espada y Escudo)), en chino simplificado. Cada sobre de esta colección trae 6 cartas al azar según su envase. La cantidad de sobres por caja no figura en el material suministrado y queda pendiente de confirmar. No equivale a las ediciones japonesas ni a las internacionales.",
+      "contenido": [
+        {
+          "label": "Cartas por sobre",
+          "quantity": 6,
+          "unit": "cartas",
+          "note": "Al azar (texto del envase de los sobres)."
+        },
+        {
+          "label": "Sobres por caja",
+          "note": "Dato pendiente: no figura en el material suministrado."
+        }
+      ],
+      "evidencia": "SKU_18: foto de la caja rotulada «暗影夺辉» y «强化包»; la foto es pequeña y no muestra la cantidad de sobres. Imagen de la publicación surtida de la tienda «百变怪TCG卡牌» (revendedor): la variante se identifica por el texto impreso en el envase.",
+      "imagenes": [
+        {
+          "fuente": "975082756071",
+          "archivo": "SKU_18.jpg",
+          "view": "closed",
+          "alt": "Caja de 暗影夺辉 (edición china simplificada), foto de referencia del proveedor"
+        }
+      ],
+      "tituloOriginal": "暗影夺辉 · Caja",
+      "tituloEs": "Sombras que Roban el Brillo · Caja"
+    },
+    {
+      "id": "zh-taijing-shengju-caja",
+      "sku": "ZH-1064307763243",
+      "slug": "zh-taijing-shengju-caja",
+      "fuente": "1064307763243",
+      "coleccion": "zh-taijing-shengju",
+      "tipo": "box",
+      "variante": null,
+      "titulo": "Terastal Gathering · Caja",
+      "nombreOriginal": "太晶盛聚",
+      "aliases": [
+        "taijing shengju",
+        "caja",
+        "box",
+        "chino",
+        "china",
+        "17.5"
+      ],
+      "descripcion": "Caja sellada de sobres de la colección china «太晶盛聚» (serie 朱&紫), en chino simplificado. Los sobres traen 10 cartas al azar según el envase. La cantidad de sobres por caja no figura en el material suministrado y queda pendiente de confirmar. El título de la publicación de origen habla de «补充包10张装» (sobres de 10 cartas) y las fotos muestran la caja: se publica como caja y la unidad de venta final se confirma con el proveedor.",
+      "contenido": [
+        {
+          "label": "Cartas por sobre",
+          "quantity": 10,
+          "unit": "cartas",
+          "note": "Al azar (texto de la caja: «每包随机封入10张卡牌»)."
+        },
+        {
+          "label": "Sobres por caja",
+          "note": "Dato pendiente: no figura en el material suministrado."
+        }
+      ],
+      "evidencia": "Principal_01 y SKU_01: caja celofanada con la insignia «csv9.5C · 每包随机封入10张卡牌»; Principal_02/03/04: cajas apiladas y cajas en cartón del vendedor. El título dice «补充包10张装», que puede referirse al sobre: se resolvió por lo que muestran las fotos (caja). Cantidad de sobres por caja: no visible.",
+      "imagenes": [
+        {
+          "fuente": "1064307763243",
+          "archivo": "Principal_01.jpg",
+          "view": "closed",
+          "opaque": true,
+          "keepBg": true,
+          "alt": "Caja de 太晶盛聚 (edición china simplificada) sostenida en la mano, foto del vendedor: referencia, no es el estado del artículo que se vende"
+        },
+        {
+          "fuente": "1064307763243",
+          "archivo": "Principal_02.jpg",
+          "view": "detail",
+          "opaque": true,
+          "keepBg": true,
+          "alt": "Caja de 太晶盛聚 junto a otras cajas apiladas, foto del vendedor"
+        },
+        {
+          "fuente": "1064307763243",
+          "archivo": "Principal_03.jpg",
+          "view": "detail",
+          "opaque": true,
+          "keepBg": true,
+          "alt": "Varias cajas de 太晶盛聚, foto del vendedor"
+        }
+      ],
+      "tituloOriginal": "太晶盛聚 · Caja",
+      "tituloEs": "Gran Reunión Teracristal · Caja"
+    },
+    {
+      "id": "zh-30-zhounian-sobre-6",
+      "sku": "ZH-1079986406064-SOBRE",
+      "slug": "zh-30-zhounian-sobre-6",
+      "fuente": "1079986406064",
+      "coleccion": "zh-30-zhounian",
+      "tipo": "booster",
+      "variante": "6 cartas",
+      "titulo": "30th Celebration · Sobre de 6 cartas",
+      "nombreOriginal": "30周年庆典 (30th CELEBRATION, edición china)",
+      "aliases": [
+        "30 zhounian qingdian 30th celebration aniversario",
+        "sobre",
+        "booster",
+        "chino",
+        "china",
+        "pikachu"
+      ],
+      "descripcion": "Sobre de la edición china simplificada del 30.º aniversario («30周年庆典 / 30th CELEBRATION»). Según la publicación, cada sobre trae 6 cartas brillantes e incluye 1 carta de Pikachu. No es la edición japonesa de 30th CELEBRATION: son productos distintos, con otra galería. La publicación ofrece también variantes en múltiplos («×5»): esta ficha es el sobre individual.",
+      "contenido": [
+        {
+          "label": "Cartas por sobre",
+          "quantity": 6,
+          "unit": "cartas",
+          "note": "Todas brillantes según el rótulo del proveedor («每包6张闪卡»)."
+        },
+        {
+          "label": "Carta de Pikachu",
+          "quantity": 1,
+          "unit": "carta por sobre",
+          "note": "Según el rótulo del proveedor («必含1张皮卡丘卡»); no indica cuál de las ilustraciones."
+        }
+      ],
+      "evidencia": "SKU_02: pack con logo «30th CELEBRATION» y el rótulo «×5 · 每包6张闪卡 · 必含1张皮卡丘卡»; Detalle_02: imagen limpia del sobre; Detalle_04: cartas de Pikachu del 30.º aniversario. SKU_01 de esta publicación es un kit de manualidades («绘梦点睛 30周年皮卡丘手办套装»): NO es producto TCG y no se usó como foto.",
+      "imagenes": [
+        {
+          "fuente": "1079986406064",
+          "archivo": "Detalle_02.jpg",
+          "view": "front",
+          "alt": "Sobre de 30周年庆典 (edición china simplificada), foto de referencia del proveedor"
+        }
+      ],
+      "tituloOriginal": "30周年庆典 · Sobre de 6 cartas",
+      "tituloEs": "Celebración 30.º Aniversario · Sobre de 6 cartas"
+    },
+    {
+      "id": "zh-30-zhounian-set-monedas",
+      "sku": "ZH-1079986406064-SKU08",
+      "slug": "zh-30-zhounian-set-monedas",
+      "fuente": "1079986406064",
+      "coleccion": "zh-30-zhounian",
+      "tipo": "bundle",
+      "variante": "Set con monedas",
+      "titulo": "30th Celebration · Set con monedas",
+      "nombreOriginal": "30周年庆典 硬币套装",
+      "aliases": [
+        "30 zhounian qingdian 30th celebration aniversario",
+        "set",
+        "bundle",
+        "monedas",
+        "pikachu",
+        "chino",
+        "china"
+      ],
+      "descripcion": "Set de la edición china simplificada del 30.º aniversario con 3 sobres de 30周年庆典 y 2 monedas de Pikachu, según el rótulo del proveedor («【硬币套装】»). No incluye otros accesorios verificados.",
+      "contenido": [
+        {
+          "label": "Sobres de 30周年庆典",
+          "quantity": 3,
+          "unit": "sobres"
+        },
+        {
+          "label": "Monedas de Pikachu",
+          "quantity": 2,
+          "unit": "monedas"
+        }
+      ],
+      "evidencia": "SKU_08: imagen con el rótulo «【硬币套装】· 30周年补充包×3 · 皮卡丘硬币×2». Se recortó solo la parte del producto (sin el texto). Otras variantes de esa publicación (cajas de regalo con Eevee/Greninja ex, SKU_14–21; caja amarilla SKU_06; exhibidor SKU_11): contenido ilegible o no verificable, quedan pendientes y no se cargaron.",
+      "imagenes": [
+        {
+          "fuente": "1079986406064",
+          "archivo": "SKU_08.jpg",
+          "view": "front",
+          "alt": "Set con monedas de 30周年庆典 (edición china simplificada), foto de referencia del proveedor",
+          "crop": [
+            0,
+            0,
+            0.5,
+            1
+          ]
+        }
+      ],
+      "tituloOriginal": "30周年庆典 · Set con monedas",
+      "tituloEs": "Celebración 30.º Aniversario · Set con monedas"
+    },
+    {
+      "id": "zh-30-zhounian-ilustraciones-vol2",
+      "sku": "ZH-1059308989628",
+      "slug": "zh-30-zhounian-ilustraciones-vol2",
+      "fuente": "1059308989628",
+      "coleccion": "zh-30-zhounian",
+      "tipo": "illustration-set",
+      "variante": "Vol.2",
+      "titulo": "30th Anniversary First Partner Special Illustration Set · Vol.2",
+      "nombreOriginal": "30周年庆典 最初的伙伴 特别插画闪卡套装 Vol.2",
+      "aliases": [
+        "30 zhounian qingdian 30th celebration aniversario",
+        "zuichu de huoban",
+        "set de ilustraciones",
+        "carta ilustracion especial",
+        "chino",
+        "china",
+        "vol2"
+      ],
+      "descripcion": "Set de ilustraciones de la edición china simplificada del 30.º aniversario («最初的伙伴 特别插画闪卡套装 Vol.2»). Contiene 1 carta brillante de ilustración especial al azar (de 9 diseños posibles), 1 marco magnético acrílico para exhibirla y 1 sobre de 星彩晶璃 de 5 cartas. «1盒1款保密包装»: no se sabe cuál de los 9 diseños sale. Es el Vol.2: no se confunde con el Vol.3.",
+      "contenido": [
+        {
+          "label": "Carta brillante de ilustración especial",
+          "quantity": 1,
+          "unit": "carta",
+          "note": "Uno de 9 diseños posibles, al azar."
+        },
+        {
+          "label": "Marco magnético acrílico para exhibir la carta",
+          "quantity": 1,
+          "unit": "marco"
+        },
+        {
+          "label": "Sobre de 星彩晶璃 (5 cartas)",
+          "quantity": 1,
+          "unit": "sobre"
+        }
+      ],
+      "evidencia": "Detalle_03: «30周年庆典 最初的伙伴特别插画闪卡套装 Vol.2» con 9 cartas; Detalle_10/Principal_05: «1盒1款保密包装 全9款»; Detalle_11: ficha de producto (carta ×1, marco acrílico ×1, 星彩晶璃 补充包 5张 ×1).",
+      "imagenes": [
+        {
+          "fuente": "1024232254134",
+          "archivo": "Principal_04.jpg",
+          "view": "front",
+          "alt": "Set de ilustraciones Vol.2 de 最初的伙伴 (edición china simplificada): envase con la carta de Totodile (小锯鳄), imagen elegida por el dueño de la publicación 1024232254134 de un proveedor"
+        },
+        {
+          "fuente": "1059308989628",
+          "archivo": "Principal_02.jpg",
+          "view": "contents",
+          "alt": "Las 9 cartas posibles del Vol.2 según el gráfico del proveedor (una al azar por set)",
+          "opaque": true,
+          "keepBg": true
+        }
+      ],
+      "tituloOriginal": "最初的伙伴 · Set de ilustraciones Vol.2",
+      "tituloEs": "Primeros Compañeros · Set de ilustraciones Vol.2",
+      "nombreEnPrincipal": "30th Anniversary First Partner Special Illustration Set",
+      "nombreEnTipo": "descriptivo",
+      "nombreEnCerteza": "variantes",
+      "nombreEnVariantes": [
+        "Original Partner Card Set Vol 2",
+        "First Partner Special Illustration Holofoil Card Set"
+      ],
+      "nombreEnFuentes": [
+        "pokipair-partner"
+      ],
+      "nombreEnVerificadoEl": "2026-10-13"
+    },
+    {
+      "id": "zh-30-zhounian-ilustraciones-vol3",
+      "sku": "ZH-1070165751188",
+      "slug": "zh-30-zhounian-ilustraciones-vol3",
+      "fuente": "1070165751188",
+      "coleccion": "zh-30-zhounian",
+      "tipo": "illustration-set",
+      "variante": "Vol.3",
+      "titulo": "30th Anniversary First Partner Special Illustration Set · Vol.3",
+      "nombreOriginal": "30周年庆典 最初的伙伴 特别插画闪卡套装 Vol.3",
+      "aliases": [
+        "30 zhounian qingdian 30th celebration aniversario",
+        "zuichu de huoban",
+        "set de ilustraciones",
+        "carta ilustracion especial",
+        "chino",
+        "china",
+        "vol3"
+      ],
+      "descripcion": "Set de ilustraciones de la edición china simplificada del 30.º aniversario («最初的伙伴 特别插画闪卡套装 Vol.3»). Contiene 1 carta brillante de ilustración especial al azar (de 9 diseños posibles), 1 marco magnético acrílico para exhibirla y 1 sobre de 共逐荣光 de 5 cartas. «1盒1款保密包装»: no se sabe cuál de los 9 diseños sale. Es el Vol.3: no se confunde con el Vol.2.",
+      "contenido": [
+        {
+          "label": "Carta brillante de ilustración especial",
+          "quantity": 1,
+          "unit": "carta",
+          "note": "Uno de 9 diseños posibles, al azar."
+        },
+        {
+          "label": "Marco magnético acrílico para exhibir la carta",
+          "quantity": 1,
+          "unit": "marco"
+        },
+        {
+          "label": "Sobre de 共逐荣光 (5 cartas)",
+          "quantity": 1,
+          "unit": "sobre"
+        }
+      ],
+      "evidencia": "Detalle_03: «Vol.3» con 9 cartas; Detalle_11/Principal_05: «1盒1款保密包装 全9款»; Detalle_12: carta ×1, marco acrílico ×1, 共逐荣光 补充包 5张 ×1. Esta publicación no trae una foto limpia del set: se usa su imagen principal de presentación (fondo del proveedor), pendiente de una foto mejor.",
+      "imagenes": [
+        {
+          "fuente": "1024232254134",
+          "archivo": "Principal_05.png",
+          "view": "front",
+          "alt": "Set de ilustraciones Vol.3 de 最初的伙伴 (edición china simplificada): envase con la carta de Torchic (火稚鸡), imagen elegida por el dueño de la publicación 1024232254134 de un proveedor"
+        },
+        {
+          "fuente": "1070165751188",
+          "archivo": "Principal_02.jpg",
+          "view": "contents",
+          "alt": "Las 9 cartas posibles del Vol.3 según el gráfico del proveedor (una al azar por set)",
+          "opaque": true,
+          "keepBg": true
+        }
+      ],
+      "tituloOriginal": "最初的伙伴 · Set de ilustraciones Vol.3",
+      "tituloEs": "Primeros Compañeros · Set de ilustraciones Vol.3",
+      "nombreEnPrincipal": "30th Anniversary First Partner Special Illustration Set",
+      "nombreEnTipo": "descriptivo",
+      "nombreEnCerteza": "variantes",
+      "nombreEnVariantes": [
+        "Original Partner Card Set Vol 3",
+        "First Partner Special Illustration Holofoil Card Set"
+      ],
+      "nombreEnFuentes": [
+        "pokipair-partner"
+      ],
+      "nombreEnVerificadoEl": "2026-10-13"
+    },
+    {
+      "id": "zh-30-zhounian-carta-p-bulbasaur",
+      "sku": "ZH-1024232254134-BULBASAUR",
+      "slug": "zh-30-zhounian-carta-p-bulbasaur",
+      "fuente": "1024232254134",
+      "coleccion": "zh-30-zhounian",
+      "tipo": "pack",
+      "variante": "Carta P · Bulbasaur",
+      "titulo": "30th Anniversary First Partner Special Illustration P Card · Bulbasaur",
+      "nombreOriginal": "宝可梦 PTCG 30周年庆典 最初的伙伴 特别插画 P卡 · 妙蛙种子",
+      "aliases": [
+        "30 zhounian qingdian 30th celebration aniversario",
+        "zuichu de huoban",
+        "miaowazhongzi",
+        "bulbasaur",
+        "bulbizarre",
+        "bulbasaur 001/30th-P",
+        "carta p promo",
+        "carta ilustracion especial",
+        "chino",
+        "china"
+      ],
+      "descripcion": "BORRADOR, sin confirmar. Envase de una carta promocional (P-card) de la edición china simplificada del 30.º aniversario («最初的伙伴 特别插画 P卡») con la carta de Bulbasaur (妙蛙种子, 001/30th-P) en la portada. OJO: el envase indica «全9种, 每种等比生产, 随机获得其中1张» (9 tipos, producción equitativa, 1 carta al azar) y aclara que el producto puede no incluir la carta de la portada («本商品可能不包含封面展示款»); la imagen es un diseño de referencia del proveedor. Todavía no se sabe si el artículo se vende con la carta de Bulbasaur seleccionada o como paquete aleatorio, por eso no se promete Bulbasaur. Sin accesorios ni sobres verificados.",
+      "contenido": [
+        {
+          "label": "Carta promocional P (ilustración especial)",
+          "quantity": 1,
+          "unit": "carta",
+          "note": "Una de 9 posibles, al azar según el envase; no está confirmado que sea la de Bulbasaur."
+        }
+      ],
+      "evidencia": "Principal_03: envase con Bulbasaur (001/30th-P), rótulo «全9种 · 每种等比生产,随机获得其中1张» y aviso de que puede no incluir la carta de portada; Principal_04 (Totodile 006/30th-P) y Principal_05 (Torchic 008/30th-P) son otros diseños de la misma publicación. Los _URL.txt indican el artículo 1024232254134 y un único skuId (6053279645670) para las tres imágenes: no prueban una variante seleccionable por Pokémon.",
+      "imagenes": [
+        {
+          "fuente": "1024232254134",
+          "archivo": "Principal_03.jpg",
+          "view": "front",
+          "alt": "Envase de la carta P del 30.º aniversario con la carta de Bulbasaur (妙蛙种子), diseño de referencia del proveedor"
+        }
+      ],
+      "tituloOriginal": "最初的伙伴 · Carta P Bulbasaur",
+      "tituloEs": "Primeros Compañeros · Carta P Bulbasaur (borrador)",
+      "borrador": "Presentación sin confirmar: el envase indica 9 tipos y 1 carta al azar. Confirmar con el proveedor si se vende Bulbasaur seleccionada o un paquete aleatorio antes de publicar.",
+      "nombreEnPrincipal": "30th Anniversary First Partner Special Illustration P Card",
+      "nombreEnTipo": "descriptivo",
+      "nombreEnCerteza": "inferido",
+      "nombreEnVariantes": [
+        "Original Partner Special Illustration Promo Card"
+      ],
+      "nombreEnFuentes": [
+        "pokipair-partner"
+      ],
+      "nombreEnVerificadoEl": "2026-10-14"
+    },
+    {
+      "id": "zh-kit-mengleigu-ex",
+      "sku": "ZH-1065661862776",
+      "slug": "zh-kit-mengleigu-ex",
+      "fuente": "1065661862776",
+      "coleccion": null,
+      "tipo": "kit",
+      "variante": null,
+      "titulo": "Master Strategy Deck Building Set: Raging Bolt ex · Kit de mazo",
+      "nombreOriginal": "宝可梦集换式卡牌游戏 大师战略卡组构筑套装 猛雷鼓ex",
+      "aliases": [
+        "dashi zhanlue kazu goujian taozhuang",
+        "kit de mazo",
+        "mazo",
+        "chino",
+        "china",
+        "猛雷鼓ex"
+      ],
+      "descripcion": "Kit para construir un mazo de la edición china simplificada: «大师战略卡组构筑套装 猛雷鼓ex» (猛雷鼓). Incluye un mazo de 60 cartas, un pack de mejora de 15 cartas, 4 sobres de 共逐荣光 de 20 cartas y accesorios de juego, según la ficha del proveedor. El nombre en español del Pokémon no está verificado; se conserva el nombre chino. Es un kit distinto del otro «大师战略» de la tienda.",
+      "contenido": [
+        {
+          "label": "Mazo 猛雷鼓ex (60 cartas)",
+          "quantity": 1,
+          "unit": "mazo"
+        },
+        {
+          "label": "Pack de mejora del mazo 猛雷鼓ex (15 cartas)",
+          "quantity": 1,
+          "unit": "pack"
+        },
+        {
+          "label": "Sobres de 共逐荣光 (20 cartas cada uno)",
+          "quantity": 4,
+          "unit": "sobres"
+        },
+        {
+          "label": "Fundas de arte para el mazo (64)",
+          "quantity": 1,
+          "unit": "set",
+          "note": "8 diseños; viene 1 al azar."
+        },
+        {
+          "label": "Caja para guardar el mazo (con 2 separadores)",
+          "quantity": 1,
+          "unit": "caja"
+        },
+        {
+          "label": "Dado de moneda",
+          "quantity": 1,
+          "unit": "dado"
+        },
+        {
+          "label": "Dados indicadores de daño",
+          "quantity": 6,
+          "unit": "dados"
+        },
+        {
+          "label": "Marcadores de quemadura y de envenenamiento",
+          "quantity": 2,
+          "unit": "marcadores",
+          "note": "1 de cada uno."
+        },
+        {
+          "label": "Guía de estrategia básica y guía de mejora del mazo",
+          "quantity": 2,
+          "unit": "hojas",
+          "note": "1 de cada una."
+        }
+      ],
+      "evidencia": "Detalle_14 (ficha de producto): 卡组 60张 ×1, 改造包 15张 ×1, 共逐荣光 补充包 20张 ×4, 艺术卡套 64张 ×1 (全8种, 随机封入1种), 收纳盒 ×1, 硬币骰子 ×1, 伤害指示物骰子 ×6, 灼伤标记 ×1, 中毒标记 ×1, 基本运营战略 ×1, 改造指南 ×1. Origen declarado del kit: 广东东莞; los sobres de 共逐荣光 indican origen Japón.",
+      "imagenes": [
+        {
+          "fuente": "1065661862776",
+          "archivo": "SKU_01.jpg",
+          "view": "front",
+          "alt": "Kit de mazo 猛雷鼓ex (edición china simplificada), foto de referencia del proveedor"
+        },
+        {
+          "fuente": "1065661862776",
+          "archivo": "Principal_02.jpg",
+          "view": "contents",
+          "alt": "Contenido del kit de mazo 猛雷鼓ex según el gráfico del proveedor",
+          "opaque": true,
+          "keepBg": true
+        }
+      ],
+      "tituloOriginal": "大师战略卡组构筑套装 · 猛雷鼓ex",
+      "tituloEs": "Kit de mazo Estrategia Maestra · 猛雷鼓ex",
+      "nombreEnPrincipal": "Master Strategy Deck Building Set: Raging Bolt ex",
+      "nombreEnTipo": "comunitario",
+      "nombreEnCerteza": "variantes",
+      "nombreEnVariantes": [],
+      "nombreEnFuentes": [
+        "pikaqian",
+        "tcghobby-master"
+      ],
+      "nombreEnVerificadoEl": "2026-10-13"
+    },
+    {
+      "id": "zh-kit-saifuhao-ex",
+      "sku": "ZH-1065668842312",
+      "slug": "zh-kit-saifuhao-ex",
+      "fuente": "1065668842312",
+      "coleccion": null,
+      "tipo": "kit",
+      "variante": null,
+      "titulo": "Master Strategy Deck Building Set: Gholdengo ex · Kit de mazo",
+      "nombreOriginal": "宝可梦集换式卡牌游戏 大师战略卡组构筑套装 赛富豪ex",
+      "aliases": [
+        "dashi zhanlue kazu goujian taozhuang",
+        "kit de mazo",
+        "mazo",
+        "chino",
+        "china",
+        "赛富豪ex"
+      ],
+      "descripcion": "Kit para construir un mazo de la edición china simplificada: «大师战略卡组构筑套装 赛富豪ex» (赛富豪). Incluye un mazo de 60 cartas, un pack de mejora de 15 cartas, 4 sobres de 共逐荣光 de 20 cartas y accesorios de juego, según la ficha del proveedor. El nombre en español del Pokémon no está verificado; se conserva el nombre chino. Es un kit distinto del otro «大师战略» de la tienda.",
+      "contenido": [
+        {
+          "label": "Mazo 赛富豪ex (60 cartas)",
+          "quantity": 1,
+          "unit": "mazo"
+        },
+        {
+          "label": "Pack de mejora del mazo 赛富豪ex (15 cartas)",
+          "quantity": 1,
+          "unit": "pack"
+        },
+        {
+          "label": "Sobres de 共逐荣光 (20 cartas cada uno)",
+          "quantity": 4,
+          "unit": "sobres"
+        },
+        {
+          "label": "Fundas de arte para el mazo (64)",
+          "quantity": 1,
+          "unit": "set",
+          "note": "8 diseños; viene 1 al azar."
+        },
+        {
+          "label": "Caja para guardar el mazo (con 2 separadores)",
+          "quantity": 1,
+          "unit": "caja"
+        },
+        {
+          "label": "Dado de moneda",
+          "quantity": 1,
+          "unit": "dado"
+        },
+        {
+          "label": "Dados indicadores de daño",
+          "quantity": 6,
+          "unit": "dados"
+        },
+        {
+          "label": "Marcadores de quemadura y de envenenamiento",
+          "quantity": 2,
+          "unit": "marcadores",
+          "note": "1 de cada uno."
+        },
+        {
+          "label": "Guía de estrategia básica y guía de mejora del mazo",
+          "quantity": 2,
+          "unit": "hojas",
+          "note": "1 de cada una."
+        }
+      ],
+      "evidencia": "Detalle_14 (ficha de producto): mismos componentes que el kit 猛雷鼓ex, con el mazo 赛富豪ex 60张 y su pack de mejora de 15张.",
+      "imagenes": [
+        {
+          "fuente": "1065668842312",
+          "archivo": "SKU_01.jpg",
+          "view": "front",
+          "alt": "Kit de mazo 赛富豪ex (edición china simplificada), foto de referencia del proveedor"
+        },
+        {
+          "fuente": "1065668842312",
+          "archivo": "Principal_02.jpg",
+          "view": "contents",
+          "alt": "Contenido del kit de mazo 赛富豪ex según el gráfico del proveedor",
+          "opaque": true,
+          "keepBg": true
+        }
+      ],
+      "tituloOriginal": "大师战略卡组构筑套装 · 赛富豪ex",
+      "tituloEs": "Kit de mazo Estrategia Maestra · 赛富豪ex",
+      "nombreEnPrincipal": "Master Strategy Deck Building Set: Gholdengo ex",
+      "nombreEnTipo": "comunitario",
+      "nombreEnCerteza": "variantes",
+      "nombreEnVariantes": [],
+      "nombreEnFuentes": [
+        "pikaqian",
+        "tcghobby-master"
+      ],
+      "nombreEnVerificadoEl": "2026-10-13"
+    },
+    {
+      "id": "zh-kit-haipi-zuhe",
+      "sku": "ZH-1065354470710",
+      "slug": "zh-kit-haipi-zuhe",
+      "fuente": "1065354470710",
+      "coleccion": null,
+      "tipo": "kit",
+      "variante": null,
+      "titulo": "Happy Set 5: Dragonite & Mewtwo & Camerupt & Sinistcha · Kit de 4 mazos",
+      "nombreOriginal": "宝可梦集换式卡牌游戏 嗨皮组合 快龙&超梦&喷火驼&来悲粗茶",
+      "aliases": [
+        "haipi zuhe",
+        "kit de mazos",
+        "mazo",
+        "chino",
+        "china",
+        "快龙",
+        "超梦",
+        "喷火驼",
+        "来悲粗茶"
+      ],
+      "descripcion": "Caja de la edición china simplificada «嗨皮组合» con cuatro mazos de 60 cartas (快龙ex, 超梦ex, 喷火驼 y 来悲粗茶) y sobres complementarios. Es un solo producto con los cuatro mazos juntos, no cuatro variantes. Los nombres en español de los Pokémon no están verificados; se conserva el nombre chino.",
+      "contenido": [
+        {
+          "label": "Mazos de 60 cartas (快龙ex, 超梦ex, 喷火驼, 来悲粗茶)",
+          "quantity": 4,
+          "unit": "mazos",
+          "note": "1 de cada uno."
+        },
+        {
+          "label": "Sobres «嗨皮包» (2 cartas cada uno)",
+          "quantity": 7,
+          "unit": "sobres"
+        },
+        {
+          "label": "Pack de mejora (10 cartas)",
+          "quantity": 1,
+          "unit": "pack"
+        },
+        {
+          "label": "Pack de premio (1 carta)",
+          "quantity": 1,
+          "unit": "pack"
+        },
+        {
+          "label": "Guías: introducción a los mazos, inicio para jugadores, reglas y combate",
+          "note": "4 + 1 + 1 + 2 hojas."
+        },
+        {
+          "label": "Marcadores de daño",
+          "quantity": 4,
+          "unit": "tableros"
+        },
+        {
+          "label": "Monedas",
+          "quantity": 2,
+          "unit": "monedas"
+        }
+      ],
+      "evidencia": "Detalle_15 (ficha): 快龙ex/超梦ex/喷火驼/来悲粗茶 卡组 60张 ×1 cada uno, 卡组玩法介绍 4张, 嗨皮包 2张 ×7, 改造包 10张 ×1, 奖赏包 1张 ×1, 玩家入门指南 ×1, 玩法规则说明 ×1, 对战指南 ×2, 伤害指示物 ×4, 硬币 ×2. «盲盒» en el título: la ficha lista el contenido fijo; qué cartas salen en los sobres es al azar.",
+      "imagenes": [
+        {
+          "fuente": "1065354470710",
+          "archivo": "SKU_01.jpg",
+          "view": "front",
+          "alt": "Caja del kit 嗨皮组合 (edición china simplificada), foto de referencia del proveedor"
+        },
+        {
+          "fuente": "1065354470710",
+          "archivo": "Principal_02.jpg",
+          "view": "contents",
+          "alt": "Contenido del kit 嗨皮组合 según el gráfico del proveedor",
+          "opaque": true,
+          "keepBg": true
+        }
+      ],
+      "tituloOriginal": "嗨皮组合 · Kit de 4 mazos",
+      "tituloEs": "Combo Feliz · Kit de 4 mazos",
+      "nombreEnPrincipal": "Happy Set 5: Dragonite & Mewtwo & Camerupt & Sinistcha",
+      "nombreEnTipo": "comunitario",
+      "nombreEnCerteza": "variantes",
+      "nombreEnVariantes": [],
+      "nombreEnFuentes": [
+        "pikaqian"
+      ],
+      "nombreEnVerificadoEl": "2026-10-13"
+    },
+    {
+      "id": "zh-baoshibao-vol6-caja",
+      "sku": "ZH-1070975018438",
+      "slug": "zh-baoshibao-vol6-caja",
+      "fuente": "1070975018438",
+      "coleccion": "zh-baoshibao-vol6",
+      "tipo": "box",
+      "variante": null,
+      "titulo": "Gem Pack Vol. 6 · Caja de 18 sobres",
+      "nombreOriginal": "宝可梦集换式卡牌游戏 朱&紫 Pokémon宝石包 VOL.6",
+      "aliases": [
+        "baoshibao vol6 pokemon gem pack",
+        "caja",
+        "box",
+        "chino",
+        "china",
+        "applin",
+        "gemas"
+      ],
+      "descripcion": "Caja de la edición china simplificada del pack especial «宝石包 VOL.6» (serie 朱&紫): 18 sobres de 4 cartas al azar por caja, según la ficha del proveedor («每盒18包 · 随机封入4张/包»). No equivale a las ediciones japonesas ni a las internacionales.",
+      "contenido": [
+        {
+          "label": "Sobres por caja",
+          "quantity": 18,
+          "unit": "sobres",
+          "note": "Según la ficha del proveedor («每盒18包»)."
+        },
+        {
+          "label": "Cartas por sobre",
+          "quantity": 4,
+          "unit": "cartas",
+          "note": "Al azar (texto de la ficha: «随机封入4张/包»)."
+        },
+        {
+          "label": "Posiciones de carta por caja",
+          "quantity": 72,
+          "unit": "cartas",
+          "note": "Al azar: no son cartas todas distintas."
+        }
+      ],
+      "evidencia": "Detalle_06 (ficha): «随机封入4张/包 每盒18包»; Principal_04: «每盒18包 每包含有4张卡牌». Esta publicación no trae una foto limpia de la caja: se usa su imagen principal de presentación (con ilustración de fondo), pendiente de una foto mejor.",
+      "imagenes": [
+        {
+          "fuente": "1070975018438",
+          "archivo": "Principal_04.jpg",
+          "view": "contents",
+          "crop": [
+            0.0875,
+            0.23125,
+            0.825,
+            0.5
+          ],
+          "alt": "Los sobres de 宝石包 VOL.6 que trae la caja (18 por caja), según el gráfico del proveedor"
+        },
+        {
+          "fuente": "1070975018438",
+          "archivo": "Principal_01.jpg",
+          "view": "detail",
+          "opaque": true,
+          "keepBg": true,
+          "alt": "Imagen de presentación de 宝石包 VOL.6 con la caja, del proveedor"
+        }
+      ],
+      "tituloOriginal": "宝石包 VOL.6 · Caja de 18 sobres",
+      "tituloEs": "Pack Gema Vol. 6 · Caja de 18 sobres"
+    },
+    {
+      "id": "zh-caja-ogerpon-agua",
+      "sku": "ZH-1049188091485",
+      "slug": "zh-caja-ogerpon-agua",
+      "fuente": "1049188091485",
+      "coleccion": null,
+      "tipo": "special-box",
+      "variante": null,
+      "titulo": "Ogerpon Wellspring Mask Gift Box · Caja especial",
+      "nombreOriginal": "宝可梦集换式卡牌游戏 PTCG 简中 朱&紫 厄诡椪水井面具礼盒",
+      "aliases": [
+        "egui peng",
+        "ogerpon",
+        "caja especial",
+        "limao",
+        "chino",
+        "china",
+        "mascara del pozo agua"
+      ],
+      "descripcion": "Caja especial de la edición china simplificada con el tema de Ogerpon, máscara de agua («水井»): 3 sobres de 璀璨诡幻 (20 cartas), 3 sobres de 星彩晶璃 (20 cartas), 1 sobre «北上乡专题包» (5 cartas) y accesorios temáticos. El contenido de los sobres es al azar.",
+      "contenido": [
+        {
+          "label": "Sobres de 璀璨诡幻 (20 cartas cada uno)",
+          "quantity": 3,
+          "unit": "sobres"
+        },
+        {
+          "label": "Sobres de 星彩晶璃 (20 cartas cada uno)",
+          "quantity": 3,
+          "unit": "sobres"
+        },
+        {
+          "label": "Sobre «北上乡专题包» (5 cartas)",
+          "quantity": 1,
+          "unit": "sobre",
+          "note": "Composición según la ficha: 5 cartas brillantes: 3 de Pokémon, 1 Pokémon ex fija y 1 de Entrenador (una al azar dentro de cada tipo)."
+        },
+        {
+          "label": "Fundas de arte temáticas (64)",
+          "quantity": 1,
+          "unit": "set"
+        },
+        {
+          "label": "Moneda-dado temática",
+          "quantity": 1,
+          "unit": "pieza"
+        },
+        {
+          "label": "Dados indicadores de daño",
+          "quantity": 4,
+          "unit": "dados"
+        },
+        {
+          "label": "Autoadhesivo para heladera",
+          "quantity": 1,
+          "unit": "pieza"
+        },
+        {
+          "label": "Caja para guardar cartas (con 2 separadores)",
+          "quantity": 1,
+          "unit": "caja"
+        }
+      ],
+      "evidencia": "Detalle_10 (ficha): 璀璨诡幻 补充包(20张装) ×3, 星彩晶璃 补充包(20张装) ×3, 北上乡专题包(5张装) ×1, 艺术卡套(64张) ×1, 硬币骰子 ×1, 伤害指示物骰子 ×4, 冰箱贴 ×1, 收纳盒(含2块隔板) ×1; Detalle_09: dimensiones W200×D87×H114 mm. Producto distinto de la otra máscara (mismo contenido, otro tema). Detalle_04–06: el sobre «北上乡专题包» trae 5 cartas brillantes (3 Pokémon + 1 Pokémon ex fija + 1 Entrenador); la tabla de probabilidades por carta que trae la imagen no se transcribió.",
+      "imagenes": [
+        {
+          "fuente": "1049188091485",
+          "archivo": "SKU_01.jpg",
+          "view": "closed",
+          "alt": "Caja especial de Ogerpon, máscara de agua (edición china simplificada), foto de referencia del proveedor"
+        },
+        {
+          "fuente": "1049188091485",
+          "archivo": "Principal_04.jpg",
+          "view": "contents",
+          "alt": "Sobres incluidos en la caja especial de Ogerpon (agua) según el gráfico del proveedor",
+          "opaque": true,
+          "keepBg": true
+        },
+        {
+          "fuente": "1049188091485",
+          "archivo": "Principal_03.jpg",
+          "view": "contents",
+          "alt": "Accesorios incluidos en la caja especial de Ogerpon (agua): fundas de arte, moneda-dado y dados, según el gráfico del proveedor",
+          "opaque": true,
+          "keepBg": true
+        },
+        {
+          "fuente": "1049188091485",
+          "archivo": "Principal_02.jpg",
+          "view": "contents",
+          "alt": "Sobre «北上乡专题包» incluido en la caja especial de Ogerpon (agua), según el gráfico del proveedor",
+          "opaque": true,
+          "keepBg": true
+        }
+      ],
+      "tituloOriginal": "厄诡椪 水井面具礼盒 · Caja especial",
+      "tituloEs": "Ogerpon, Máscara del Pozo · Caja especial",
+      "nombreEnPrincipal": "Ogerpon Wellspring Mask Gift Box",
+      "nombreEnTipo": "comunitario",
+      "nombreEnCerteza": "coinciden",
+      "nombreEnVariantes": [],
+      "nombreEnFuentes": [
+        "tcghobby-ogerpon"
+      ],
+      "nombreEnVerificadoEl": "2026-10-13"
+    },
+    {
+      "id": "zh-caja-ogerpon-fuego",
+      "sku": "ZH-1050912901200",
+      "slug": "zh-caja-ogerpon-fuego",
+      "fuente": "1050912901200",
+      "coleccion": null,
+      "tipo": "special-box",
+      "variante": null,
+      "titulo": "Ogerpon Hearthflame Mask Gift Box · Caja especial",
+      "nombreOriginal": "宝可梦集换式卡牌游戏 PTCG 简中 朱&紫 厄诡椪火灶面具礼盒",
+      "aliases": [
+        "egui peng",
+        "ogerpon",
+        "caja especial",
+        "limao",
+        "chino",
+        "china",
+        "mascara del horno fuego"
+      ],
+      "descripcion": "Caja especial de la edición china simplificada con el tema de Ogerpon, máscara de fuego («火灶»): 3 sobres de 璀璨诡幻 (20 cartas), 3 sobres de 星彩晶璃 (20 cartas), 1 sobre «北上乡专题包» (5 cartas) y accesorios temáticos. El contenido de los sobres es al azar.",
+      "contenido": [
+        {
+          "label": "Sobres de 璀璨诡幻 (20 cartas cada uno)",
+          "quantity": 3,
+          "unit": "sobres"
+        },
+        {
+          "label": "Sobres de 星彩晶璃 (20 cartas cada uno)",
+          "quantity": 3,
+          "unit": "sobres"
+        },
+        {
+          "label": "Sobre «北上乡专题包» (5 cartas)",
+          "quantity": 1,
+          "unit": "sobre",
+          "note": "Composición según la ficha: 5 cartas brillantes: 3 de Pokémon, 1 Pokémon ex fija y 1 de Entrenador (una al azar dentro de cada tipo)."
+        },
+        {
+          "label": "Fundas de arte temáticas (64)",
+          "quantity": 1,
+          "unit": "set"
+        },
+        {
+          "label": "Moneda-dado temática",
+          "quantity": 1,
+          "unit": "pieza"
+        },
+        {
+          "label": "Dados indicadores de daño",
+          "quantity": 4,
+          "unit": "dados"
+        },
+        {
+          "label": "Autoadhesivo para heladera",
+          "quantity": 1,
+          "unit": "pieza"
+        },
+        {
+          "label": "Caja para guardar cartas (con 2 separadores)",
+          "quantity": 1,
+          "unit": "caja"
+        }
+      ],
+      "evidencia": "Detalle_10 (ficha): 璀璨诡幻 补充包(20张装) ×3, 星彩晶璃 补充包(20张装) ×3, 北上乡专题包(5张装) ×1, 艺术卡套(64张) ×1, 硬币骰子 ×1, 伤害指示物骰子 ×4, 冰箱贴 ×1, 收纳盒(含2块隔板) ×1; Detalle_09: dimensiones W200×D87×H114 mm. Producto distinto de la otra máscara (mismo contenido, otro tema). Detalle_04–06: el sobre «北上乡专题包» trae 5 cartas brillantes (3 Pokémon + 1 Pokémon ex fija + 1 Entrenador); la tabla de probabilidades por carta que trae la imagen no se transcribió.",
+      "imagenes": [
+        {
+          "fuente": "1050912901200",
+          "archivo": "SKU_01.jpg",
+          "view": "closed",
+          "alt": "Caja especial de Ogerpon, máscara de fuego (edición china simplificada), foto de referencia del proveedor"
+        },
+        {
+          "fuente": "1050912901200",
+          "archivo": "Principal_04.jpg",
+          "view": "contents",
+          "alt": "Sobres incluidos en la caja especial de Ogerpon (fuego) según el gráfico del proveedor",
+          "opaque": true,
+          "keepBg": true
+        },
+        {
+          "fuente": "1050912901200",
+          "archivo": "Principal_03.jpg",
+          "view": "contents",
+          "alt": "Accesorios incluidos en la caja especial de Ogerpon (fuego): fundas de arte, moneda-dado y dados, según el gráfico del proveedor",
+          "opaque": true,
+          "keepBg": true
+        },
+        {
+          "fuente": "1050912901200",
+          "archivo": "Principal_02.jpg",
+          "view": "contents",
+          "alt": "Sobre «北上乡专题包» incluido en la caja especial de Ogerpon (fuego), según el gráfico del proveedor",
+          "opaque": true,
+          "keepBg": true
+        }
+      ],
+      "tituloOriginal": "厄诡椪 火灶面具礼盒 · Caja especial",
+      "tituloEs": "Ogerpon, Máscara del Fogón · Caja especial",
+      "nombreEnPrincipal": "Ogerpon Hearthflame Mask Gift Box",
+      "nombreEnTipo": "descriptivo",
+      "nombreEnCerteza": "deducido",
+      "nombreEnVariantes": [],
+      "nombreEnFuentes": [
+        "tcghobby-ogerpon"
+      ],
+      "nombreEnVerificadoEl": "2026-10-13"
+    }
+  ],
+  "fuentesNombres": [
+    {
+      "id": "pikaqian",
+      "url": "https://pikaqian.com/sets",
+      "publisher": "PikaQian · lista de sets de Pokémon TCG en chino simplificado (base comunitaria)",
+      "alcance": "Código, nombre en inglés y fecha de cada set chino (csv1c–csv10c, cs1.5c–cs6.5c, cbb6c, 30thc, kits y sets «Happy»)."
+    },
+    {
+      "id": "cardbinder",
+      "url": "https://card-binder.com/pages/pokemon-simplified-chinese-set-list-tcg-expansion-guide",
+      "publisher": "Card Binder · guía de sets en chino simplificado (tienda)",
+      "alcance": "Código, nombre en inglés y fecha de csv1c–csv10c y cbb1c–cbb6c."
+    },
+    {
+      "id": "collectorsalchemy",
+      "url": "https://collectorsalchemy.com/pages/simplified-chinese-pokemon-set-lists",
+      "publisher": "Collector's Alchemy · listas de sets en chino simplificado (tienda)",
+      "alcance": "Nombre en inglés de CS1.5, CS3.5 y CS4.5."
+    },
+    {
+      "id": "krystal-csv1c",
+      "url": "https://krystalkollectz.com/blogs/news/eternal-birth-pokemon-card-list-simplified-chinese",
+      "publisher": "KrystalKollectz · lista de cartas «Eternal Birth» (tienda)",
+      "alcance": "Une el nombre chino 亘古开来 con csv1C y el nombre «Eternal Birth»."
+    },
+    {
+      "id": "krystal-csv2c",
+      "url": "https://krystalkollectz.com/blogs/news/miracle-journey-pokemon-card-list-simplified-chinese",
+      "publisher": "KrystalKollectz · lista de cartas «Miracle Journey» (tienda)",
+      "alcance": "Une el nombre chino 奇迹启程 con csv2C y «Miracle Journey»."
+    },
+    {
+      "id": "krystal-csv4c",
+      "url": "https://krystalkollectz.com/blogs/cardlists/reward-round-pokemon-card-list-simplified-chinese-krystalkollectz",
+      "publisher": "KrystalKollectz · lista de cartas «Reward Round» (tienda)",
+      "alcance": "Une el nombre chino 嘉奖回合 con csv4C y «Reward Round»."
+    },
+    {
+      "id": "pokeunlimited-csv4c",
+      "url": "https://pokeunlimited.com/products/pokemon-tcg-reward-turn-csv4c-standard-booster-box-simplified-chinese",
+      "publisher": "PokeUnlimited · caja csv4C (tienda)",
+      "alcance": "Usa «Reward Turn» para csv4C."
+    },
+    {
+      "id": "krystal-csv8c",
+      "url": "https://krystalkollectz.com/blogs/news/brilliant-illusions-pokemon-card-list-csv8c",
+      "publisher": "KrystalKollectz · lista de cartas «Brilliant Illusions» (tienda)",
+      "alcance": "Une el nombre chino 璀璨诡幻 con csv8C y «Brilliant Illusions»."
+    },
+    {
+      "id": "krystal-cs55",
+      "url": "https://krystalkollectz.com/blogs/cardlists/shadowofglorycardlist",
+      "publisher": "KrystalKollectz · lista de cartas «Shadow of Glory» cs5.5C (tienda)",
+      "alcance": "Une cs5.5C con «Shadow of Glory»."
+    },
+    {
+      "id": "pokipair-csv3",
+      "url": "https://www.pokipair.com/fearless-terastal-csv3-card-list/",
+      "publisher": "PokiPair · lista de cartas «Fearless Terastal» csv3 (tienda)",
+      "alcance": "Une csv3C con «Fearless Terastal»."
+    },
+    {
+      "id": "pokipair-csv9",
+      "url": "https://www.pokipair.com/stellar-crystal-everything-you-need-to-know/",
+      "publisher": "PokiPair · guía de «Stellar Crystal» (tienda)",
+      "alcance": "Une el nombre chino 星彩晶璃 con csv9C y «Stellar Crystal»."
+    },
+    {
+      "id": "pokipair-csv10",
+      "url": "https://www.pokipair.com/chasing-glory-together-everything-you-need-to-know/",
+      "publisher": "PokiPair · guía de «Chasing Glory Together» (tienda)",
+      "alcance": "Une el nombre chino 共逐荣光 con csv10C y «Chasing Glory Together»."
+    },
+    {
+      "id": "pokipair-cs65",
+      "url": "https://pokipair.com/victory-stars-card-list-cs6-5/",
+      "publisher": "PokiPair · lista de cartas «Victory Stars» cs6.5 (tienda)",
+      "alcance": "Une cs6.5 con «Victory Stars» (variante del nombre)."
+    },
+    {
+      "id": "tcgsync-csv95",
+      "url": "https://familyhaven1808.tcgsync.com/products/terastal-gathering-terastal-grand-gathering-csv9-5c-sv17-5",
+      "publisher": "Family Haven (TCGSync) · «Terastal Gathering» csv9.5C (tienda)",
+      "alcance": "Une csv9.5C con «Terastal Gathering» / «Terastal Grand Gathering»."
+    },
+    {
+      "id": "billsarchive-csv95",
+      "url": "https://billsarchive.com/terastal-gathering-cn.html",
+      "publisher": "Bill's Archive · «Terastal Gathering» (base comunitaria)",
+      "alcance": "Resumen del set csv9.5C."
+    },
+    {
+      "id": "tcghobby-ogerpon",
+      "url": "https://www.tcghobby.com/products/simplified-chinese-pokemon-ogerpon-wellspring-mask-gift-box",
+      "publisher": "TCGHobby · «Ogerpon Wellspring Mask Gift Box» (tienda)",
+      "alcance": "Nombre en inglés de la caja de regalo de Ogerpon (máscara del pozo); la de fuego sigue el mismo patrón (Hearthflame)."
+    },
+    {
+      "id": "tcghobby-master",
+      "url": "https://www.tcghobby.com/products/simplified-chinese-pokemon-master-strategy-deck-building-set-gardevoir-ex",
+      "publisher": "TCGHobby · «Master Strategy Deck Building Set» (tienda)",
+      "alcance": "Nombre en inglés de la línea de kits 大师战略卡组构筑套装."
+    },
+    {
+      "id": "pokipair-partner",
+      "url": "https://www.pokipair.com/product/original-partner-card-set-vol-2/",
+      "publisher": "PokiPair · «Original Partner Card Set Vol 2» (tienda)",
+      "alcance": "Una de las denominaciones en inglés de los sets 最初的伙伴; otras tiendas usan «First Partner Special Illustration Holofoil Card Set»."
+    },
+    {
+      "id": "quicktcg",
+      "url": "https://quicktcg.com/collections/chn-pokemon",
+      "publisher": "QuickTCG · cartas chinas (tienda)",
+      "alcance": "Variantes de nombre («Black Fiery Crystal», «Mystic & Void»)."
+    },
+    {
+      "id": "tcgcollector-cn",
+      "url": "https://www.tcgcollector.com/sets/cn",
+      "publisher": "TCG Collector · sets chinos (base comunitaria; visto en resultados de búsqueda, la página respondió 403 al abrirla)",
+      "alcance": "Variantes de nombre («Brilliant Illusions», «True Mystery»)."
+    }
+  ]
+}

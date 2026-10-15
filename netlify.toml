@@ -1,0 +1,14 @@
+# Netlify: Next.js con runtime Node (funciones serverless). NO se usa `output: export`: el panel /admin y las rutas /api necesitan servidor.
+# El adaptador de Next.js para Netlify se instala solo; no hace falta declararlo. Ver docs/DESPLIEGUE-NETLIFY-SUPABASE.md.
+[build]
+  command = "npm run build"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# Cabeceras básicas de seguridad.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"

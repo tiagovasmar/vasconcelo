@@ -1,0 +1,4 @@
+{
+  "_comentario": "Fotos REALES del stock de la tienda, por SKU. Vacío hasta que el dueño aporte fotos propias (ver docs/FOTOS-A-TOMAR.md). Cada foto: archivo bajo public/images/tienda/<SKU>/, medidas reales, vista, texto alternativo y fecha en que se tomó.",
+  "photos": {}
+}

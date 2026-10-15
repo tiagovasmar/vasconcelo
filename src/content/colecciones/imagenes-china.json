@@ -1,0 +1,1022 @@
+[
+ {
+  "productId": "zh-zhenshi-xuanxu-sobre-5",
+  "index": 0,
+  "view": "front",
+  "src": "/images/products/zh/zh-zhenshi-xuanxu-sobre-5-1.webp",
+  "width": 360,
+  "height": 644,
+  "hasAlpha": true,
+  "bytes": 84654,
+  "sha256": "6f03b6daa6af78830f3043c64b329466ac0afc4af3d0bbf57fb1b4527a2263e5",
+  "origen": {
+   "fuente": "978760878054",
+   "archivo": "SKU_01.jpg",
+   "sha256": "b9ffc528a63a0ca4aaf231196972a146b95c118b0d8bd50456c22a64726977f3",
+   "ancho": 800,
+   "alto": 800,
+   "urlPublicacion": "https://detail.tmall.com/item.htm?id=978760878054&skuId=5958455496985"
+  },
+  "operacion": "fondo blanco del borde pasado a transparente por relleno desde el borde (blancos interiores del envase conservados); recorte del margen (+18px de aire); sin retoque de color"
+ },
+ {
+  "productId": "zh-zhenshi-xuanxu-sobre-20",
+  "index": 0,
+  "view": "front",
+  "src": "/images/products/zh/zh-zhenshi-xuanxu-sobre-20-1.webp",
+  "width": 644,
+  "height": 1192,
+  "hasAlpha": true,
+  "bytes": 112198,
+  "sha256": "bdaa95bbda8799fef6f3ebd72ec6ea390f219bffa63b80f6e2cd5120eae55063",
+  "origen": {
+   "fuente": "975082756071",
+   "archivo": "SKU_13.jpg",
+   "sha256": "0ad5c386a29af99e7a221cabf269429fa7eafb6f6e36424e353bd27cfa00ff80",
+   "ancho": 1198,
+   "alto": 1652,
+   "urlPublicacion": "https://item.taobao.com/item.htm?id=975082756071"
+  },
+  "operacion": "fondo blanco del borde pasado a transparente por relleno desde el borde (blancos interiores del envase conservados); recorte del margen (+46px de aire); sin retoque de color"
+ },
+ {
+  "productId": "zh-jiajiang-huihe-sobre-5",
+  "index": 0,
+  "view": "front",
+  "src": "/images/products/zh/zh-jiajiang-huihe-sobre-5-1.webp",
+  "width": 679,
+  "height": 1192,
+  "hasAlpha": true,
+  "bytes": 111924,
+  "sha256": "0bb6d5711981d3893948f49b6a8c2da470d92e1cef6b5d367f07d5e9c18d4362",
+  "origen": {
+   "fuente": "975082756071",
+   "archivo": "SKU_01.jpg",
+   "sha256": "b3bca05e587d624c1cb214fc65187c0c22f8ca614652f5207d9a369d3eda684a",
+   "ancho": 1198,
+   "alto": 1718,
+   "urlPublicacion": "https://item.taobao.com/item.htm?id=975082756071"
+  },
+  "operacion": "fondo blanco del borde pasado a transparente por relleno desde el borde (blancos interiores del envase conservados); recorte del margen (+46px de aire); sin retoque de color"
+ },
+ {
+  "productId": "zh-jiajiang-huihe-sobre-20",
+  "index": 0,
+  "view": "front",
+  "src": "/images/products/zh/zh-jiajiang-huihe-sobre-20-1.webp",
+  "width": 426,
+  "height": 806,
+  "hasAlpha": true,
+  "bytes": 97600,
+  "sha256": "a89684a7917059eea2e9f8479c6d6bdff6b9f081034ce8779663b0681a0c9910",
+  "origen": {
+   "fuente": "975082756071",
+   "archivo": "SKU_04.jpeg",
+   "sha256": "70c559b7a01df2942c1cb5bc2bf8a69c06b9efc7dee4a5fe4a8792136b509b53",
+   "ancho": 800,
+   "alto": 800,
+   "urlPublicacion": "https://item.taobao.com/item.htm?id=975082756071"
+  },
+  "operacion": "fondo blanco del borde pasado a transparente por relleno desde el borde (blancos interiores del envase conservados); recorte del margen (+23px de aire); sin retoque de color"
+ },
+ {
+  "productId": "zh-heijing-chicheng-sobre-5",
+  "index": 0,
+  "view": "front",
+  "src": "/images/products/zh/zh-heijing-chicheng-sobre-5-1.webp",
+  "width": 681,
+  "height": 1194,
+  "hasAlpha": true,
+  "bytes": 119676,
+  "sha256": "5c23de141027f95f58370e49a171b83811bb5895fabb78e0fbee16ba1497251b",
+  "origen": {
+   "fuente": "975082756071",
+   "archivo": "SKU_07.jpg",
+   "sha256": "d285c0057ef0511f4201ab051c7a15d33cf7b7d4e1a91bce477ab83d0fc19aed",
+   "ancho": 1198,
+   "alto": 1716,
+   "urlPublicacion": "https://item.taobao.com/item.htm?id=975082756071"
+  },
+  "operacion": "fondo blanco del borde pasado a transparente por relleno desde el borde (blancos interiores del envase conservados); recorte del margen (+47px de aire); sin retoque de color"
+ },
+ {
+  "productId": "zh-heijing-chicheng-sobre-20",
+  "index": 0,
+  "view": "front",
+  "src": "/images/products/zh/zh-heijing-chicheng-sobre-20-1.webp",
+  "width": 645,
+  "height": 1194,
+  "hasAlpha": true,
+  "bytes": 114106,
+  "sha256": "4d260d30e7e312bf8660452f9b1e03e9beb451e62f980aaeaa8887ce7d8dbd03",
+  "origen": {
+   "fuente": "975082756071",
+   "archivo": "SKU_09.jpg",
+   "sha256": "8093c5bd90bc0a6b14fdb0fa9c78bafcd3aa88e01bea809823e7983ba9401e72",
+   "ancho": 1198,
+   "alto": 1734,
+   "urlPublicacion": "https://item.taobao.com/item.htm?id=975082756071"
+  },
+  "operacion": "fondo blanco del borde pasado a transparente por relleno desde el borde (blancos interiores del envase conservados); recorte del margen (+47px de aire); sin retoque de color"
+ },
+ {
+  "productId": "zh-wuwei-taijing-sobre-5",
+  "index": 0,
+  "view": "front",
+  "src": "/images/products/zh/zh-wuwei-taijing-sobre-5-1.webp",
+  "width": 345,
+  "height": 620,
+  "hasAlpha": true,
+  "bytes": 50526,
+  "sha256": "bf62b8e4c38b08ea015126f6ea572e34a903861326dc4587e087986045bf4944",
+  "origen": {
+   "fuente": "975082756071",
+   "archivo": "SKU_19.png",
+   "sha256": "be6cd8bd739155208093eac533491fa4fd03663f9e74d2ea61b31454df1fb783",
+   "ancho": 453,
+   "alto": 604,
+   "urlPublicacion": "https://item.taobao.com/item.htm?id=975082756071"
+  },
+  "operacion": "fondo blanco del borde pasado a transparente por relleno desde el borde (blancos interiores del envase conservados); recorte del margen (+18px de aire); sin retoque de color"
+ },
+ {
+  "productId": "zh-gengu-kailai-sobre-5",
+  "index": 0,
+  "view": "front",
+  "src": "/images/products/zh/zh-gengu-kailai-sobre-5-1.webp",
+  "width": 624,
+  "height": 1115,
+  "hasAlpha": true,
+  "bytes": 126884,
+  "sha256": "58d92e4140b29f992ae5fcc0998cc5725ff076a697f135932d1a9d5a9273f835",
+  "origen": {
+   "fuente": "975082756071",
+   "archivo": "SKU_24.jpg",
+   "sha256": "ceae309ed00e660ca868cb18fcef5df077f02555b5f9c2764534249e9a29a2d9",
+   "ancho": 1200,
+   "alto": 1164,
+   "urlPublicacion": "https://item.taobao.com/item.htm?id=975082756071"
+  },
+  "operacion": "fondo blanco del borde pasado a transparente por relleno desde el borde (blancos interiores del envase conservados); recorte del margen (+32px de aire); sin retoque de color"
+ },
+ {
+  "productId": "zh-gengu-kailai-sobre-20",
+  "index": 0,
+  "view": "front",
+  "src": "/images/products/zh/zh-gengu-kailai-sobre-20-1.webp",
+  "width": 611,
+  "height": 1168,
+  "hasAlpha": true,
+  "bytes": 148388,
+  "sha256": "34d4448cfd757ef0fe57a3dc64c0092f1c6036c07704f099874a23afec19fed7",
+  "origen": {
+   "fuente": "975082756071",
+   "archivo": "SKU_25.jpg",
+   "sha256": "50ed99f77600782ca9a87ed12640aa55243b77a48c1d6d066954767f206425c1",
+   "ancho": 1198,
+   "alto": 1174,
+   "urlPublicacion": "https://item.taobao.com/item.htm?id=975082756071"
+  },
+  "operacion": "recorte rectangular (599×1174 desde 0,0) para dejar solo el producto; fondo blanco del borde pasado a transparente por relleno desde el borde (blancos interiores del envase conservados); recorte del margen (+34px de aire); sin retoque de color"
+ },
+ {
+  "productId": "zh-liren-mengxing-sobre-5",
+  "index": 0,
+  "view": "front",
+  "src": "/images/products/zh/zh-liren-mengxing-sobre-5-1.webp",
+  "width": 707,
+  "height": 1222,
+  "hasAlpha": true,
+  "bytes": 155230,
+  "sha256": "8697d0cba917c278177979095e565577ac33195228a5f5ccfd73b4e5ee440cbf",
+  "origen": {
+   "fuente": "975082756071",
+   "archivo": "SKU_26.jpeg",
+   "sha256": "cc6435b57bfbc83c3fa7c61df4bd441c672de926978b038a485b54d9bf6a92cb",
+   "ancho": 1170,
+   "alto": 2092,
+   "urlPublicacion": "https://item.taobao.com/item.htm?id=975082756071"
+  },
+  "operacion": "fondo blanco del borde pasado a transparente por relleno desde el borde (blancos interiores del envase conservados); recorte del margen (+61px de aire); sin retoque de color"
+ },
+ {
+  "productId": "zh-liren-mengxing-sobre-20",
+  "index": 0,
+  "view": "front",
+  "src": "/images/products/zh/zh-liren-mengxing-sobre-20-1.webp",
+  "width": 346,
+  "height": 657,
+  "hasAlpha": true,
+  "bytes": 86408,
+  "sha256": "acd5257726af23b12c9801c4e85c67e922fdee153c3ff9703afbab71d7ca98d5",
+  "origen": {
+   "fuente": "1008153816247",
+   "archivo": "SKU_01.jpg",
+   "sha256": "319858602f2f87c1ed3ea261034bbd0ac0a510487fd275480074616a3150a2db",
+   "ancho": 800,
+   "alto": 800,
+   "urlPublicacion": "https://detail.tmall.com/item.htm?id=1008153816247&skuId=6179560326837"
+  },
+  "operacion": "fondo blanco del borde pasado a transparente por relleno desde el borde (blancos interiores del envase conservados); recorte del margen (+19px de aire); sin retoque de color"
+ },
+ {
+  "productId": "zh-cuican-guihuan-sobre-5",
+  "index": 0,
+  "view": "front",
+  "src": "/images/products/zh/zh-cuican-guihuan-sobre-5-1.webp",
+  "width": 676,
+  "height": 1190,
+  "hasAlpha": true,
+  "bytes": 151146,
+  "sha256": "395970ccb6bbf483d67306dd49388fb549d66ba7cd8a8d592ff7f9c6a182f79d",
+  "origen": {
+   "fuente": "975082756071",
+   "archivo": "SKU_30.jpeg",
+   "sha256": "37d3db95099cab2ee4fa39347b7ff4261601bc693020c1aef52b6eed5b9963c6",
+   "ancho": 1198,
+   "alto": 1666,
+   "urlPublicacion": "https://item.taobao.com/item.htm?id=975082756071"
+  },
+  "operacion": "fondo blanco del borde pasado a transparente por relleno desde el borde (blancos interiores del envase conservados); recorte del margen (+45px de aire); sin retoque de color"
+ },
+ {
+  "productId": "zh-cuican-guihuan-sobre-20",
+  "index": 0,
+  "view": "front",
+  "src": "/images/products/zh/zh-cuican-guihuan-sobre-20-1.webp",
+  "width": 641,
+  "height": 1190,
+  "hasAlpha": true,
+  "bytes": 146928,
+  "sha256": "ae0a75a35eac626f7ce3286cbe37cfaf5e868520e3d1414d13e682f87dddf313",
+  "origen": {
+   "fuente": "975082756071",
+   "archivo": "SKU_32.jpeg",
+   "sha256": "2843ffc221de402a02e4efd76a4ea449c1ff3f80acd82172104630cdec4f9902",
+   "ancho": 1198,
+   "alto": 1640,
+   "urlPublicacion": "https://item.taobao.com/item.htm?id=975082756071"
+  },
+  "operacion": "fondo blanco del borde pasado a transparente por relleno desde el borde (blancos interiores del envase conservados); recorte del margen (+45px de aire); sin retoque de color"
+ },
+ {
+  "productId": "zh-xingcai-jingli-sobre-5",
+  "index": 0,
+  "view": "front",
+  "src": "/images/products/zh/zh-xingcai-jingli-sobre-5-1.webp",
+  "width": 337,
+  "height": 606,
+  "hasAlpha": true,
+  "bytes": 79882,
+  "sha256": "273c4ad142c47ca39b28ea05e976450894489004fcfa039edd65386b1ac9e026",
+  "origen": {
+   "fuente": "1050867876169",
+   "archivo": "SKU_01.jpg",
+   "sha256": "72b62bb5749748e6fdb8ef4da70187fadf320525c7897744511043db951b965b",
+   "ancho": 800,
+   "alto": 800,
+   "urlPublicacion": "https://detail.tmall.com/item.htm?id=1050867876169&skuId=6078990300639"
+  },
+  "operacion": "fondo blanco del borde pasado a transparente por relleno desde el borde (blancos interiores del envase conservados); recorte del margen (+17px de aire); sin retoque de color"
+ },
+ {
+  "productId": "zh-qiji-qicheng-sobre-20",
+  "index": 0,
+  "view": "front",
+  "src": "/images/products/zh/zh-qiji-qicheng-sobre-20-1.webp",
+  "width": 324,
+  "height": 616,
+  "hasAlpha": true,
+  "bytes": 64072,
+  "sha256": "b98d3f5fdff1e44882da442bd07bf5fa0ea0ac818c431615f6e67435b770d810",
+  "origen": {
+   "fuente": "975082756071",
+   "archivo": "SKU_38.jpg",
+   "sha256": "ba29d6065447002591f676bb3162154d0a5d3742357d1776af2f3ee15b1a16bb",
+   "ancho": 450,
+   "alto": 656,
+   "urlPublicacion": "https://item.taobao.com/item.htm?id=975082756071"
+  },
+  "operacion": "fondo blanco del borde pasado a transparente por relleno desde el borde (blancos interiores del envase conservados); recorte del margen (+17px de aire); sin retoque de color"
+ },
+ {
+  "productId": "zh-taijing-shengju-sobre-10",
+  "index": 0,
+  "view": "front",
+  "src": "/images/products/zh/zh-taijing-shengju-sobre-10-1.webp",
+  "width": 787,
+  "height": 1302,
+  "hasAlpha": true,
+  "bytes": 194194,
+  "sha256": "9823e6f910ba810e43eb766559be2486c8c341a447f86e504ae97f576df2b9d5",
+  "origen": {
+   "fuente": "975082756071",
+   "archivo": "SKU_40.png",
+   "sha256": "676589e4f6b4facbcdf5e10341527deb60d87e7c1526c7c4ebdf5fd45da61364",
+   "ancho": 1972,
+   "alto": 3500,
+   "urlPublicacion": "https://item.taobao.com/item.htm?id=975082756071"
+  },
+  "operacion": "ya traía transparencia; recorte del margen (+101px de aire); sin retoque de color"
+ },
+ {
+  "productId": "zh-gongzhu-rongguang-sobre-5",
+  "index": 0,
+  "view": "front",
+  "src": "/images/products/zh/zh-gongzhu-rongguang-sobre-5-1.webp",
+  "width": 341,
+  "height": 611,
+  "hasAlpha": true,
+  "bytes": 60908,
+  "sha256": "1f7fd5e303c86f764fd134e47481b3e0995210f9d24023e319c6c37173647071",
+  "origen": {
+   "fuente": "1065055849565",
+   "archivo": "SKU_01.jpg",
+   "sha256": "a915a48aca277c50417ecebd7cd42f26ba486cb307eac9308616f4be2886a69f",
+   "ancho": 800,
+   "alto": 800,
+   "urlPublicacion": "https://detail.tmall.com/item.htm?id=1065055849565&skuId=6276681015552"
+  },
+  "operacion": "fondo blanco del borde pasado a transparente por relleno desde el borde (blancos interiores del envase conservados); recorte del margen (+17px de aire); sin retoque de color"
+ },
+ {
+  "productId": "zh-gongzhu-rongguang-sobre-20",
+  "index": 0,
+  "view": "front",
+  "src": "/images/products/zh/zh-gongzhu-rongguang-sobre-20-1.webp",
+  "width": 330,
+  "height": 627,
+  "hasAlpha": true,
+  "bytes": 64084,
+  "sha256": "c3dcefeb7044f0779b54b7fe51345b5a3411e0931376022181b156d3c05b5d53",
+  "origen": {
+   "fuente": "1063240655679",
+   "archivo": "SKU_01.jpg",
+   "sha256": "ac0aacec27921be6f94af3a981b9f2448e99c563036883ce6f51a6585fe65c99",
+   "ancho": 800,
+   "alto": 800,
+   "urlPublicacion": "https://detail.tmall.com/item.htm?id=1063240655679&skuId=6111536584650"
+  },
+  "operacion": "fondo blanco del borde pasado a transparente por relleno desde el borde (blancos interiores del envase conservados); recorte del margen (+18px de aire); sin retoque de color"
+ },
+ {
+  "productId": "zh-shengxiang-xingyin-sobre-6",
+  "index": 0,
+  "view": "front",
+  "src": "/images/products/zh/zh-shengxiang-xingyin-sobre-6-1.webp",
+  "width": 522,
+  "height": 953,
+  "hasAlpha": true,
+  "bytes": 63216,
+  "sha256": "a5fc2229d0f3b014dea9acc2a2c3c78f89daf2f644a9c94eca676ac6e4b79256",
+  "origen": {
+   "fuente": "975082756071",
+   "archivo": "SKU_15.jpg",
+   "sha256": "c715714f17ddefd5e0926067c7316070facd262569d8e873e400a238e134fd76",
+   "ancho": 1106,
+   "alto": 1026,
+   "urlPublicacion": "https://item.taobao.com/item.htm?id=975082756071"
+  },
+  "operacion": "fondo blanco del borde pasado a transparente por relleno desde el borde (blancos interiores del envase conservados); recorte del margen (+27px de aire); sin retoque de color"
+ },
+ {
+  "productId": "zh-anying-duohui-sobre-6",
+  "index": 0,
+  "view": "front",
+  "src": "/images/products/zh/zh-anying-duohui-sobre-6-1.webp",
+  "width": 652,
+  "height": 1168,
+  "hasAlpha": true,
+  "bytes": 107458,
+  "sha256": "1100a38e7f3f3754559dd166a09029de87cb9871a6ad637b805f0cbc0443bf15",
+  "origen": {
+   "fuente": "975082756071",
+   "archivo": "SKU_17.jpg",
+   "sha256": "c958064b2b03ed19169601bb067627244b85b3d9882d9a9934058e3bfa574d76",
+   "ancho": 1198,
+   "alto": 1188,
+   "urlPublicacion": "https://item.taobao.com/item.htm?id=975082756071"
+  },
+  "operacion": "fondo blanco del borde pasado a transparente por relleno desde el borde (blancos interiores del envase conservados); recorte del margen (+34px de aire); sin retoque de color"
+ },
+ {
+  "productId": "zh-nuyan-zhuotian-sobre-6",
+  "index": 0,
+  "view": "front",
+  "src": "/images/products/zh/zh-nuyan-zhuotian-sobre-6-1.webp",
+  "width": 394,
+  "height": 729,
+  "hasAlpha": true,
+  "bytes": 61154,
+  "sha256": "f8f1a602191bbeaffacb7eea9cbd947312082941644faf3d5597f265ac74e9e1",
+  "origen": {
+   "fuente": "975082756071",
+   "archivo": "SKU_20.jpeg",
+   "sha256": "81e54f1740aaeb8f499f63a26cb05f21b0772763d3117dfccd2b92d6401ee3f6",
+   "ancho": 800,
+   "alto": 800,
+   "urlPublicacion": "https://item.taobao.com/item.htm?id=975082756071"
+  },
+  "operacion": "fondo blanco del borde pasado a transparente por relleno desde el borde (blancos interiores del envase conservados); recorte del margen (+21px de aire); sin retoque de color"
+ },
+ {
+  "productId": "zh-jiju-gongfang-sobre-6",
+  "index": 0,
+  "view": "front",
+  "src": "/images/products/zh/zh-jiju-gongfang-sobre-6-1.webp",
+  "width": 505,
+  "height": 969,
+  "hasAlpha": true,
+  "bytes": 57634,
+  "sha256": "39d0a65f12fa2bef8061de94d43f1b8416b7b37b7c375459fafde3db50ce9ad6",
+  "origen": {
+   "fuente": "975082756071",
+   "archivo": "SKU_22.jpg",
+   "sha256": "eeb375556d4cbe444c64966f959117eebfa367261b19ffd85317ec18f0948512",
+   "ancho": 1198,
+   "alto": 1184,
+   "urlPublicacion": "https://item.taobao.com/item.htm?id=975082756071"
+  },
+  "operacion": "fondo blanco del borde pasado a transparente por relleno desde el borde (blancos interiores del envase conservados); recorte del margen (+27px de aire); sin retoque de color"
+ },
+ {
+  "productId": "zh-zhongmo-yanwu-sobre-6",
+  "index": 0,
+  "view": "front",
+  "src": "/images/products/zh/zh-zhongmo-yanwu-sobre-6-1.webp",
+  "width": 639,
+  "height": 1147,
+  "hasAlpha": true,
+  "bytes": 69890,
+  "sha256": "ff9995aace392de6b8341aadabb0c1dfff780cecd9d02ebb872f90f0607eaa0d",
+  "origen": {
+   "fuente": "975082756071",
+   "archivo": "SKU_23.jpg",
+   "sha256": "5068bc6274781cb6772712f01751a887c7b8259c485f53874edf0745b984d9e4",
+   "ancho": 1198,
+   "alto": 1196,
+   "urlPublicacion": "https://item.taobao.com/item.htm?id=975082756071"
+  },
+  "operacion": "fondo blanco del borde pasado a transparente por relleno desde el borde (blancos interiores del envase conservados); recorte del margen (+32px de aire); sin retoque de color"
+ },
+ {
+  "productId": "zh-shengxiang-xingyin-caja",
+  "index": 0,
+  "view": "closed",
+  "src": "/images/products/zh/zh-shengxiang-xingyin-caja-1.webp",
+  "width": 194,
+  "height": 326,
+  "hasAlpha": true,
+  "bytes": 19874,
+  "sha256": "aa2804a8e479b421cfba2202c859c9fb764504fcd2743d9ea0a227719c77e70e",
+  "origen": {
+   "fuente": "975082756071",
+   "archivo": "SKU_16.jpg",
+   "sha256": "416cfc6eda34ee1001a483933f8e00923d233a11eeee0d607732be744bc5eadb",
+   "ancho": 400,
+   "alto": 400,
+   "urlPublicacion": "https://item.taobao.com/item.htm?id=975082756071"
+  },
+  "operacion": "fondo blanco del borde pasado a transparente por relleno desde el borde (blancos interiores del envase conservados); recorte del margen (+9px de aire); sin retoque de color"
+ },
+ {
+  "productId": "zh-anying-duohui-caja",
+  "index": 0,
+  "view": "closed",
+  "src": "/images/products/zh/zh-anying-duohui-caja-1.webp",
+  "width": 599,
+  "height": 1052,
+  "hasAlpha": true,
+  "bytes": 69464,
+  "sha256": "25695f929c25501c9008ee7c45b1f131bcf3f5d7954a6cbce31a98833e977a8a",
+  "origen": {
+   "fuente": "975082756071",
+   "archivo": "SKU_18.jpg",
+   "sha256": "6cb4ad69ab05192cc03c9ca9e04fdf0b6f847fce87f6868f87e96758c9df54a9",
+   "ancho": 1198,
+   "alto": 1170,
+   "urlPublicacion": "https://item.taobao.com/item.htm?id=975082756071"
+  },
+  "operacion": "fondo blanco del borde pasado a transparente por relleno desde el borde (blancos interiores del envase conservados); recorte del margen (+30px de aire); sin retoque de color"
+ },
+ {
+  "productId": "zh-taijing-shengju-caja",
+  "index": 0,
+  "view": "closed",
+  "src": "/images/products/zh/zh-taijing-shengju-caja-1.webp",
+  "width": 825,
+  "height": 1100,
+  "hasAlpha": false,
+  "bytes": 139086,
+  "sha256": "34faaa0b9860722d4e2e29bb3c5a045c1e821c5fe30cbb685ab05ca1af55ae24",
+  "origen": {
+   "fuente": "1064307763243",
+   "archivo": "Principal_01.jpg",
+   "sha256": "e3c631509c45e61c9204d9e031dacb9e210667cf5219c981e605e63e10dae2f1",
+   "ancho": 1080,
+   "alto": 1440,
+   "urlPublicacion": "https://item.taobao.com/item.htm?id=1064307763243&skuId=6114037237060"
+  },
+  "operacion": "conservada con su fondo; solo optimizada (WebP)"
+ },
+ {
+  "productId": "zh-taijing-shengju-caja",
+  "index": 1,
+  "view": "detail",
+  "src": "/images/products/zh/zh-taijing-shengju-caja-2.webp",
+  "width": 1080,
+  "height": 1080,
+  "hasAlpha": false,
+  "bytes": 106816,
+  "sha256": "89b6c306408faa119953b7385bb960dd56c46ccb6999812f62d487cda71b1d7a",
+  "origen": {
+   "fuente": "1064307763243",
+   "archivo": "Principal_02.jpg",
+   "sha256": "56f907b954551ca15d579562a98262b344aa033ccc97df5950a851e588fb66cd",
+   "ancho": 1080,
+   "alto": 1080,
+   "urlPublicacion": "https://item.taobao.com/item.htm?id=1064307763243&skuId=6114037237060"
+  },
+  "operacion": "conservada con su fondo; solo optimizada (WebP)"
+ },
+ {
+  "productId": "zh-taijing-shengju-caja",
+  "index": 2,
+  "view": "detail",
+  "src": "/images/products/zh/zh-taijing-shengju-caja-3.webp",
+  "width": 1080,
+  "height": 1080,
+  "hasAlpha": false,
+  "bytes": 169462,
+  "sha256": "8b9f4919228d2d7abe56653f90b836996f234762cf31721a7d3dbb87935a0e95",
+  "origen": {
+   "fuente": "1064307763243",
+   "archivo": "Principal_03.jpg",
+   "sha256": "f44c32892cd0cac555d659b8db4a7b43c9166a18582d2d639358aadc78837fac",
+   "ancho": 1080,
+   "alto": 1080,
+   "urlPublicacion": "https://item.taobao.com/item.htm?id=1064307763243&skuId=6114037237060"
+  },
+  "operacion": "conservada con su fondo; solo optimizada (WebP)"
+ },
+ {
+  "productId": "zh-30-zhounian-sobre-6",
+  "index": 0,
+  "view": "front",
+  "src": "/images/products/zh/zh-30-zhounian-sobre-6-1.webp",
+  "width": 562,
+  "height": 1068,
+  "hasAlpha": true,
+  "bytes": 92706,
+  "sha256": "1e9ad467eb97f4371eb3fd2ab917fe6ea290081ec89467df96c0c8b4a928e662",
+  "origen": {
+   "fuente": "1079986406064",
+   "archivo": "Detalle_02.jpg",
+   "sha256": "52da4610f55e44cf6e1f974c8705d05e6206f49a14e03076b4c7ff9afca168f1",
+   "ancho": 1200,
+   "alto": 1354,
+   "urlPublicacion": "https://item.taobao.com/item.htm?id=1079986406064"
+  },
+  "operacion": "fondo blanco del borde pasado a transparente por relleno desde el borde (blancos interiores del envase conservados); recorte del margen (+30px de aire); sin retoque de color"
+ },
+ {
+  "productId": "zh-30-zhounian-set-monedas",
+  "index": 0,
+  "view": "front",
+  "src": "/images/products/zh/zh-30-zhounian-set-monedas-1.webp",
+  "width": 604,
+  "height": 1170,
+  "hasAlpha": true,
+  "bytes": 156338,
+  "sha256": "cce2bd250e5c7fc927e8e02795e5de5d4f4f308f379c112e1d4ef837878e2589",
+  "origen": {
+   "fuente": "1079986406064",
+   "archivo": "SKU_08.jpg",
+   "sha256": "1f645e1d498c182635289095eb7473baf3e2879aea012db5b024d0ca3d6fc282",
+   "ancho": 1200,
+   "alto": 1200,
+   "urlPublicacion": "https://item.taobao.com/item.htm?id=1079986406064"
+  },
+  "operacion": "recorte rectangular (600×1200 desde 0,0) para dejar solo el producto; fondo blanco del borde pasado a transparente por relleno desde el borde (blancos interiores del envase conservados); recorte del margen (+35px de aire); sin retoque de color"
+ },
+ {
+  "productId": "zh-30-zhounian-ilustraciones-vol2",
+  "index": 0,
+  "view": "front",
+  "src": "/images/products/zh/zh-30-zhounian-ilustraciones-vol2-1.webp",
+  "width": 668,
+  "height": 1178,
+  "hasAlpha": true,
+  "bytes": 129576,
+  "sha256": "35ce6e935d62df93250b60dec66754953f36ed3ae7dc33d45cc15305e8919a5c",
+  "origen": {
+   "fuente": "1024232254134",
+   "archivo": "Principal_04.jpg",
+   "sha256": "72885d92c33c11095ec7697a9e4792eba400e50911e84aad9b13659ad0036d50",
+   "ancho": 1317,
+   "alto": 1317,
+   "urlPublicacion": "https://item.taobao.com/item.htm?id=1024232254134&skuId=6053279645670"
+  },
+  "operacion": "fondo blanco del borde pasado a transparente por relleno desde el borde (blancos interiores del envase conservados); recorte del margen (+39px de aire); sin retoque de color"
+ },
+ {
+  "productId": "zh-30-zhounian-ilustraciones-vol2",
+  "index": 1,
+  "view": "contents",
+  "src": "/images/products/zh/zh-30-zhounian-ilustraciones-vol2-2.webp",
+  "width": 800,
+  "height": 800,
+  "hasAlpha": false,
+  "bytes": 108720,
+  "sha256": "e94a5474033c84c3501cc96062a2e6482e1dd0c1c61ed25ee3da36167597f047",
+  "origen": {
+   "fuente": "1059308989628",
+   "archivo": "Principal_02.jpg",
+   "sha256": "d97989e705008dacce36119a195866bf35abe10ac0e2d1ecc59034b8bd989c30",
+   "ancho": 800,
+   "alto": 800,
+   "urlPublicacion": "https://detail.tmall.com/item.htm?id=1059308989628&skuId=6267133714161"
+  },
+  "operacion": "conservada con su fondo; solo optimizada (WebP)"
+ },
+ {
+  "productId": "zh-30-zhounian-ilustraciones-vol3",
+  "index": 0,
+  "view": "front",
+  "src": "/images/products/zh/zh-30-zhounian-ilustraciones-vol3-1.webp",
+  "width": 768,
+  "height": 1272,
+  "hasAlpha": true,
+  "bytes": 125028,
+  "sha256": "a240634e9705f3b60011e6f864724de32eac6a9e8477d3cc9764922ebbcd49b1",
+  "origen": {
+   "fuente": "1024232254134",
+   "archivo": "Principal_05.png",
+   "sha256": "0d074a3ae04abe154904994f1ea3297b87afe3fa8d0942897338135321142e50",
+   "ancho": 3023,
+   "alto": 3023,
+   "urlPublicacion": "https://item.taobao.com/item.htm?id=1024232254134&skuId=6053279645670"
+  },
+  "operacion": "ya traía transparencia; recorte del margen (+86px de aire); sin retoque de color"
+ },
+ {
+  "productId": "zh-30-zhounian-ilustraciones-vol3",
+  "index": 1,
+  "view": "contents",
+  "src": "/images/products/zh/zh-30-zhounian-ilustraciones-vol3-2.webp",
+  "width": 800,
+  "height": 800,
+  "hasAlpha": false,
+  "bytes": 108184,
+  "sha256": "f8007108e19822d3452183898fead7c1b5dae2d7b3f462a56a38e4ce223a8ba0",
+  "origen": {
+   "fuente": "1070165751188",
+   "archivo": "Principal_02.jpg",
+   "sha256": "a3d4f27b2d3fe5e34459372976e9ab8a5829bf63b0accd81c918148b9aba5acf",
+   "ancho": 800,
+   "alto": 800,
+   "urlPublicacion": "https://detail.tmall.com/item.htm?id=1070165751188&skuId=6121938069378"
+  },
+  "operacion": "conservada con su fondo; solo optimizada (WebP)"
+ },
+ {
+  "productId": "zh-30-zhounian-carta-p-bulbasaur",
+  "index": 0,
+  "view": "front",
+  "src": "/images/products/zh/zh-30-zhounian-carta-p-bulbasaur-1.webp",
+  "width": 662,
+  "height": 1172,
+  "hasAlpha": true,
+  "bytes": 120866,
+  "sha256": "b6e8ba79a7607bb60fa4cd7b8b4ba50be237597293afdc4e4e0fd84069544305",
+  "origen": {
+   "fuente": "1024232254134",
+   "archivo": "Principal_03.jpg",
+   "sha256": "adf9c6ce828560f45a101d9bd00ab5b04503ec43652beaa7d25c07f1f3b9aa85",
+   "ancho": 1269,
+   "alto": 1269,
+   "urlPublicacion": "https://item.taobao.com/item.htm?id=1024232254134&skuId=6053279645670"
+  },
+  "operacion": "fondo blanco del borde pasado a transparente por relleno desde el borde (blancos interiores del envase conservados); recorte del margen (+36px de aire); sin retoque de color"
+ },
+ {
+  "productId": "zh-kit-mengleigu-ex",
+  "index": 0,
+  "view": "front",
+  "src": "/images/products/zh/zh-kit-mengleigu-ex-1.webp",
+  "width": 592,
+  "height": 379,
+  "hasAlpha": true,
+  "bytes": 55408,
+  "sha256": "f021d85cf4fd48b93e93392011430b9ddd904845c72945485492842db89083a4",
+  "origen": {
+   "fuente": "1065661862776",
+   "archivo": "SKU_01.jpg",
+   "sha256": "2e3d7ceec5d8dd643c312160b648d658dab5a99558e17c14368c56944e9972e6",
+   "ancho": 800,
+   "alto": 800,
+   "urlPublicacion": "https://detail.tmall.com/item.htm?id=1065661862776&skuId=6114038368150"
+  },
+  "operacion": "fondo blanco del borde pasado a transparente por relleno desde el borde (blancos interiores del envase conservados); recorte del margen (+17px de aire); sin retoque de color"
+ },
+ {
+  "productId": "zh-kit-mengleigu-ex",
+  "index": 1,
+  "view": "contents",
+  "src": "/images/products/zh/zh-kit-mengleigu-ex-2.webp",
+  "width": 800,
+  "height": 800,
+  "hasAlpha": false,
+  "bytes": 100852,
+  "sha256": "5f11b250958b9babbdbd112032e123a1f8d40a6dec708d4b2eb8f4c2ec5f37ff",
+  "origen": {
+   "fuente": "1065661862776",
+   "archivo": "Principal_02.jpg",
+   "sha256": "e4a23160e9740955b9c8e60e991c74c2c893c89c0ab186ae82f2a90615e76a4c",
+   "ancho": 800,
+   "alto": 800,
+   "urlPublicacion": "https://detail.tmall.com/item.htm?id=1065661862776&skuId=6114038368150"
+  },
+  "operacion": "conservada con su fondo; solo optimizada (WebP)"
+ },
+ {
+  "productId": "zh-kit-saifuhao-ex",
+  "index": 0,
+  "view": "front",
+  "src": "/images/products/zh/zh-kit-saifuhao-ex-1.webp",
+  "width": 592,
+  "height": 380,
+  "hasAlpha": true,
+  "bytes": 53720,
+  "sha256": "34e4195043b60075d8ebdf8ccc50780637276e7ec4b88a54908045ceec0a83ae",
+  "origen": {
+   "fuente": "1065668842312",
+   "archivo": "SKU_01.jpg",
+   "sha256": "77ba521dade85fb966989880c18722df1375827386c2a2b5eed7191b7e5d6815",
+   "ancho": 800,
+   "alto": 800,
+   "urlPublicacion": "https://detail.tmall.com/item.htm?id=1065668842312&skuId=6114790741135"
+  },
+  "operacion": "fondo blanco del borde pasado a transparente por relleno desde el borde (blancos interiores del envase conservados); recorte del margen (+17px de aire); sin retoque de color"
+ },
+ {
+  "productId": "zh-kit-saifuhao-ex",
+  "index": 1,
+  "view": "contents",
+  "src": "/images/products/zh/zh-kit-saifuhao-ex-2.webp",
+  "width": 800,
+  "height": 800,
+  "hasAlpha": false,
+  "bytes": 99440,
+  "sha256": "f39555882ec90b6b96b0dab530f1c646fbf3eb828969fe0627b4d9638f4c8fd5",
+  "origen": {
+   "fuente": "1065668842312",
+   "archivo": "Principal_02.jpg",
+   "sha256": "f4e93d02394a5aae825b4d931cad48fc053d8582d11366b2c4aa07049142146f",
+   "ancho": 800,
+   "alto": 800,
+   "urlPublicacion": "https://detail.tmall.com/item.htm?id=1065668842312&skuId=6114790741135"
+  },
+  "operacion": "conservada con su fondo; solo optimizada (WebP)"
+ },
+ {
+  "productId": "zh-kit-haipi-zuhe",
+  "index": 0,
+  "view": "front",
+  "src": "/images/products/zh/zh-kit-haipi-zuhe-1.webp",
+  "width": 593,
+  "height": 518,
+  "hasAlpha": true,
+  "bytes": 97210,
+  "sha256": "e37d75e4c476ccf984db35e809156800e8d4968a8df353b5eb3c7acca3116edd",
+  "origen": {
+   "fuente": "1065354470710",
+   "archivo": "SKU_01.jpg",
+   "sha256": "e15fc8419cf757c5c020285f356f203ff43be7ffce5395852af33770c0aa1a20",
+   "ancho": 800,
+   "alto": 800,
+   "urlPublicacion": "https://detail.tmall.com/item.htm?id=1065354470710&skuId=6113656668432"
+  },
+  "operacion": "fondo blanco del borde pasado a transparente por relleno desde el borde (blancos interiores del envase conservados); recorte del margen (+17px de aire); sin retoque de color"
+ },
+ {
+  "productId": "zh-kit-haipi-zuhe",
+  "index": 1,
+  "view": "contents",
+  "src": "/images/products/zh/zh-kit-haipi-zuhe-2.webp",
+  "width": 800,
+  "height": 800,
+  "hasAlpha": false,
+  "bytes": 120290,
+  "sha256": "4562f68b838f3dcd7def7856d42d7bd46af8573804d56852fe70ecf9bd24ec21",
+  "origen": {
+   "fuente": "1065354470710",
+   "archivo": "Principal_02.jpg",
+   "sha256": "2db1d1d69eb01a8c529f6a90c6f11967fc7e916fa02f9ddc01bb116acdd42107",
+   "ancho": 800,
+   "alto": 800,
+   "urlPublicacion": "https://detail.tmall.com/item.htm?id=1065354470710&skuId=6113656668432"
+  },
+  "operacion": "conservada con su fondo; solo optimizada (WebP)"
+ },
+ {
+  "productId": "zh-baoshibao-vol6-caja",
+  "index": 0,
+  "view": "contents",
+  "src": "/images/products/zh/zh-baoshibao-vol6-caja-1.webp",
+  "width": 648,
+  "height": 425,
+  "hasAlpha": true,
+  "bytes": 77506,
+  "sha256": "18581dc1b1e1656ed22146575a06c66f5e7914405a26e6716457bb69b43188cf",
+  "origen": {
+   "fuente": "1070975018438",
+   "archivo": "Principal_04.jpg",
+   "sha256": "26c06d92b28f3e13d127f95e1f49caf2b46023de3ce5a5f74372d65df13116fe",
+   "ancho": 800,
+   "alto": 800,
+   "urlPublicacion": "https://detail.tmall.com/item.htm?id=1070975018438&skuId=6285978162895"
+  },
+  "operacion": "recorte rectangular (660×400 desde 70,185) para dejar solo el producto; fondo blanco del borde pasado a transparente por relleno desde el borde (blancos interiores del envase conservados); recorte del margen (+18px de aire); sin retoque de color"
+ },
+ {
+  "productId": "zh-baoshibao-vol6-caja",
+  "index": 1,
+  "view": "detail",
+  "src": "/images/products/zh/zh-baoshibao-vol6-caja-2.webp",
+  "width": 800,
+  "height": 800,
+  "hasAlpha": false,
+  "bytes": 94028,
+  "sha256": "72fc4ae34f432f389bebfc90871573db8c2b9a6e95c875f29aa0b5aeff102013",
+  "origen": {
+   "fuente": "1070975018438",
+   "archivo": "Principal_01.jpg",
+   "sha256": "0e3ba13fa23f0f1802f6cbde8610228d272eb15a9259cf376dbf007875786f17",
+   "ancho": 800,
+   "alto": 800,
+   "urlPublicacion": "https://detail.tmall.com/item.htm?id=1070975018438&skuId=6285978162895"
+  },
+  "operacion": "conservada con su fondo; solo optimizada (WebP)"
+ },
+ {
+  "productId": "zh-caja-ogerpon-agua",
+  "index": 0,
+  "view": "closed",
+  "src": "/images/products/zh/zh-caja-ogerpon-agua-1.webp",
+  "width": 599,
+  "height": 454,
+  "hasAlpha": true,
+  "bytes": 28692,
+  "sha256": "034b8d701c840a439fb52a9f9da265d18f12b4abd5702ec2f78f86c16b729692",
+  "origen": {
+   "fuente": "1049188091485",
+   "archivo": "SKU_01.jpg",
+   "sha256": "5042e511c04fb518fbbbf3f3900d6b4ca20018041b4487f214498a92ffc3080a",
+   "ancho": 800,
+   "alto": 800,
+   "urlPublicacion": "https://detail.tmall.com/item.htm?id=1049188091485&skuId=6245970290772"
+  },
+  "operacion": "fondo blanco del borde pasado a transparente por relleno desde el borde (blancos interiores del envase conservados); recorte del margen (+17px de aire); sin retoque de color"
+ },
+ {
+  "productId": "zh-caja-ogerpon-agua",
+  "index": 1,
+  "view": "contents",
+  "src": "/images/products/zh/zh-caja-ogerpon-agua-2.webp",
+  "width": 800,
+  "height": 800,
+  "hasAlpha": false,
+  "bytes": 78460,
+  "sha256": "d5a5c1b1574e6876af37962b4b7ea4f3fe73215f773261bb9c738ca954de012b",
+  "origen": {
+   "fuente": "1049188091485",
+   "archivo": "Principal_04.jpg",
+   "sha256": "7ebbca93fda1752bff97bf9308e97c93842fbf47c04f4688cab307063514cb6b",
+   "ancho": 800,
+   "alto": 800,
+   "urlPublicacion": "https://detail.tmall.com/item.htm?id=1049188091485&skuId=6245970290772"
+  },
+  "operacion": "conservada con su fondo; solo optimizada (WebP)"
+ },
+ {
+  "productId": "zh-caja-ogerpon-agua",
+  "index": 2,
+  "view": "contents",
+  "src": "/images/products/zh/zh-caja-ogerpon-agua-3.webp",
+  "width": 800,
+  "height": 800,
+  "hasAlpha": false,
+  "bytes": 44190,
+  "sha256": "83776e97ef47242d832136d4e4aa55cdc82900ac5c9deb44813d3fb87ad46939",
+  "origen": {
+   "fuente": "1049188091485",
+   "archivo": "Principal_03.jpg",
+   "sha256": "add4eebeb1603c657078dabf677bc781ce370f30959b23d63a58fc05c8d20200",
+   "ancho": 800,
+   "alto": 800,
+   "urlPublicacion": "https://detail.tmall.com/item.htm?id=1049188091485&skuId=6245970290772"
+  },
+  "operacion": "conservada con su fondo; solo optimizada (WebP)"
+ },
+ {
+  "productId": "zh-caja-ogerpon-agua",
+  "index": 3,
+  "view": "contents",
+  "src": "/images/products/zh/zh-caja-ogerpon-agua-4.webp",
+  "width": 800,
+  "height": 800,
+  "hasAlpha": false,
+  "bytes": 34804,
+  "sha256": "e3fede3cc7e7ee57b9d4e66d0ca83ecd1390fb5f3e51f73e7f803f5ee4be5a8f",
+  "origen": {
+   "fuente": "1049188091485",
+   "archivo": "Principal_02.jpg",
+   "sha256": "b3d9ed50d3ad787971bdab56237aaefbac1528e6b2ae459f017cb40d1e48dc39",
+   "ancho": 800,
+   "alto": 800,
+   "urlPublicacion": "https://detail.tmall.com/item.htm?id=1049188091485&skuId=6245970290772"
+  },
+  "operacion": "conservada con su fondo; solo optimizada (WebP)"
+ },
+ {
+  "productId": "zh-caja-ogerpon-fuego",
+  "index": 0,
+  "view": "closed",
+  "src": "/images/products/zh/zh-caja-ogerpon-fuego-1.webp",
+  "width": 613,
+  "height": 465,
+  "hasAlpha": true,
+  "bytes": 27284,
+  "sha256": "10c1a7eb8808695556bef28e34e5cadec64e16fc5c5c8e7533702eacb2886615",
+  "origen": {
+   "fuente": "1050912901200",
+   "archivo": "SKU_01.jpg",
+   "sha256": "844f2ba6620d3292165ad71f71ee7a0e9571b0d9def802becc9b2a8d8a7f53f5",
+   "ancho": 800,
+   "alto": 800,
+   "urlPublicacion": "https://detail.tmall.com/item.htm?id=1050912901200&skuId=6245967410012"
+  },
+  "operacion": "fondo blanco del borde pasado a transparente por relleno desde el borde (blancos interiores del envase conservados); recorte del margen (+17px de aire); sin retoque de color"
+ },
+ {
+  "productId": "zh-caja-ogerpon-fuego",
+  "index": 1,
+  "view": "contents",
+  "src": "/images/products/zh/zh-caja-ogerpon-fuego-2.webp",
+  "width": 800,
+  "height": 800,
+  "hasAlpha": false,
+  "bytes": 76950,
+  "sha256": "2c26070581e98cf5d134edcc9ad85e1841423aa8bc5f6a061e3cb98c628051c5",
+  "origen": {
+   "fuente": "1050912901200",
+   "archivo": "Principal_04.jpg",
+   "sha256": "fc49ed2073464a3fa4b1c2f8230e83e55779de43de1bccfc002bd59c46ebcf65",
+   "ancho": 800,
+   "alto": 800,
+   "urlPublicacion": "https://detail.tmall.com/item.htm?id=1050912901200&skuId=6245967410012"
+  },
+  "operacion": "conservada con su fondo; solo optimizada (WebP)"
+ },
+ {
+  "productId": "zh-caja-ogerpon-fuego",
+  "index": 2,
+  "view": "contents",
+  "src": "/images/products/zh/zh-caja-ogerpon-fuego-3.webp",
+  "width": 800,
+  "height": 800,
+  "hasAlpha": false,
+  "bytes": 45988,
+  "sha256": "7f8d694dd26ed8ce040b5f2003228a615776ed072be87bad32c6427240c4768a",
+  "origen": {
+   "fuente": "1050912901200",
+   "archivo": "Principal_03.jpg",
+   "sha256": "cd6b10d7646d813fb8bd0dd5cc6cffe70cd7de82da4abe7761cd0dcff54dfb72",
+   "ancho": 800,
+   "alto": 800,
+   "urlPublicacion": "https://detail.tmall.com/item.htm?id=1050912901200&skuId=6245967410012"
+  },
+  "operacion": "conservada con su fondo; solo optimizada (WebP)"
+ },
+ {
+  "productId": "zh-caja-ogerpon-fuego",
+  "index": 3,
+  "view": "contents",
+  "src": "/images/products/zh/zh-caja-ogerpon-fuego-4.webp",
+  "width": 800,
+  "height": 800,
+  "hasAlpha": false,
+  "bytes": 34246,
+  "sha256": "603ae36a65381444e49ecfb66e35dab19f29e5068520a78aef03b74e442c0aed",
+  "origen": {
+   "fuente": "1050912901200",
+   "archivo": "Principal_02.jpg",
+   "sha256": "c34a3986086969dc194f8b1353ddca1ad3f22f0d7028d73ab2e81cd0bd7e116d",
+   "ancho": 800,
+   "alto": 800,
+   "urlPublicacion": "https://detail.tmall.com/item.htm?id=1050912901200&skuId=6245967410012"
+  },
+  "operacion": "conservada con su fondo; solo optimizada (WebP)"
+ }
+]

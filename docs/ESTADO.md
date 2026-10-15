@@ -1,0 +1,150 @@
+# Estado del proyecto
+
+> **14/10/2026 — Migración a Netlify + Supabase (rama `migracion/netlify-supabase`, preparada y NO publicada):** PostgreSQL + Storage, servicios asíncronos, respaldo/restauración y migración desde SQLite. Guía: [DESPLIEGUE-NETLIFY-SUPABASE.md](DESPLIEGUE-NETLIFY-SUPABASE.md), [CORREO.md](CORREO.md). Detalle de pruebas abajo en «Migración a Netlify + Supabase». Sin push, sin servicios creados, sin datos copiados fuera de esta computadora.
+
+> **14/10/2026 (2.ª pasada móvil):** el aviso «Agregaste…» ya no tapa la barra inferior, prueba del carrusel estabilizada (114 corridas en estrés sin fallas), suite completa final 422 OK / 0 fallas, respaldo y restauración verificados en bases descartables (`scripts/verificar-respaldo.mjs`). Ver [MOVIL.md](MOVIL.md). Sin cambios de precios ni stock; sin push ni despliegue.
+
+> **14/10/2026 — Optimización móvil:** derivados de 4 cajas renombrados `-closed-v2` (anti-caché), carrusel/encabezados/tarjetas/fichas compactados, barra inferior en fichas y carrito, campos ≥ 16 px. Ver [MOVIL.md](MOVIL.md) (medidas antes/después, límites). verify OK (318) y e2e 419 OK (+1 intermitente conocida). Sin cambios de datos, sin push ni despliegue.
+
+> **14/10/2026 — Precios de venta y «En stock»:** 21 precios USD cargados (idempotente, `npm run precios:cargar`), acceso/sección/vista «En stock» con regla única `isInStock`, 6 filas sin ficha. Ver [PRECIOS-VENTA.md](PRECIOS-VENTA.md). verify OK (296 unitarias) y e2e completo OK (tras subir el contraste de dos textos de relleno del panel). Sin push ni despliegue.
+
+> **14/10/2026 — Mejoras del admin, cotización y rendimiento:** filtros por formato/colección, stock bajo configurable, edición múltiple, subida de varias fotos, `kickRefreshIfDue` blindado, 19 escenarios de fallos de cotización verificados contra un build de producción, rendimiento medido (escritorio / móvil / móvil lento) y corregido (miniaturas, cartas, calidad de fotos), foto de Terastal Gathering mejorada. Ver docs/MEDICIONES.md, GUIA-ADMIN.md y GALERIAS-JAPONESAS.md. Sin reinicializar stock ni tocar precios.
+
+> **14/10/2026 — Stock 0, «Sin stock», precio por sobre y foto de 151:** stock inicial 0 para todas las fichas (inicialización única con respaldo, `npm run stock:inicializar`), widget «Sin stock disponible» con consulta por encargo, «Sin stock» en tarjetas, precio equivalente por sobre en las cajas con sobres confirmados y foto de la caja cerrada de 151 (proveedor). Ver ADMIN.md y GALERIAS-JAPONESAS.md. verify (315 pruebas) y e2e completo (417) OK.
+
+> **14/10/2026 — Seis cajas japonesas:** fichas, colecciones y precios (USD 120/115/136/195/130/317) de Terastal Festival ex, Ninja Spinner, Nihil Zero, The Glory of Team Rocket, Mega Symphonia y Pokémon Card 151; stock desconocido, fuera de «En stock». Catálogo: 50 fichas públicas. Ver PRECIOS-VENTA.md. verify (304 pruebas) y e2e OK.
+
+> Aprobaciones del dueño: hito 1 (base estructural), 2 (base funcional), 3 y 4 aprobados. Hito 5 implementado: **entrega local completa, pendiente de la revisión final del dueño**. Imágenes finales y datos comerciales reales: pendientes y **sin bloqueo** para la aplicación local.
+
+## Tanda 6 (14/10/2026, pendiente de revisión del dueño): administrador completo, precios USD/ARS y portadas del aniversario
+
+Ver [ADMIN.md](ADMIN.md) (cómo entrar, cargar precios/stock/fotos), [COTIZACION.md](COTIZACION.md) (dólar blue, redondeo, antigüedad, modo manual), la sección «Tanda 6» de [IMPORTACION-CHINA.md](IMPORTACION-CHINA.md) y [PENDIENTES-DEL-DUENO.md](PENDIENTES-DEL-DUENO.md) §10. **Migración nueva `drizzle/0004_tanda6_usd_fx_media`** (solo agrega columnas y tablas; correr `npm run db:migrate`; los datos existentes se conservan). Sin push ni despliegue.
+- **Hecho:** precio base en USD (decimales) con conversión central a pesos (dólar blue venta, múltiplos de $100, mitades hacia arriba) en catálogo, fichas, filtros/orden, carrito y consultas; cotización compartida cada 15 min (temporizador, renovación en pedido vencido, `/api/fx/refresh` con `CRON_SECRET`, `npm run fx:refresh`), última válida ante fallos, 24 h máximo, modo manual persistente; `/admin` con lista (idioma, USD, pesos, stock, estado, búsqueda y filtros, edición rápida, aviso de cambios sin guardar), editor de ficha (título, descripción, precio, stock cantidad/desconocido/por encargo, máximo, publicación, vista previa), fotos (subir, biblioteca, portada, orden, texto alternativo, quitar, restablecer), cotización y historial; instantánea de cotización y precio USD en cada consulta; cuotas con residuo repartido; portadas de Vol.2 (Totodile) y Vol.3 (Torchic); ficha nueva de **Bulbasaur como borrador**; +4 fotos de contenido en las cajas de Ogerpon.
+- **Pruebas (ejecutadas sobre este código):** `npm run verify` OK (typecheck, lint, `catalog:check`, **287 pruebas de reglas**; nuevas: `fx.test.ts`, `media-gallery.test.ts`, `aniversario.test.ts` y la reescritura de `admin.test.ts`) · `npx playwright test` completo con build nuevo: **409 pasadas, 7 omitidas por diseño, 1 falla de tiempo** (`colecciones-autoplay`: el carrusel con reloj real se adelantó bajo la carga de la suite completa; **pasa sola: 19 pasadas**, sin relación con esta tanda) · e2e del panel (`admin.spec.ts`, 14 pruebas): acceso, cotización manual, edición rápida, carrito/consulta con cambio de dólar, editor, fotos válidas e inválidas (escritorio y móvil), historial, restablecer, ediciones simultáneas, mayoristas, accesibilidad y móvil · verificación manual de **persistencia tras reiniciar el servidor** (precio, USD y foto subida) · consulta real al proveedor (DolarAPI devolvió venta $1.550, publicada el 13/10 20:57 UTC; las pruebas usan cotizaciones sintéticas).
+- **Capturas:** `docs/capturas/tanda6/` (`node scripts/capturas-tanda6.mjs`; valores y cotización de PRUEBA solo en bases descartables; sin desborde, imágenes rotas ni errores de consola).
+- **Límites reales:** no hay cotización de **encargos** (solo precios de catálogo); los umbrales de antigüedad y el sentido del redondeo de la mitad son propuestas a confirmar; Bulbasaur sigue sin confirmar (envase de 9 tipos al azar); ninguna foto es del stock real; las fotos subidas viven en disco local (`uploads/`: incluirlas en los backups); sin lector de pantalla; el e2e completo no mide rendimiento.
+- **Operación:** sin `ADMIN_EMAIL` el panel está cerrado; no se creó ninguna credencial compartida ni cuenta administradora de prueba (las pruebas registran cuentas temporales en bases descartables).
+
+## Tanda 5 (13/10/2026, pendiente de revisión del dueño): nombres en inglés, sobres de 20 cartas retirados e inicio integrado
+
+Ver [NOMBRES-INGLES.md](NOMBRES-INGLES.md) (tabla de nombres, fuentes, tipo de denominación y casos pendientes), la decimoquinta revisión en `docs/CAMBIOS-HOME-Y-PAGOS.md` y la sección «Retirados» de [IMPORTACION-CHINA.md](IMPORTACION-CHINA.md). **Catálogo público ahora: 44 productos (16 japoneses + 28 chinos), 25 colecciones listadas** (8 ya retirados siguen en el catálogo para el historial). Capturas: `docs/capturas/tanda5/` (`node scripts/capturas-tanda5.mjs`). No hubo migración de base. **Pruebas (tanda 5, ejecutadas sobre este código):** `npm run verify` OK (typecheck, lint, `catalog:check`, **205 pruebas de reglas**; nuevas en `china.test.ts`: nombres en inglés, alias, retirados, cajas/kits no retirados, carrito viejo, panel) · `npx playwright test` completo: **408 pasadas, 7 omitidas por diseño, 0 fallas** (nuevo `colecciones-tanda5.spec.ts`; actualizadas las pruebas de conteos, títulos e inicio). Capturas sin desborde, imágenes rotas ni errores de consola. **Límites:** los nombres en inglés se contrastaron con fuentes comerciales/comunitarias (no oficiales; no es verificación oficial); sin lector de pantalla ni medición de rendimiento.
+
+## Tanda 4 (13/10/2026, pendiente de revisión del dueño): mayoristas, encargos, promociones con caja, títulos en español y mejores fotos chinas
+
+Ver decimocuarta revisión en `docs/CAMBIOS-HOME-Y-PAGOS.md` y [POLITICAS.md](POLITICAS.md) (qué está confirmado, qué sigue pendiente y cómo configurarlo). Migración nueva `drizzle/0003_*` (tabla `wholesale_requests`, columnas `inquiries.discount_minor` e `inquiry_lines.fulfillment`): correr `npm run db:migrate`. 
+**Pruebas (tanda 4, ejecutadas sobre este código):** `npm run verify` OK (typecheck, lint, `catalog:check`, **197 pruebas de reglas**; nuevas: `politicas.test.ts`, `encargos-y-mayoristas.test.ts` y bloques en `china.test.ts`) · `npx playwright test` completo: **390 pasadas, 7 omitidas por diseño, 0 fallas** (nuevas: `promos-encargos.spec.ts`, `mayoristas.spec.ts`, `colecciones-tanda4.spec.ts` y el caso de `/admin/mayoristas` en `admin.spec.ts`; se actualizaron las pruebas que describían el comportamiento viejo). Durante la tanda aparecieron 3 intermitencias de pruebas ya existentes y se corrigieron: lectura de miniaturas diferidas (`currentSrc` vacío), y un 500 del contador de uso ante un bloqueo momentáneo de SQLite (`rateLimited` ahora no rompe la petición). Capturas: `docs/capturas/tanda4/` (`node scripts/capturas-tanda4.mjs`; sin desborde, imágenes rotas ni errores de consola). **Límites:** no se probó con lector de pantalla ni se midió rendimiento (las pruebas son funcionales); la activación mayorista y la cotización de encargos **no están conectadas** a propósito; las fotos de 太晶盛聚 son de baja resolución.
+
+## Tanda 3 (13/10/2026, pendiente de revisión del dueño): banner móvil, fichas, garantías por caja y cajas sin fondo blanco
+
+Ver decimotercera revisión en `docs/CAMBIOS-HOME-Y-PAGOS.md`, [GARANTIAS.md](GARANTIAS.md) (investigación y tabla por caja) y [PENDIENTES-DEL-DUENO.md](PENDIENTES-DEL-DUENO.md) (lista final de lo que aporta el dueño, incluidas las fotos de stock necesarias por SKU). Capturas antes/después: `docs/capturas/tanda3/` (`node scripts/capturas-tanda3.mjs antes|despues`). Regeneración de las fotos de las cajas: `node scripts/colecciones/recortar-imagenes.mjs`.
+
+**Pruebas (tanda 3):** `npm run verify` OK (149 pruebas de reglas; nuevas en `tests/garantias.test.ts`) · `npx playwright test` completo: **341 pasadas, 7 omitidas por diseño, 0 fallas** (nuevas en `colecciones-tanda3.spec.ts`: alturas del banner en 320/390/430, ficha móvil, desplegables por teclado, garantías, cajas sin fondo) · `release:check`: 12 bloqueantes, todos conocidos (marca/logo, datos legales, borrador legal, WhatsApp, precios y stock, permiso de imágenes, correo, hosting…): ninguno se ocultó.
+
+## Vasconcelo, carrusel automático y catálogo chino (13/10/2026, pendiente de revisión del dueño)
+
+Ver duodécima revisión en `docs/CAMBIOS-HOME-Y-PAGOS.md` y el informe por ID en [IMPORTACION-CHINA.md](IMPORTACION-CHINA.md). **Catálogo real ahora: 52 fichas (16 japonesas + 36 chinas) y 26 colecciones.** Todo con precio y stock pendientes (compra deshabilitada). Pendiente de lo anterior: el artículo 1027185914261 (sin carpeta). Comando nuevo: `node scripts/colecciones/importar-chinos.mjs [carpeta]` (regenera las fotos desde Downloads). 
+**Pruebas ejecutadas sobre este código (13/10/2026):** `npm run verify` OK (typecheck, lint, `catalog:check`, **137 pruebas de reglas**, 16 nuevas en `tests/china.test.ts`) · `npx playwright test` completo: **314 pasadas, 6 omitidas por diseño, 0 fallas** (incluye `colecciones-autoplay.spec.ts` con reloj simulado y `colecciones-china.spec.ts`, en escritorio y móvil) · `node scripts/capturas-vasconcelo.mjs`: sin desborde, sin errores de consola, sin imágenes rotas y el carrusel avanza solo y respeta la pausa (capturas `docs/capturas/vc-*`). `release:check`: 12 bloqueantes (se suma el permiso de uso de las fotos de proveedores). **Límites:** las 16 fuentes se revisaron desde las fotos guardadas (los enlaces de Tmall/Taobao piden login y no se consultaron); no se probó con lector de pantalla; las fotos son de proveedores sin permiso de uso concedido; Vol.3 y 宝石包 usan imágenes de presentación del proveedor.
+
+## Fondos de fotos, banderas e importación china anterior (13/10/2026)
+
+Ver undécima revisión en `docs/CAMBIOS-HOME-Y-PAGOS.md`. Verificado: typecheck, lint, `catalog:check`, 121 pruebas de reglas y 104 e2e (inicio, banners, colecciones, catálogo, etiquetas). Las 5 referencias de Tmall siguen sin verificar.
+
+## Lote de colecciones japonesas (integrado, pendiente de revisión del dueño)
+Detalle completo en [COLECCIONES.md](COLECCIONES.md). Resumen:
+- **8 expansiones y 16 fichas** (caja y sobre separados). Precio y stock **pendientes en las 16**: «Precio a confirmar», sin compra con importe (el servidor responde 409 `pending_commercial`).
+- **1174 cartas** con imagen: completas Black Bolt 174, White Flare 174, Heat Wave Arena 92, Inferno X 116, MEGA Dream ex 250, Abyss Eye 118; **parciales** Storm Emeralda 110 (faltan 071, 073, 075) y 30th CELEBRATION 140 (faltan 104–135 y 151). Sin tasas de aparición.
+- 24 fotos de producto incorporadas (estado `reference`: **sin permiso de uso concedido**).
+- El catálogo ficticio quedó solo para pruebas (`src/content/fixtures/demo/`, `CATALOG_FIXTURE=demo`).
+- Planilla del dueño: `datos/precios-y-stock.csv` → `npm run precios:importar -- --write` (ver OPERACION.md).
+- Pruebas sobre este código: `npm run verify` (typecheck, lint, catalog:check, **85 pruebas**) y `npx playwright test` (220 pasadas, 5 omitidas por diseño; incluye 50 del catálogo real en escritorio y móvil). Una falla de texto viejo (garantías) se corrigió y se volvió a correr. Capturas en `docs/capturas/col-*` sin desborde, sin errores de consola ni imágenes rotas (`node scripts/capturas-colecciones.mjs`, servidor en :3000).
+- `release:check`: 11 bloqueantes (agrega precios/stock pendientes y permiso de imágenes).
+
+## Etiquetas de colección/idioma y galerías con fuentes separadas (13/10/2026, pendiente de revisión del dueño)
+
+Ver novena y décima revisión en `docs/CAMBIOS-HOME-Y-PAGOS.md`, `docs/GALERIAS.md` y `docs/FOTOS-A-TOMAR.md`.
+
+## Banners por colección y carrusel (13/10/2026, pendiente de revisión del dueño)
+
+Ver la octava revisión en `docs/CAMBIOS-HOME-Y-PAGOS.md`.
+
+## Banner con identidad Pokémon (13/10/2026)
+
+Ver la séptima revisión en `docs/CAMBIOS-HOME-Y-PAGOS.md`.
+
+## Panel del dueño `/admin` (13/10/2026, pendiente de revisión del dueño)
+
+Precio, stock, máximo por pedido y visibilidad desde la web, con historial y control de versiones. Solo el correo de `ADMIN_EMAIL` (sin configurar = cerrado). Detalle, límites y pruebas en [ADMIN.md](ADMIN.md). Migración `drizzle/0002_*` (tablas `product_overrides` y `product_audit`); correr `npm run db:migrate`.
+
+## Inicio: banner, Cajas/Sobres/Packs y fotos recortadas (12/10/2026, pendiente de revisión del dueño)
+
+Ver la sexta revisión en `docs/CAMBIOS-HOME-Y-PAGOS.md`.
+
+## Rediseño del inicio anterior (quinta revisión)
+
+Categorías (Cajas/Sobres/Packs «Próximamente»), sección de las ocho expansiones y paleta esmeralda y oro; `lime` → `gold` en todo el sitio. Decisiones en `docs/CAMBIOS-HOME-Y-PAGOS.md`. Capturas en `docs/capturas/inicio-*`.
+
+## Revisión de continuidad (12/10/2026, sin funciones nuevas)
+
+Ejecutado sobre el estado final: `npm run verify` (typecheck, lint, catalog:check, 85 unitarias) OK · `npm run build` OK · `npm run smoke` OK contra el catálogo real (:3000) y contra un build con `CATALOG_FIXTURE=demo` (:3200, temporal) · `npx playwright test` completo: 220 pasadas, 5 omitidas por diseño, 0 fallas · 16 productos, 8 expansiones, 1174 cartas con su WebP, 24 fotos de producto con sha256 coincidente · ningún SKU tiene precio ni stock (todos pendientes; el servidor responde 409).
+Correcciones: `smoke.mjs` ahora distingue catálogo real/de prueba (antes fallaba con el real); `next-env.d.ts` estaba commiteado apuntando a `.next-e2e-live` (rompía el typecheck en una copia limpia) → ahora apunta a `.next` y `tests/e2e/global-teardown.ts` lo restaura tras cada corrida e2e.
+
+## Hito actual: 5 — Integración final y entrega local (terminado; esperando revisión final)
+
+| Hito | Estado |
+| --- | --- |
+| 1 Proyecto + inicio responsive | Aprobado |
+| 2 Catálogo, expansiones, ficha | Aprobado |
+| 3 Carrito, consulta, WhatsApp | Aprobado |
+| 4 Cuentas, favoritos, Mis consultas | Aprobado |
+| 5 Integración final y entrega | **Implementado y verificado; esperando revisión final del dueño** |
+
+**Aplicación local terminada ≠ lista para vender públicamente.** `npm run release:check` lista 13 bloqueantes (marca provisoria, datos legales, WhatsApp, catálogo e imágenes demo, entorno de producción, correo y hosting). Ver [PENDIENTES-PUBLICACION.md](PENDIENTES-PUBLICACION.md).
+
+## Cómo arrancar
+`npm ci` → `npm run db:migrate` → `npm run dev` (http://localhost:3000). Detalle y comandos: [README.md](../README.md). Operación diaria, WhatsApp, correo y backups: [OPERACION.md](OPERACION.md). Despliegue futuro: [DESPLIEGUE.md](DESPLIEGUE.md).
+
+## Qué incluye
+- Inicio, catálogo con búsqueda/filtros en URL, expansiones, fichas con galería, cartas, probabilidades (solo con evidencia), garantías y fuentes.
+- Carrito en el navegador validado en el servidor (precios, cantidades, disponibilidad), entrega (Andreani, moto CABA/AMBA, retiro Ramos Mejía/Haedo), pago «a coordinar por WhatsApp», consulta guardada con referencia e idempotencia, WhatsApp (con modo demo sin teléfono, copiar y reabrir, resumen para pedidos largos).
+- Cuentas opcionales: registro con confirmación de correo, ingreso/salida, recuperación de acceso, perfil, favoritos, «Mis consultas», asociación de consultas de invitado solo por cookie de sesión.
+- «Cómo comprar», «Privacidad» y «Condiciones» (**borradores** identificados; datos legales sin inventar).
+- Herramientas: `catalog:check`, `release:check`, `db:backup`/`db:restore`, `mail:last`, `smoke`, medición de rendimiento, capturas.
+
+## Comandos útiles
+`npm run dev|build|start|lint|typecheck|test|verify` · `npm run test:e2e` (requiere `npx playwright install chromium`; levanta dos servidores aislados en :3100 y :3101 con base y correo temporales) · `npm run catalog:check` · `npm run release:check` · `npm run db:migrate|db:backup|db:restore` · `npm run mail:last` · `npm run smoke` (contra un servidor ya iniciado) · `node scripts/rendimiento.mjs` · capturas: `node scripts/capturas.mjs`, `capturas-paginas.mjs`, `capturas-carrito.mjs` (servidor en :3000) y `capturas-cuenta.mjs` (servidor propio en :3200, ver cabecera del script).
+
+## Pruebas ejecutadas (hito 5, sobre el código final)
+- `npm run verify`: typecheck, lint, catalog:check y **63 pruebas de reglas** (catálogo, consultas, WhatsApp, cuentas, backup/restauración, correo no disponible en producción, y **ejecución real de los scripts** db:migrate/backup/restore, catalog:check y release:check).
+- `npm run test:e2e`: **170 pruebas** de recorridos y accesibilidad en escritorio y móvil + modo WhatsApp (catálogo, carrito, cuentas, recorridos completos, enlaces del inicio/cabecera/pie, axe sobre 18+ pantallas), ahora sobre el **build de producción**. Corrió limpia 4 veces seguidas, y también en una copia limpia del repositorio.
+- `npm run build` sin advertencias; prueba de humo (`npm run smoke`) contra el servidor de desarrollo y contra el **build de producción**.
+- Rendimiento medido sobre el build de producción (ver [RENDIMIENTO.md](RENDIMIENTO.md)): dentro de presupuestos; CLS 0.
+- Capturas finales en `docs/capturas/` (1440, 390 y 320 px) sin desborde horizontal.
+- Reproducibilidad: en una **copia limpia** del repositorio (`git clone` → `npm ci` → `db:migrate` → `verify` → `build` → prueba de humo contra `next start` → backup con el servidor encendido → restauración → `test:e2e`) todo pasa. Esa prueba encontró dos fallas reales, ya corregidas: `npm ci` intentaba compilar better-sqlite3 (ahora `.npmrc` con `ignore-scripts`) y `db:backup`/`db:restore` no arrancaban por un `await` de nivel superior (ahora hay pruebas que ejecutan los scripts de verdad).
+
+## Sobre el fallo intermitente de pruebas (revisado en el hito 5)
+Había causas reales (no un problema de tiempos), corregidas **sin subir tiempos de espera**:
+1. **Clics antes de que React tomara el control de la página** (hoja de filtros, favoritos): las pruebas esperan una condición observable de la aplicación, `data-hydrated="true"` en `<html>` (`src/components/hydration-marker.tsx`), en lugar de «networkidle» o tiempos.
+2. **Compilación en frío del modo desarrollo** con varios navegadores en paralelo (el 404 de producto en móvil): un `globalSetup` calienta todas las rutas esperando a que respondan antes de empezar.
+3. **Carga lenta del modo desarrollo** al crecer la suite (más de 160 pruebas en paralelo sobre dos servidores de desarrollo): las pruebas ahora corren sobre el **build de producción** (sin compilación bajo demanda), con `MAIL_TRANSPORT=local` solo en esos servidores de prueba.
+4. **Un corazón de favoritos que se podía tocar antes de saber si había sesión** (mandaba a ingresar aunque la persona ya hubiera entrado): ahora el botón espera a conocer el estado de la sesión. También se corrigió el orden de favoritos creados en el mismo milisegundo (error real encontrado por una prueba).
+Además, cada acción que cambia datos espera la respuesta del servidor antes de recargar (`waitForResponse`), y se revirtió el `expect.timeout` global de 10 s que se había agregado.
+
+## Pendientes / límites (resumen; lista completa en PENDIENTES-PUBLICACION.md)
+- Imágenes finales (6 del inicio + 3 por SKU) y catálogo/datos comerciales reales: pendientes, sin bloqueo local.
+- Correo: solo transporte local. **En producción sin proveedor, registro y recuperación aparecen como «no disponibles»** (503 explícito; no se simula ningún envío).
+- WhatsApp: sin número real (modo demo). El modo con número se probó solo con destino interceptado; no se envió ningún mensaje real.
+- No hay hosting, dominio ni servicios contratados; nada se publicó.
+- Sin prueba con lector de pantalla; sin Lighthouse (no pudo ejecutarse en este entorno): el rendimiento se midió con Chromium/Playwright.
+- Un solo servidor (SQLite); sin cambio de correo ni baja de cuenta; cartas paginadas en el navegador.
+- Git: identidad existente (tiagovasmar); sin remoto `origin`, solo commits locales.
+
+
+## Migración a Netlify + Supabase (14/10/2026)
+
+**Hecho (código):** esquema y migración PostgreSQL (`drizzle/`), `src/db/{client,lock,portable,backup,sqlite-import}.ts`, servicios asíncronos, Better Auth con adaptador pg, Storage (`src/server/storage.ts`), correo (`src/server/mail.ts`), cotización sin temporizador, `netlify.toml`, `.env.example`, scripts `db:migrate`, `db:backup`, `db:restore`, `db:migrar-sqlite`, `admin:crear`, `storage:probar`, `pg:test`.
+
+**Comandos útiles:** `npx vitest run` (arranca un PostgreSQL real descartable solo), `npm run db:migrar-sqlite -- --origen … --uploads …` (revisión previa), `npm run db:backup`.
+
+**Pruebas ejecutadas sobre este código (PostgreSQL 18 real, local y descartable):** typecheck OK · lint OK (incluye no-floating-promises) · `catalog:check` OK · `vitest`: 26 archivos, 371 pruebas OK (nuevas: `postgres-esquema`, `postgres` (concurrencia, transacciones, cascadas, enteros grandes), `sqlite-migracion` (incluye ensayo con la copia real del dueño), `storage`, `auth-pg`, `admin-rutas`; reescritas `backup` y `scripts`) · build de producción sin base configurada OK · **recorrido e2e completo (Playwright, builds de producción + PostgreSQL real por servidor): 415 pasadas, 9 omitidas por diseño, 6 fallas en la primera corrida**: 4 eran pruebas que abrían el SQLite directamente (convertidas a PostgreSQL y vueltas a correr: pasan), 1 es el carrusel con reloj real que ya era intermitente bajo carga (pasa sola) y 1 (`Bajo stock` del panel) falló una vez bajo carga y pasó al repetirla sola: no se investigó más, queda anotada como intermitente a vigilar.
+
+**Límites reales / pendientes:** (1) Storage se probó contra un servidor local que imita la API, NO contra Supabase: falta `npm run storage:probar` con un bucket real. (2) Nada probado en Netlify ni con Supabase real (conexión por pooler, SSL, límites). (3) Correo real no probado y sin remitente válido: registro público deshabilitado. (4) La verificación de origen de Better Auth no es observable bajo Vitest (se omite en NODE_ENV=test): se mira en el recorrido e2e. (5) Límite de cuerpo de las funciones de Netlify y qué pasa al agotar los créditos: no confirmados en la documentación consultada. (6) Las sesiones locales no se migran. (7) Falta la revisión visual móvil de la vista previa publicada (no hay vista previa publicada).

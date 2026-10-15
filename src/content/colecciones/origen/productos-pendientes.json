@@ -1,0 +1,453 @@
+{
+  "schemaVersion": 1,
+  "products": [
+    {
+      "id": "sv11b-jp-box",
+      "sku": "SV11B-JP-BOX",
+      "slug": "black-bolt-caja",
+      "title": "Black Bolt — Caja de 20 sobres — Japonés",
+      "expansionId": "black-bolt",
+      "kind": "box",
+      "language": "ja",
+      "region": "JP",
+      "currency": "ARS",
+      "priceMinor": null,
+      "stockQuantity": null,
+      "commercialStatus": "pending_owner_price_and_stock",
+      "purchasable": false,
+      "content": {
+        "boosters": 20,
+        "cardsPerBooster": 7
+      },
+      "primaryImage": "recursos/productos/black-bolt/caja-referencia-2-original.jpg",
+      "secondaryImage": "recursos/productos/black-bolt/caja-referencia-1-original.jpg",
+      "secondaryImageNote": "Presentación de exhibición abierta del fabricante; no afirmar que se vende una caja abierta.",
+      "sourceUrls": [
+        "https://www.pokemon-card.com/ex/sv11/",
+        "https://www.pokemoncenter-online.com/9900000006082.html"
+      ],
+      "ownerSealCondition": null,
+      "editionVariant": "standard",
+      "notes": "Registro de importación para adaptar al esquema existente. No es un producto ya habilitado para cobrar o consultar un total."
+    },
+    {
+      "id": "sv11b-jp-booster",
+      "sku": "SV11B-JP-BOOSTER",
+      "slug": "black-bolt-sobre",
+      "title": "Black Bolt — Sobre individual — Japonés",
+      "expansionId": "black-bolt",
+      "kind": "booster",
+      "language": "ja",
+      "region": "JP",
+      "currency": "ARS",
+      "priceMinor": null,
+      "stockQuantity": null,
+      "commercialStatus": "pending_owner_price_and_stock",
+      "purchasable": false,
+      "content": {
+        "boosters": 1,
+        "cardsPerBooster": 7
+      },
+      "primaryImage": "recursos/productos/black-bolt/sobre-original.png",
+      "sourceUrls": [
+        "https://www.pokemon-card.com/ex/sv11/",
+        "https://www.pokemoncenter-online.com/9900000006082.html"
+      ],
+      "ownerSealCondition": null,
+      "editionVariant": "standard",
+      "notes": "Registro de importación para adaptar al esquema existente. No es un producto ya habilitado para cobrar o consultar un total."
+    },
+    {
+      "id": "sv11w-jp-box",
+      "sku": "SV11W-JP-BOX",
+      "slug": "white-flare-caja",
+      "title": "White Flare — Caja de 20 sobres — Japonés",
+      "expansionId": "white-flare",
+      "kind": "box",
+      "language": "ja",
+      "region": "JP",
+      "currency": "ARS",
+      "priceMinor": null,
+      "stockQuantity": null,
+      "commercialStatus": "pending_owner_price_and_stock",
+      "purchasable": false,
+      "content": {
+        "boosters": 20,
+        "cardsPerBooster": 7
+      },
+      "primaryImage": "recursos/productos/white-flare/caja-referencia-2-original.jpg",
+      "secondaryImage": "recursos/productos/white-flare/caja-referencia-1-original.jpg",
+      "secondaryImageNote": "Presentación de exhibición abierta del fabricante; no afirmar que se vende una caja abierta.",
+      "sourceUrls": [
+        "https://www.pokemon-card.com/ex/sv11/",
+        "https://www.pokemoncenter-online.com/9900000006075.html"
+      ],
+      "ownerSealCondition": null,
+      "editionVariant": "standard",
+      "notes": "Registro de importación para adaptar al esquema existente. No es un producto ya habilitado para cobrar o consultar un total."
+    },
+    {
+      "id": "sv11w-jp-booster",
+      "sku": "SV11W-JP-BOOSTER",
+      "slug": "white-flare-sobre",
+      "title": "White Flare — Sobre individual — Japonés",
+      "expansionId": "white-flare",
+      "kind": "booster",
+      "language": "ja",
+      "region": "JP",
+      "currency": "ARS",
+      "priceMinor": null,
+      "stockQuantity": null,
+      "commercialStatus": "pending_owner_price_and_stock",
+      "purchasable": false,
+      "content": {
+        "boosters": 1,
+        "cardsPerBooster": 7
+      },
+      "primaryImage": "recursos/productos/white-flare/sobre-original.png",
+      "sourceUrls": [
+        "https://www.pokemon-card.com/ex/sv11/",
+        "https://www.pokemoncenter-online.com/9900000006075.html"
+      ],
+      "ownerSealCondition": null,
+      "editionVariant": "standard",
+      "notes": "Registro de importación para adaptar al esquema existente. No es un producto ya habilitado para cobrar o consultar un total."
+    },
+    {
+      "id": "sv9a-jp-box",
+      "sku": "SV9A-JP-BOX",
+      "slug": "heat-wave-arena-caja",
+      "title": "Heat Wave Arena — Caja de 30 sobres — Japonés",
+      "expansionId": "heat-wave-arena",
+      "kind": "box",
+      "language": "ja",
+      "region": "JP",
+      "currency": "ARS",
+      "priceMinor": null,
+      "stockQuantity": null,
+      "commercialStatus": "pending_owner_price_and_stock",
+      "purchasable": false,
+      "content": {
+        "boosters": 30,
+        "cardsPerBooster": 5
+      },
+      "primaryImage": "recursos/productos/heat-wave-arena/caja-referencia-2-original.jpg",
+      "secondaryImage": "recursos/productos/heat-wave-arena/caja-referencia-1-original.jpg",
+      "secondaryImageNote": "Presentación de exhibición abierta del fabricante; no afirmar que se vende una caja abierta.",
+      "sourceUrls": [
+        "https://www.pokemon-card.com/products/sv/sv9a.html",
+        "https://www.pokemoncenter-online.com/9900000006013.html"
+      ],
+      "ownerSealCondition": null,
+      "editionVariant": "standard",
+      "notes": "Registro de importación para adaptar al esquema existente. No es un producto ya habilitado para cobrar o consultar un total."
+    },
+    {
+      "id": "sv9a-jp-booster",
+      "sku": "SV9A-JP-BOOSTER",
+      "slug": "heat-wave-arena-sobre",
+      "title": "Heat Wave Arena — Sobre individual — Japonés",
+      "expansionId": "heat-wave-arena",
+      "kind": "booster",
+      "language": "ja",
+      "region": "JP",
+      "currency": "ARS",
+      "priceMinor": null,
+      "stockQuantity": null,
+      "commercialStatus": "pending_owner_price_and_stock",
+      "purchasable": false,
+      "content": {
+        "boosters": 1,
+        "cardsPerBooster": 5
+      },
+      "primaryImage": "recursos/productos/heat-wave-arena/sobre-original.jpg",
+      "sourceUrls": [
+        "https://www.pokemon-card.com/products/sv/sv9a.html",
+        "https://www.pokemoncenter-online.com/9900000006013.html"
+      ],
+      "ownerSealCondition": null,
+      "editionVariant": "standard",
+      "notes": "Registro de importación para adaptar al esquema existente. No es un producto ya habilitado para cobrar o consultar un total."
+    },
+    {
+      "id": "m2-jp-box",
+      "sku": "M2-JP-BOX",
+      "slug": "inferno-x-caja",
+      "title": "Inferno X — Caja de 30 sobres — Japonés",
+      "expansionId": "inferno-x",
+      "kind": "box",
+      "language": "ja",
+      "region": "JP",
+      "currency": "ARS",
+      "priceMinor": null,
+      "stockQuantity": null,
+      "commercialStatus": "pending_owner_price_and_stock",
+      "purchasable": false,
+      "content": {
+        "boosters": 30,
+        "cardsPerBooster": 5
+      },
+      "primaryImage": "recursos/productos/inferno-x/caja-referencia-2-original.jpg",
+      "secondaryImage": "recursos/productos/inferno-x/caja-referencia-1-original.jpg",
+      "secondaryImageNote": "Presentación de exhibición abierta del fabricante; no afirmar que se vende una caja abierta.",
+      "sourceUrls": [
+        "https://www.pokemon-card.com/ex/m2/",
+        "https://www.pokemoncenter-online.com/9900000006679.html"
+      ],
+      "ownerSealCondition": null,
+      "editionVariant": "standard",
+      "notes": "Registro de importación para adaptar al esquema existente. No es un producto ya habilitado para cobrar o consultar un total."
+    },
+    {
+      "id": "m2-jp-booster",
+      "sku": "M2-JP-BOOSTER",
+      "slug": "inferno-x-sobre",
+      "title": "Inferno X — Sobre individual — Japonés",
+      "expansionId": "inferno-x",
+      "kind": "booster",
+      "language": "ja",
+      "region": "JP",
+      "currency": "ARS",
+      "priceMinor": null,
+      "stockQuantity": null,
+      "commercialStatus": "pending_owner_price_and_stock",
+      "purchasable": false,
+      "content": {
+        "boosters": 1,
+        "cardsPerBooster": 5
+      },
+      "primaryImage": "recursos/productos/inferno-x/sobre-original.png",
+      "sourceUrls": [
+        "https://www.pokemon-card.com/ex/m2/",
+        "https://www.pokemoncenter-online.com/9900000006679.html"
+      ],
+      "ownerSealCondition": null,
+      "editionVariant": "standard",
+      "notes": "Registro de importación para adaptar al esquema existente. No es un producto ya habilitado para cobrar o consultar un total."
+    },
+    {
+      "id": "m2a-jp-box",
+      "sku": "M2A-JP-BOX",
+      "slug": "mega-dream-ex-caja",
+      "title": "MEGA Dream ex — Caja de 10 sobres — Japonés",
+      "expansionId": "mega-dream-ex",
+      "kind": "box",
+      "language": "ja",
+      "region": "JP",
+      "currency": "ARS",
+      "priceMinor": null,
+      "stockQuantity": null,
+      "commercialStatus": "pending_owner_price_and_stock",
+      "purchasable": false,
+      "content": {
+        "boosters": 10,
+        "cardsPerBooster": 10
+      },
+      "primaryImage": "recursos/productos/mega-dream-ex/caja-referencia-2-original.jpg",
+      "secondaryImage": "recursos/productos/mega-dream-ex/caja-referencia-1-original.jpg",
+      "secondaryImageNote": "Presentación de exhibición abierta del fabricante; no afirmar que se vende una caja abierta.",
+      "sourceUrls": [
+        "https://www.pokemon-card.com/ex/m2a/",
+        "https://www.pokemoncenter-online.com/9900000006808.html"
+      ],
+      "ownerSealCondition": null,
+      "editionVariant": "standard",
+      "notes": "Registro de importación para adaptar al esquema existente. No es un producto ya habilitado para cobrar o consultar un total."
+    },
+    {
+      "id": "m2a-jp-booster",
+      "sku": "M2A-JP-BOOSTER",
+      "slug": "mega-dream-ex-sobre",
+      "title": "MEGA Dream ex — Sobre individual — Japonés",
+      "expansionId": "mega-dream-ex",
+      "kind": "booster",
+      "language": "ja",
+      "region": "JP",
+      "currency": "ARS",
+      "priceMinor": null,
+      "stockQuantity": null,
+      "commercialStatus": "pending_owner_price_and_stock",
+      "purchasable": false,
+      "content": {
+        "boosters": 1,
+        "cardsPerBooster": 10
+      },
+      "primaryImage": "recursos/productos/mega-dream-ex/sobre-original.png",
+      "sourceUrls": [
+        "https://www.pokemon-card.com/ex/m2a/",
+        "https://www.pokemoncenter-online.com/9900000006808.html"
+      ],
+      "ownerSealCondition": null,
+      "editionVariant": "standard",
+      "notes": "Registro de importación para adaptar al esquema existente. No es un producto ya habilitado para cobrar o consultar un total."
+    },
+    {
+      "id": "m6a-jp-box",
+      "sku": "M6A-JP-BOX",
+      "slug": "30th-celebration-caja",
+      "title": "30th CELEBRATION — Caja de 20 sobres — Japonés",
+      "expansionId": "30th-celebration",
+      "kind": "box",
+      "language": "ja",
+      "region": "JP",
+      "currency": "ARS",
+      "priceMinor": null,
+      "stockQuantity": null,
+      "commercialStatus": "pending_owner_price_and_stock",
+      "purchasable": false,
+      "content": {
+        "boosters": 20,
+        "cardsPerBooster": 6
+      },
+      "primaryImage": "recursos/productos/30th-celebration/caja-referencia-2-original.jpg",
+      "secondaryImage": "recursos/productos/30th-celebration/caja-referencia-1-original.jpg",
+      "secondaryImageNote": "Presentación de exhibición abierta del fabricante; no afirmar que se vende una caja abierta.",
+      "sourceUrls": [
+        "https://www.30th.pokemon-card.com/product/m6a",
+        "https://www.pokemoncenter-online.com/9900000008284.html"
+      ],
+      "ownerSealCondition": null,
+      "editionVariant": "standard",
+      "notes": "Registro de importación para adaptar al esquema existente. No es un producto ya habilitado para cobrar o consultar un total."
+    },
+    {
+      "id": "m6a-jp-booster",
+      "sku": "M6A-JP-BOOSTER",
+      "slug": "30th-celebration-sobre",
+      "title": "30th CELEBRATION — Sobre individual — Japonés",
+      "expansionId": "30th-celebration",
+      "kind": "booster",
+      "language": "ja",
+      "region": "JP",
+      "currency": "ARS",
+      "priceMinor": null,
+      "stockQuantity": null,
+      "commercialStatus": "pending_owner_price_and_stock",
+      "purchasable": false,
+      "content": {
+        "boosters": 1,
+        "cardsPerBooster": 6
+      },
+      "primaryImage": "recursos/productos/30th-celebration/sobre-original.webp",
+      "sourceUrls": [
+        "https://www.30th.pokemon-card.com/product/m6a",
+        "https://www.pokemoncenter-online.com/9900000008284.html"
+      ],
+      "ownerSealCondition": null,
+      "editionVariant": "standard",
+      "notes": "Registro de importación para adaptar al esquema existente. No es un producto ya habilitado para cobrar o consultar un total."
+    },
+    {
+      "id": "m6-jp-box",
+      "sku": "M6-JP-BOX",
+      "slug": "storm-emeralda-caja",
+      "title": "Storm Emeralda — Caja de 30 sobres — Japonés",
+      "expansionId": "storm-emeralda",
+      "kind": "box",
+      "language": "ja",
+      "region": "JP",
+      "currency": "ARS",
+      "priceMinor": null,
+      "stockQuantity": null,
+      "commercialStatus": "pending_owner_price_and_stock",
+      "purchasable": false,
+      "content": {
+        "boosters": 30,
+        "cardsPerBooster": 5
+      },
+      "primaryImage": "recursos/productos/storm-emeralda/caja-referencia-2-original.jpg",
+      "secondaryImage": "recursos/productos/storm-emeralda/caja-referencia-1-original.jpg",
+      "secondaryImageNote": "Presentación de exhibición abierta del fabricante; no afirmar que se vende una caja abierta.",
+      "sourceUrls": [
+        "https://www.pokemon-card.com/ex/m6/",
+        "https://www.pokemoncenter-online.com/9900000008109.html"
+      ],
+      "ownerSealCondition": null,
+      "editionVariant": "standard",
+      "notes": "Registro de importación para adaptar al esquema existente. No es un producto ya habilitado para cobrar o consultar un total."
+    },
+    {
+      "id": "m6-jp-booster",
+      "sku": "M6-JP-BOOSTER",
+      "slug": "storm-emeralda-sobre",
+      "title": "Storm Emeralda — Sobre individual — Japonés",
+      "expansionId": "storm-emeralda",
+      "kind": "booster",
+      "language": "ja",
+      "region": "JP",
+      "currency": "ARS",
+      "priceMinor": null,
+      "stockQuantity": null,
+      "commercialStatus": "pending_owner_price_and_stock",
+      "purchasable": false,
+      "content": {
+        "boosters": 1,
+        "cardsPerBooster": 5
+      },
+      "primaryImage": "recursos/productos/storm-emeralda/sobre-original.png",
+      "sourceUrls": [
+        "https://www.pokemon-card.com/ex/m6/",
+        "https://www.pokemoncenter-online.com/9900000008109.html"
+      ],
+      "ownerSealCondition": null,
+      "editionVariant": "standard",
+      "notes": "Registro de importación para adaptar al esquema existente. No es un producto ya habilitado para cobrar o consultar un total."
+    },
+    {
+      "id": "m5-jp-box",
+      "sku": "M5-JP-BOX",
+      "slug": "abyss-eye-caja",
+      "title": "Abyss Eye — Caja de 30 sobres — Japonés",
+      "expansionId": "abyss-eye",
+      "kind": "box",
+      "language": "ja",
+      "region": "JP",
+      "currency": "ARS",
+      "priceMinor": null,
+      "stockQuantity": null,
+      "commercialStatus": "pending_owner_price_and_stock",
+      "purchasable": false,
+      "content": {
+        "boosters": 30,
+        "cardsPerBooster": 5
+      },
+      "primaryImage": "recursos/productos/abyss-eye/caja-referencia-2-original.jpg",
+      "secondaryImage": "recursos/productos/abyss-eye/caja-referencia-1-original.jpg",
+      "secondaryImageNote": "Presentación de exhibición abierta del fabricante; no afirmar que se vende una caja abierta.",
+      "sourceUrls": [
+        "https://www.pokemon-card.com/ex/m5/",
+        "https://www.pokemoncenter-online.com/9900000007904.html"
+      ],
+      "ownerSealCondition": null,
+      "editionVariant": "standard",
+      "notes": "Registro de importación para adaptar al esquema existente. No es un producto ya habilitado para cobrar o consultar un total."
+    },
+    {
+      "id": "m5-jp-booster",
+      "sku": "M5-JP-BOOSTER",
+      "slug": "abyss-eye-sobre",
+      "title": "Abyss Eye — Sobre individual — Japonés",
+      "expansionId": "abyss-eye",
+      "kind": "booster",
+      "language": "ja",
+      "region": "JP",
+      "currency": "ARS",
+      "priceMinor": null,
+      "stockQuantity": null,
+      "commercialStatus": "pending_owner_price_and_stock",
+      "purchasable": false,
+      "content": {
+        "boosters": 1,
+        "cardsPerBooster": 5
+      },
+      "primaryImage": "recursos/productos/abyss-eye/sobre-original.png",
+      "sourceUrls": [
+        "https://www.pokemon-card.com/ex/m5/",
+        "https://www.pokemoncenter-online.com/9900000007904.html"
+      ],
+      "ownerSealCondition": null,
+      "editionVariant": "standard",
+      "notes": "Registro de importación para adaptar al esquema existente. No es un producto ya habilitado para cobrar o consultar un total."
+    }
+  ]
+}

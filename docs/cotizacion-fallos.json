@@ -1,0 +1,122 @@
+{
+  "medidoEl": "2026-10-14T16:02:49.933Z",
+  "build": "producción (next build + next start)",
+  "base": "copia de la base local con precios USD cargados",
+  "resultados": [
+    {
+      "escenario": "0. base de partida: la ficha responde y muestra precio en pesos o pendiente (sin consulta previa)",
+      "esperado": "200",
+      "obtenido": "200",
+      "ok": true
+    },
+    {
+      "escenario": "1. proveedor correcto (venta 1500): guarda la cotización y los pesos salen de ahí",
+      "esperado": "$ 228.000",
+      "obtenido": "$ 228.000 (cotización guardada 1500)",
+      "ok": true
+    },
+    {
+      "escenario": "2. el proveedor responde HTTP 500: se conserva la última cotización, se registra el error y la tienda sigue mostrando $ 228.000",
+      "esperado": "ok:false, 1500, error guardado, $ 228.000",
+      "obtenido": "ok:false · 1500 · error=sí · $ 228.000",
+      "ok": true
+    },
+    {
+      "escenario": "3. el proveedor devuelve JSON roto: se conserva la última cotización, se registra el error y la tienda sigue mostrando $ 228.000",
+      "esperado": "ok:false, 1500, error guardado, $ 228.000",
+      "obtenido": "ok:false · 1500 · error=sí · $ 228.000",
+      "ok": true
+    },
+    {
+      "escenario": "4. el proveedor devuelve una página HTML de mantenimiento: se conserva la última cotización, se registra el error y la tienda sigue mostrando $ 228.000",
+      "esperado": "ok:false, 1500, error guardado, $ 228.000",
+      "obtenido": "ok:false · 1500 · error=sí · $ 228.000",
+      "ok": true
+    },
+    {
+      "escenario": "5. el proveedor devuelve otra casa (oficial): se conserva la última cotización, se registra el error y la tienda sigue mostrando $ 228.000",
+      "esperado": "ok:false, 1500, error guardado, $ 228.000",
+      "obtenido": "ok:false · 1500 · error=sí · $ 228.000",
+      "ok": true
+    },
+    {
+      "escenario": "6. el proveedor devuelve otra moneda: se conserva la última cotización, se registra el error y la tienda sigue mostrando $ 228.000",
+      "esperado": "ok:false, 1500, error guardado, $ 228.000",
+      "obtenido": "ok:false · 1500 · error=sí · $ 228.000",
+      "ok": true
+    },
+    {
+      "escenario": "7. el proveedor devuelve una venta negativa: se conserva la última cotización, se registra el error y la tienda sigue mostrando $ 228.000",
+      "esperado": "ok:false, 1500, error guardado, $ 228.000",
+      "obtenido": "ok:false · 1500 · error=sí · $ 228.000",
+      "ok": true
+    },
+    {
+      "escenario": "8. el proveedor devuelve la venta como texto: se conserva la última cotización, se registra el error y la tienda sigue mostrando $ 228.000",
+      "esperado": "ok:false, 1500, error guardado, $ 228.000",
+      "obtenido": "ok:false · 1500 · error=sí · $ 228.000",
+      "ok": true
+    },
+    {
+      "escenario": "9. salto sospechoso (×3 respecto de la última cotización válida): se conserva la última cotización, se registra el error y la tienda sigue mostrando $ 228.000",
+      "esperado": "ok:false, 1500, error guardado, $ 228.000",
+      "obtenido": "ok:false · 1500 · error=sí · $ 228.000",
+      "ok": true
+    },
+    {
+      "escenario": "10. el proveedor responde pero su fecha de publicación tiene 6 días: se acepta la consulta y la cotización pasa a «sin vigencia» (pesos pendientes, USD visible)",
+      "esperado": "Precio a confirmar + USD 152,00",
+      "obtenido": "Precio a confirmar · USD 152,00",
+      "ok": true
+    },
+    {
+      "escenario": "11. el proveedor se recupera (venta 1600): vuelve a convertir, limpia el error y actualiza el precio",
+      "esperado": "$ 243.200 y sin error",
+      "obtenido": "$ 243.200 · error=no",
+      "ok": true
+    },
+    {
+      "escenario": "12. el proveedor no responde: la consulta se corta a ~6 s y mientras tanto las páginas responden rápido con la cotización guardada",
+      "esperado": "consulta 5,5–8 s, páginas < 800 ms, 1600 conservada",
+      "obtenido": "consulta 6018 ms (ok:false) · páginas 35/31/34/26/32 ms · 1600",
+      "ok": true
+    },
+    {
+      "escenario": "13. última consulta exitosa de hace 5 h: se sigue convirtiendo (con aviso de antigüedad)",
+      "esperado": "$ 243.200",
+      "obtenido": "$ 243.200",
+      "ok": true
+    },
+    {
+      "escenario": "14. última consulta exitosa de hace 25 h: NO se convierte (precio en pesos pendiente, nunca $0) y el USD se conserva",
+      "esperado": "Precio a confirmar + USD 152,00",
+      "obtenido": "Precio a confirmar · USD 152,00",
+      "ok": true
+    },
+    {
+      "escenario": "15. con la cotización vencida el catálogo sigue respondiendo y no muestra $0",
+      "esperado": "200 y sin «$ 0»",
+      "obtenido": "200 · sin $0",
+      "ok": true
+    },
+    {
+      "escenario": "16. al volver el proveedor la tienda recupera sus precios en pesos",
+      "esperado": "$ 243.200",
+      "obtenido": "$ 243.200",
+      "ok": true
+    },
+    {
+      "escenario": "17. modo manual con el proveedor caído: rige el valor manual (1234) y no cambia solo",
+      "esperado": "152 × 1.234 = $ 187.600",
+      "obtenido": "$ 187.600",
+      "ok": true
+    },
+    {
+      "escenario": "18. el endpoint de actualización exige el secreto",
+      "esperado": "401 y 401",
+      "obtenido": "401 y 401",
+      "ok": true
+    }
+  ],
+  "fallas": []
+}

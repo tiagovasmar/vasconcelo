@@ -1,0 +1,121 @@
+{
+ "schemaVersion": 1,
+ "nota": "Borradores de importación de productos chinos (Tmall) enviados por el dueño el 13/10/2026. ACTUALIZACIÓN 13/10/2026: cuatro de las cinco referencias (1049188091485, 1050867876169, 1070165751188, 1063240655679) se concilian con la importación desde las carpetas locales (src/content/colecciones/origen/china/productos.json) y ya son fichas del catálogo; ver `importadoComo`. La quinta (1027185914261) no tiene carpeta en el lote nuevo: sigue pendiente y no se inventó ningún producto. Para los pendientes, ningún dato (nombre, colección, formato, idioma/mercado, contenido, imagen) está verificado; la consulta web devolvió una página vacía y la navegación redirige al login de Taobao (no se eludió). Sin precios, cantidades ni disponibilidad.",
+ "enlacesRepetidos": "El mensaje original repetía los enlaces; son 5 referencias únicas.",
+ "items": [
+  {
+   "articleId": "1027185914261",
+   "skuId": "6203877706870",
+   "sourceUrl": "https://detail.tmall.com/item.htm?id=1027185914261&skuId=6203877706870",
+   "estado": "pendiente_de_verificar",
+   "nombre": null,
+   "coleccion": null,
+   "codigo": null,
+   "idiomaMercado": null,
+   "formato": null,
+   "contenido": null,
+   "imagenReal": null,
+   "precioMinor": null,
+   "stock": null,
+   "faltaConfirmar": [
+    "nombre y colección",
+    "idioma/mercado (¿China continental, chino simplificado?)",
+    "formato (caja / sobre / otro) y contenido de la variante del SKU",
+    "foto real o permiso de uso",
+    "precio de venta, cantidad y disponibilidad (los da el dueño)"
+   ]
+  },
+  {
+   "articleId": "1049188091485",
+   "skuId": "6245970290772",
+   "sourceUrl": "https://detail.tmall.com/item.htm?id=1049188091485&skuId=6245970290772",
+   "estado": "importado_desde_carpeta_local",
+   "nombre": null,
+   "coleccion": null,
+   "codigo": null,
+   "idiomaMercado": null,
+   "formato": null,
+   "contenido": null,
+   "imagenReal": null,
+   "precioMinor": null,
+   "stock": null,
+   "faltaConfirmar": [
+    "nombre y colección",
+    "idioma/mercado (¿China continental, chino simplificado?)",
+    "formato (caja / sobre / otro) y contenido de la variante del SKU",
+    "foto real o permiso de uso",
+    "precio de venta, cantidad y disponibilidad (los da el dueño)"
+   ],
+   "importadoComo": "zh-caja-ogerpon-agua"
+  },
+  {
+   "articleId": "1050867876169",
+   "skuId": "6078990300639",
+   "sourceUrl": "https://detail.tmall.com/item.htm?id=1050867876169&skuId=6078990300639",
+   "estado": "importado_desde_carpeta_local",
+   "nombre": null,
+   "coleccion": null,
+   "codigo": null,
+   "idiomaMercado": null,
+   "formato": null,
+   "contenido": null,
+   "imagenReal": null,
+   "precioMinor": null,
+   "stock": null,
+   "faltaConfirmar": [
+    "nombre y colección",
+    "idioma/mercado (¿China continental, chino simplificado?)",
+    "formato (caja / sobre / otro) y contenido de la variante del SKU",
+    "foto real o permiso de uso",
+    "precio de venta, cantidad y disponibilidad (los da el dueño)"
+   ],
+   "importadoComo": "zh-xingcai-jingli-sobre-5"
+  },
+  {
+   "articleId": "1070165751188",
+   "skuId": "6121938069378",
+   "sourceUrl": "https://detail.tmall.com/item.htm?id=1070165751188&skuId=6121938069378",
+   "estado": "importado_desde_carpeta_local",
+   "nombre": null,
+   "coleccion": null,
+   "codigo": null,
+   "idiomaMercado": null,
+   "formato": null,
+   "contenido": null,
+   "imagenReal": null,
+   "precioMinor": null,
+   "stock": null,
+   "faltaConfirmar": [
+    "nombre y colección",
+    "idioma/mercado (¿China continental, chino simplificado?)",
+    "formato (caja / sobre / otro) y contenido de la variante del SKU",
+    "foto real o permiso de uso",
+    "precio de venta, cantidad y disponibilidad (los da el dueño)"
+   ],
+   "importadoComo": "zh-30-zhounian-ilustraciones-vol3"
+  },
+  {
+   "articleId": "1063240655679",
+   "skuId": "6111536584650",
+   "sourceUrl": "https://detail.tmall.com/item.htm?id=1063240655679&skuId=6111536584650",
+   "estado": "importado_desde_carpeta_local",
+   "nombre": null,
+   "coleccion": null,
+   "codigo": null,
+   "idiomaMercado": null,
+   "formato": null,
+   "contenido": null,
+   "imagenReal": null,
+   "precioMinor": null,
+   "stock": null,
+   "faltaConfirmar": [
+    "nombre y colección",
+    "idioma/mercado (¿China continental, chino simplificado?)",
+    "formato (caja / sobre / otro) y contenido de la variante del SKU",
+    "foto real o permiso de uso",
+    "precio de venta, cantidad y disponibilidad (los da el dueño)"
+   ],
+   "importadoComo": "zh-gongzhu-rongguang-sobre-20"
+  }
+ ]
+}

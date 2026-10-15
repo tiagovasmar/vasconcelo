@@ -1,0 +1,144 @@
+OK   360: el menú se cierra con Escape
+OK   360: campos de filtros ≥ 16 px (16,16,16,16,16,16,16)
+OK   360: «Aplicar» alcanzable con el teclado abierto (scroll interno del diálogo)
+OK   360: la búsqueda devuelve tarjetas
+OK   360: los filtros se cierran con el botón ×
+OK   360: sin texto menor a 11 px en tarjetas (Bajo stock|Bajo stock)
+OK   360: «Ver contenido ↗» en una sola línea (alturas 25)
+OK   360: sin desborde horizontal en catálogo
+OK   360: sin desborde horizontal en ficha disponible
+OK   360: ficha disponible: barra inferior visible al bajar
+OK   360: ficha disponible: la barra entra en pantalla
+OK   360: ficha disponible: la barra muestra precio y «Agregar»
+OK   360: sin desborde horizontal en ficha bajo-stock
+OK   360: ficha bajo-stock: barra inferior visible al bajar
+OK   360: ficha bajo-stock: la barra entra en pantalla
+OK   360: ficha bajo-stock: la barra muestra precio y «Agregar»
+OK   360: sin desborde horizontal en ficha sin-stock
+OK   360: ficha sin-stock: barra inferior visible al bajar
+OK   360: ficha sin-stock: la barra entra en pantalla
+OK   360: ficha sin-stock: la barra solo ofrece consultar y avisa que no hay seña antes de confirmar
+OK   360: sin desborde horizontal en ficha titulo-largo
+OK   360: ficha titulo-largo: barra inferior visible al bajar
+OK   360: ficha titulo-largo: la barra entra en pantalla
+OK   360: ficha titulo-largo: la barra solo ofrece consultar y avisa que no hay seña antes de confirmar
+OK   360: la barra sube la cantidad
+OK   360: la cantidad se refleja en el bloque principal
+OK   360: «Sumar 2» agrega 2 unidades ([["abyss-eye-sobre",2]])
+OK   360: ninja-spinner-caja: foto principal y miniatura cargan (3 <img> closed)
+OK   360: ninja-spinner-caja: las referencias usan el nombre nuevo (-v2)
+OK   360: ninja-spinner-caja: el zoom muestra la foto nueva (ninja-spinner-closed-v2.webp&w=640&q=75)
+OK   360: nihil-zero-caja: foto principal y miniatura cargan (3 <img> closed)
+OK   360: nihil-zero-caja: las referencias usan el nombre nuevo (-v2)
+OK   360: nihil-zero-caja: el zoom muestra la foto nueva (nihil-zero-closed-v2.webp&w=640&q=75)
+OK   360: mega-symphonia-caja: foto principal y miniatura cargan (3 <img> closed)
+OK   360: mega-symphonia-caja: las referencias usan el nombre nuevo (-v2)
+OK   360: mega-symphonia-caja: el zoom muestra la foto nueva (mega-symphonia-closed-v2.webp&w=640&q=75)
+OK   360: glory-of-team-rocket-caja: foto principal y miniatura cargan (3 <img> closed)
+OK   360: glory-of-team-rocket-caja: las referencias usan el nombre nuevo (-v2)
+OK   360: glory-of-team-rocket-caja: el zoom muestra la foto nueva (glory-of-team-rocket-closed-v2.webp&w=640&q=75)
+OK   360: sin desborde horizontal en carrito
+OK   360: carrito: barra inferior con subtotal y próximo paso visible
+OK   360: carrito: aviso «Siguiente» visible tras la lista
+OK   360: carrito: la barra lleva al resumen
+OK   360: carrito: la barra se oculta cuando el resumen ya se ve
+OK   360: carrito: con un campo enfocado (teclado abierto) no hay barra fija
+OK   360: carrito: campos de entrega ≥ 16 px (16,16,16,16)
+OK   360: carrito: existe un único botón de continuar (no se pulsó)
+OK   360: sin errores de consola ()
+OK   390: el menú se cierra con Escape
+OK   390: campos de filtros ≥ 16 px (16,16,16,16,16,16,16)
+OK   390: «Aplicar» alcanzable con el teclado abierto (scroll interno del diálogo)
+OK   390: la búsqueda devuelve tarjetas
+OK   390: los filtros se cierran con el botón ×
+OK   390: sin texto menor a 11 px en tarjetas (Bajo stock|Bajo stock)
+OK   390: «Ver contenido ↗» en una sola línea (alturas 25)
+OK   390: sin desborde horizontal en catálogo
+OK   390: sin desborde horizontal en ficha disponible
+OK   390: ficha disponible: barra inferior visible al bajar
+OK   390: ficha disponible: la barra entra en pantalla
+OK   390: ficha disponible: la barra muestra precio y «Agregar»
+OK   390: sin desborde horizontal en ficha bajo-stock
+OK   390: ficha bajo-stock: barra inferior visible al bajar
+OK   390: ficha bajo-stock: la barra entra en pantalla
+OK   390: ficha bajo-stock: la barra muestra precio y «Agregar»
+OK   390: sin desborde horizontal en ficha sin-stock
+OK   390: ficha sin-stock: barra inferior visible al bajar
+OK   390: ficha sin-stock: la barra entra en pantalla
+OK   390: ficha sin-stock: la barra solo ofrece consultar y avisa que no hay seña antes de confirmar
+OK   390: sin desborde horizontal en ficha titulo-largo
+OK   390: ficha titulo-largo: barra inferior visible al bajar
+OK   390: ficha titulo-largo: la barra entra en pantalla
+OK   390: ficha titulo-largo: la barra solo ofrece consultar y avisa que no hay seña antes de confirmar
+OK   390: la barra sube la cantidad
+OK   390: la cantidad se refleja en el bloque principal
+OK   390: «Sumar 2» agrega 2 unidades ([["abyss-eye-sobre",2]])
+OK   390: ninja-spinner-caja: foto principal y miniatura cargan (3 <img> closed)
+OK   390: ninja-spinner-caja: las referencias usan el nombre nuevo (-v2)
+OK   390: ninja-spinner-caja: el zoom muestra la foto nueva (ninja-spinner-closed-v2.webp&w=640&q=75)
+OK   390: nihil-zero-caja: foto principal y miniatura cargan (3 <img> closed)
+OK   390: nihil-zero-caja: las referencias usan el nombre nuevo (-v2)
+OK   390: nihil-zero-caja: el zoom muestra la foto nueva (nihil-zero-closed-v2.webp&w=640&q=75)
+OK   390: mega-symphonia-caja: foto principal y miniatura cargan (3 <img> closed)
+OK   390: mega-symphonia-caja: las referencias usan el nombre nuevo (-v2)
+OK   390: mega-symphonia-caja: el zoom muestra la foto nueva (mega-symphonia-closed-v2.webp&w=640&q=75)
+OK   390: glory-of-team-rocket-caja: foto principal y miniatura cargan (3 <img> closed)
+OK   390: glory-of-team-rocket-caja: las referencias usan el nombre nuevo (-v2)
+OK   390: glory-of-team-rocket-caja: el zoom muestra la foto nueva (glory-of-team-rocket-closed-v2.webp&w=640&q=75)
+OK   390: sin desborde horizontal en carrito
+OK   390: carrito: barra inferior con subtotal y próximo paso visible
+OK   390: carrito: aviso «Siguiente» visible tras la lista
+OK   390: carrito: la barra lleva al resumen
+OK   390: carrito: la barra se oculta cuando el resumen ya se ve
+OK   390: carrito: con un campo enfocado (teclado abierto) no hay barra fija
+OK   390: carrito: campos de entrega ≥ 16 px (16,16,16,16)
+OK   390: carrito: existe un único botón de continuar (no se pulsó)
+OK   390: sin errores de consola ()
+OK   430: el menú se cierra con Escape
+OK   430: campos de filtros ≥ 16 px (16,16,16,16,16,16,16)
+OK   430: «Aplicar» alcanzable con el teclado abierto (scroll interno del diálogo)
+OK   430: la búsqueda devuelve tarjetas
+OK   430: los filtros se cierran con el botón ×
+OK   430: sin texto menor a 11 px en tarjetas (Bajo stock|Bajo stock)
+OK   430: «Ver contenido ↗» en una sola línea (alturas 25)
+OK   430: sin desborde horizontal en catálogo
+OK   430: sin desborde horizontal en ficha disponible
+OK   430: ficha disponible: barra inferior visible al bajar
+OK   430: ficha disponible: la barra entra en pantalla
+OK   430: ficha disponible: la barra muestra precio y «Agregar»
+OK   430: sin desborde horizontal en ficha bajo-stock
+OK   430: ficha bajo-stock: barra inferior visible al bajar
+OK   430: ficha bajo-stock: la barra entra en pantalla
+OK   430: ficha bajo-stock: la barra muestra precio y «Agregar»
+OK   430: sin desborde horizontal en ficha sin-stock
+OK   430: ficha sin-stock: barra inferior visible al bajar
+OK   430: ficha sin-stock: la barra entra en pantalla
+OK   430: ficha sin-stock: la barra solo ofrece consultar y avisa que no hay seña antes de confirmar
+OK   430: sin desborde horizontal en ficha titulo-largo
+OK   430: ficha titulo-largo: barra inferior visible al bajar
+OK   430: ficha titulo-largo: la barra entra en pantalla
+OK   430: ficha titulo-largo: la barra solo ofrece consultar y avisa que no hay seña antes de confirmar
+OK   430: la barra sube la cantidad
+OK   430: la cantidad se refleja en el bloque principal
+OK   430: «Sumar 2» agrega 2 unidades ([["abyss-eye-sobre",2]])
+OK   430: ninja-spinner-caja: foto principal y miniatura cargan (3 <img> closed)
+OK   430: ninja-spinner-caja: las referencias usan el nombre nuevo (-v2)
+OK   430: ninja-spinner-caja: el zoom muestra la foto nueva (ninja-spinner-closed-v2.webp&w=640&q=75)
+OK   430: nihil-zero-caja: foto principal y miniatura cargan (3 <img> closed)
+OK   430: nihil-zero-caja: las referencias usan el nombre nuevo (-v2)
+OK   430: nihil-zero-caja: el zoom muestra la foto nueva (nihil-zero-closed-v2.webp&w=640&q=75)
+OK   430: mega-symphonia-caja: foto principal y miniatura cargan (3 <img> closed)
+OK   430: mega-symphonia-caja: las referencias usan el nombre nuevo (-v2)
+OK   430: mega-symphonia-caja: el zoom muestra la foto nueva (mega-symphonia-closed-v2.webp&w=640&q=75)
+OK   430: glory-of-team-rocket-caja: foto principal y miniatura cargan (3 <img> closed)
+OK   430: glory-of-team-rocket-caja: las referencias usan el nombre nuevo (-v2)
+OK   430: glory-of-team-rocket-caja: el zoom muestra la foto nueva (glory-of-team-rocket-closed-v2.webp&w=640&q=75)
+OK   430: sin desborde horizontal en carrito
+OK   430: carrito: barra inferior con subtotal y próximo paso visible
+OK   430: carrito: aviso «Siguiente» visible tras la lista
+OK   430: carrito: la barra lleva al resumen
+OK   430: carrito: la barra se oculta cuando el resumen ya se ve
+OK   430: carrito: con un campo enfocado (teclado abierto) no hay barra fija
+OK   430: carrito: campos de entrega ≥ 16 px (16,16,16,16)
+OK   430: carrito: existe un único botón de continuar (no se pulsó)
+OK   430: sin errores de consola ()

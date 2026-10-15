@@ -1,0 +1,252 @@
+{
+  "medidoEl": "2026-10-14T16:31:58.718Z",
+  "catalogo": "real",
+  "base": "http://localhost:3300",
+  "corridas": 3,
+  "filas": [
+    {
+      "perfil": "móvil",
+      "página": "inicio",
+      "FCP ms": 1172,
+      "LCP ms": 1268,
+      "CLS": 0,
+      "TBT ms": 60,
+      "KB transferidos": 504
+    },
+    {
+      "perfil": "móvil",
+      "página": "catálogo (cajas japonesas)",
+      "FCP ms": 992,
+      "LCP ms": 992,
+      "CLS": 0,
+      "TBT ms": 56,
+      "KB transferidos": 353
+    },
+    {
+      "perfil": "móvil",
+      "página": "En stock (2 productos)",
+      "FCP ms": 964,
+      "LCP ms": 964,
+      "CLS": 0,
+      "TBT ms": 46,
+      "KB transferidos": 263
+    },
+    {
+      "perfil": "móvil",
+      "página": "ficha caja (fotos oficiales)",
+      "FCP ms": 1044,
+      "LCP ms": 1044,
+      "CLS": 0,
+      "TBT ms": 57,
+      "KB transferidos": 268
+    },
+    {
+      "perfil": "móvil",
+      "página": "ficha caja (foto de proveedor)",
+      "FCP ms": 1048,
+      "LCP ms": 1388,
+      "CLS": 0,
+      "TBT ms": 57,
+      "KB transferidos": 294
+    },
+    {
+      "perfil": "móvil",
+      "página": "ficha caja china (fotos de proveedor)",
+      "FCP ms": 1056,
+      "LCP ms": 1420,
+      "CLS": 0,
+      "TBT ms": 60,
+      "KB transferidos": 291
+    },
+    {
+      "perfil": "móvil",
+      "página": "colección con 120 cartas",
+      "FCP ms": 1056,
+      "LCP ms": 1056,
+      "CLS": 0,
+      "TBT ms": 62,
+      "KB transferidos": 258
+    },
+    {
+      "perfil": "móvil",
+      "página": "colección con 237 cartas",
+      "FCP ms": 1048,
+      "LCP ms": 1048,
+      "CLS": 0,
+      "TBT ms": 71,
+      "KB transferidos": 263
+    },
+    {
+      "perfil": "móvil",
+      "página": "carrito",
+      "FCP ms": 872,
+      "LCP ms": 872,
+      "CLS": 0,
+      "TBT ms": 89,
+      "KB transferidos": 259
+    },
+    {
+      "perfil": "móvil lento",
+      "página": "inicio",
+      "FCP ms": 2620,
+      "LCP ms": 3456,
+      "CLS": 0,
+      "TBT ms": 50,
+      "KB transferidos": 608
+    },
+    {
+      "perfil": "móvil lento",
+      "página": "catálogo (cajas japonesas)",
+      "FCP ms": 2340,
+      "LCP ms": 2340,
+      "CLS": 0,
+      "TBT ms": 60,
+      "KB transferidos": 426
+    },
+    {
+      "perfil": "móvil lento",
+      "página": "En stock (2 productos)",
+      "FCP ms": 2340,
+      "LCP ms": 2340,
+      "CLS": 0,
+      "TBT ms": 56,
+      "KB transferidos": 257
+    },
+    {
+      "perfil": "móvil lento",
+      "página": "ficha caja (fotos oficiales)",
+      "FCP ms": 2472,
+      "LCP ms": 3100,
+      "CLS": 0,
+      "TBT ms": 54,
+      "KB transferidos": 268
+    },
+    {
+      "perfil": "móvil lento",
+      "página": "ficha caja (foto de proveedor)",
+      "FCP ms": 2488,
+      "LCP ms": 5220,
+      "CLS": 0,
+      "TBT ms": 58,
+      "KB transferidos": 294
+    },
+    {
+      "perfil": "móvil lento",
+      "página": "ficha caja china (fotos de proveedor)",
+      "FCP ms": 2412,
+      "LCP ms": 5308,
+      "CLS": 0,
+      "TBT ms": 68,
+      "KB transferidos": 328
+    },
+    {
+      "perfil": "móvil lento",
+      "página": "colección con 120 cartas",
+      "FCP ms": 2472,
+      "LCP ms": 2472,
+      "CLS": 0,
+      "TBT ms": 50,
+      "KB transferidos": 271
+    },
+    {
+      "perfil": "móvil lento",
+      "página": "colección con 237 cartas",
+      "FCP ms": 2404,
+      "LCP ms": 2404,
+      "CLS": 0,
+      "TBT ms": 59,
+      "KB transferidos": 283
+    },
+    {
+      "perfil": "móvil lento",
+      "página": "carrito",
+      "FCP ms": 2292,
+      "LCP ms": 2292,
+      "CLS": 0,
+      "TBT ms": 98,
+      "KB transferidos": 259
+    },
+    {
+      "perfil": "escritorio",
+      "página": "inicio",
+      "FCP ms": 156,
+      "LCP ms": 156,
+      "CLS": 0,
+      "TBT ms": 0,
+      "KB transferidos": 899
+    },
+    {
+      "perfil": "escritorio",
+      "página": "catálogo (cajas japonesas)",
+      "FCP ms": 128,
+      "LCP ms": 128,
+      "CLS": 0,
+      "TBT ms": 0,
+      "KB transferidos": 461
+    },
+    {
+      "perfil": "escritorio",
+      "página": "En stock (2 productos)",
+      "FCP ms": 112,
+      "LCP ms": 112,
+      "CLS": 0,
+      "TBT ms": 0,
+      "KB transferidos": 264
+    },
+    {
+      "perfil": "escritorio",
+      "página": "ficha caja (fotos oficiales)",
+      "FCP ms": 148,
+      "LCP ms": 148,
+      "CLS": 0,
+      "TBT ms": 0,
+      "KB transferidos": 320
+    },
+    {
+      "perfil": "escritorio",
+      "página": "ficha caja (foto de proveedor)",
+      "FCP ms": 156,
+      "LCP ms": 156,
+      "CLS": 0,
+      "TBT ms": 0,
+      "KB transferidos": 339
+    },
+    {
+      "perfil": "escritorio",
+      "página": "ficha caja china (fotos de proveedor)",
+      "FCP ms": 136,
+      "LCP ms": 136,
+      "CLS": 0,
+      "TBT ms": 0,
+      "KB transferidos": 369
+    },
+    {
+      "perfil": "escritorio",
+      "página": "colección con 120 cartas",
+      "FCP ms": 148,
+      "LCP ms": 148,
+      "CLS": 0,
+      "TBT ms": 0,
+      "KB transferidos": 347
+    },
+    {
+      "perfil": "escritorio",
+      "página": "colección con 237 cartas",
+      "FCP ms": 152,
+      "LCP ms": 152,
+      "CLS": 0,
+      "TBT ms": 0,
+      "KB transferidos": 357
+    },
+    {
+      "perfil": "escritorio",
+      "página": "carrito",
+      "FCP ms": 108,
+      "LCP ms": 108,
+      "CLS": 0,
+      "TBT ms": 0,
+      "KB transferidos": 277
+    }
+  ],
+  "incumplimientos": []
+}
