@@ -694,7 +694,10 @@ test.describe("el dueño administra precios, stock, fotos y cotización", () => 
     const fijarUmbral = async (n: string) => {
       await go(owner, "/admin");
       await owner.getByTestId("umbral-stock").fill(n);
-      if (await owner.getByTestId("guardar-umbral").isEnabled()) await owner.getByTestId("guardar-umbral").click();
+      if (await owner.getByTestId("guardar-umbral").isEnabled()) {
+        await owner.getByTestId("guardar-umbral").click();
+        await expect(owner.getByTestId("mensaje-umbral")).toContainText(/Listo|desactivado/); // el guardado terminó antes de mirar la tienda
+      }
       await expect(owner.getByTestId("umbral-stock")).toHaveValue(n);
     };
     const fijarStock = async (n: string) => {

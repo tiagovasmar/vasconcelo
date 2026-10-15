@@ -81,11 +81,14 @@ export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }
   }, [mounted, cart.items.length]);
   useEffect(() => {
     const campo = (t: EventTarget | null) => t instanceof HTMLElement && /^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName) && !["radio", "checkbox"].includes((t as HTMLInputElement).type);
-    const on = (e: FocusEvent) => { if (campo(e.target)) setEscribiendo(true); };
-    const off = () => setEscribiendo(false);
+    // La barra inferior vuelve un instante DESPUÉS de salir del campo: el toque que provocó la salida (p. ej. sobre una opción de entrega cerca del borde de la pantalla)
+    // no puede caer sobre una barra que aparece justo en ese momento.
+    let espera = 0;
+    const on = (e: FocusEvent) => { if (campo(e.target)) { window.clearTimeout(espera); setEscribiendo(true); } };
+    const off = () => { window.clearTimeout(espera); espera = window.setTimeout(() => setEscribiendo(false), 400); };
     document.addEventListener("focusin", on);
     document.addEventListener("focusout", off);
-    return () => { document.removeEventListener("focusin", on); document.removeEventListener("focusout", off); };
+    return () => { window.clearTimeout(espera); document.removeEventListener("focusin", on); document.removeEventListener("focusout", off); };
   }, []);
 
   // Con sesión iniciada, se aprovecha el nombre del perfil (una sola vez) para no volver a escribirlo; igual se puede corregir.
