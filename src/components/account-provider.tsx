@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { UserIcon } from "./icons";
+import { AccountAvatar } from "./account-avatar";
 
 type AccountUser = { name: string; email: string };
 type Ctx = {
@@ -74,8 +74,8 @@ export function AccountLink() {
   const { user } = useAccount();
   const first = user?.name.split(" ")[0];
   return (
-    <Link href="/cuenta" className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-ink/5" aria-label={user ? `Mi cuenta, sesión iniciada como ${user.name}` : "Mi cuenta"}>
-      <UserIcon />
+    <Link href="/cuenta" className="flex min-h-11 items-center gap-2 px-2 py-1.5 text-sm hover:bg-ink/5 sm:px-3" aria-label={user ? `Mi cuenta, sesión iniciada como ${user.name}` : "Mi cuenta"}>
+      <AccountAvatar className="h-8 w-8 shrink-0" />
       <span className="hidden max-w-[10rem] truncate sm:inline">{first ? `Hola, ${first}` : "Mi cuenta"}</span>
     </Link>
   );
