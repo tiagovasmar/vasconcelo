@@ -1,0 +1,137 @@
+{
+  "etiqueta": "antes-interacciones",
+  "fecha": "2026-10-15T16:33:19.163Z",
+  "base": "http://localhost:3300",
+  "corridasPorMedida": 5,
+  "nota": "Laboratorio local (Chromium + CPU/red emuladas, build de producción, base de desarrollo). No son datos de usuarios reales ni garantizan los tiempos en Netlify. TBT no es INP.",
+  "resultados": [
+    {
+      "tipo": "interacción",
+      "perfil": "escritorio",
+      "medida": "agregar desde tarjeta · contador visible ms",
+      "mediana ms": 45,
+      "máximo": 48,
+      "corridas": 5
+    },
+    {
+      "tipo": "interacción",
+      "perfil": "escritorio",
+      "medida": "agregar desde tarjeta · evento más lento ms",
+      "mediana ms": 16,
+      "máximo": 24,
+      "corridas": 5
+    },
+    {
+      "tipo": "interacción",
+      "perfil": "escritorio",
+      "medida": "abrir carrito (página /carrito) · hasta ver productos ms",
+      "mediana ms": 128,
+      "máximo": 129,
+      "corridas": 5
+    },
+    {
+      "tipo": "interacción",
+      "perfil": "escritorio",
+      "medida": "abrir carrito · evento más lento ms",
+      "mediana ms": 16,
+      "máximo": 16,
+      "corridas": 5
+    },
+    {
+      "tipo": "interacción",
+      "perfil": "escritorio",
+      "medida": "cambiar cantidad (página) · cambia el número ms",
+      "mediana ms": 33,
+      "máximo": 42,
+      "corridas": 5
+    },
+    {
+      "tipo": "interacción",
+      "perfil": "escritorio",
+      "medida": "cambiar cantidad · evento más lento ms",
+      "mediana ms": 24,
+      "máximo": 24,
+      "corridas": 5
+    },
+    {
+      "tipo": "interacción",
+      "perfil": "escritorio",
+      "medida": "quitar producto (página) · desaparece la línea ms",
+      "mediana ms": 28,
+      "máximo": 30,
+      "corridas": 5
+    },
+    {
+      "tipo": "interacción",
+      "perfil": "escritorio",
+      "medida": "quitar producto · evento más lento ms",
+      "mediana ms": 24,
+      "máximo": 24,
+      "corridas": 5
+    },
+    {
+      "tipo": "interacción",
+      "perfil": "movil",
+      "medida": "agregar desde tarjeta · contador visible ms",
+      "mediana ms": 141,
+      "máximo": 180,
+      "corridas": 5
+    },
+    {
+      "tipo": "interacción",
+      "perfil": "movil",
+      "medida": "agregar desde tarjeta · evento más lento ms",
+      "mediana ms": 56,
+      "máximo": 72,
+      "corridas": 5
+    },
+    {
+      "tipo": "interacción",
+      "perfil": "movil",
+      "medida": "abrir carrito (página /carrito) · hasta ver productos ms",
+      "mediana ms": 1187,
+      "máximo": 1532,
+      "corridas": 5
+    },
+    {
+      "tipo": "interacción",
+      "perfil": "movil",
+      "medida": "abrir carrito · evento más lento ms",
+      "mediana ms": 40,
+      "máximo": 40,
+      "corridas": 5
+    },
+    {
+      "tipo": "interacción",
+      "perfil": "movil",
+      "medida": "cambiar cantidad (página) · cambia el número ms",
+      "mediana ms": 156,
+      "máximo": 234,
+      "corridas": 5
+    },
+    {
+      "tipo": "interacción",
+      "perfil": "movil",
+      "medida": "cambiar cantidad · evento más lento ms",
+      "mediana ms": 64,
+      "máximo": 96,
+      "corridas": 5
+    },
+    {
+      "tipo": "interacción",
+      "perfil": "movil",
+      "medida": "quitar producto (página) · desaparece la línea ms",
+      "mediana ms": 87,
+      "máximo": 115,
+      "corridas": 5
+    },
+    {
+      "tipo": "interacción",
+      "perfil": "movil",
+      "medida": "quitar producto · evento más lento ms",
+      "mediana ms": 56,
+      "máximo": 72,
+      "corridas": 5
+    }
+  ]
+}

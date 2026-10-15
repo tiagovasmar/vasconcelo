@@ -1,35 +1,47 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { formatARS } from "@/lib/format";
-import { useBarraInferior } from "./use-barra-inferior";
-import { cartActions, cartCount, useCart } from "@/features/cart/store";
+import { cartActions, cartCount, cartDrawer, useCart, useCartDrawerOpen } from "@/features/cart/store";
+import { preloadCartDrawer } from "./cart-drawer";
 import { ENCARGO_EXPLICACION } from "@/features/politicas/encargos";
 import { encargo as encargoPolitica } from "@/content/politicas";
 import { ENCARGO_MAX } from "@/features/inquiries/pricing";
 import { CartIcon, PlusIcon } from "./icons";
 
-/** Ícono del carrito en la cabecera, con la cantidad de unidades. */
+/**
+ * Ícono del carrito en la cabecera, con la cantidad de unidades. Abre el panel lateral; dentro del pedido (/carrito) ya se está viendo el carrito y
+ * el ícono lleva a esa página.
+ */
 export function CartLink() {
   const cart = useCart();
+  const open = useCartDrawerOpen();
+  const pathname = usePathname();
   const count = cartCount(cart);
+  const label = count ? `Carrito, ${count} ${count === 1 ? "unidad" : "unidades"}` : "Carrito, vacío";
+  const cls = "relative flex min-h-11 items-center gap-2 px-3 py-2 text-sm hover:bg-ink/5";
+  const badge = count > 0 && (
+    <span className="absolute -right-0.5 top-0 flex h-5 min-w-5 items-center justify-center rounded-full bg-gold px-1 text-[.7rem] font-extrabold text-ink" aria-hidden="true" data-testid="cart-count">
+      {count}
+    </span>
+  );
+  if (pathname.startsWith("/carrito")) {
+    return <Link href="/carrito" className={cls} aria-label={label} data-cart-trigger>{<CartIcon />}{badge}</Link>;
+  }
   return (
-    <Link href="/carrito" className="relative flex items-center gap-2 px-3 py-2 text-sm hover:bg-ink/5" aria-label={count ? `Carrito, ${count} ${count === 1 ? "unidad" : "unidades"}` : "Carrito, vacío"}>
+    <button type="button" className={cls} aria-label={label} aria-haspopup="dialog" aria-expanded={open} data-cart-trigger onPointerEnter={preloadCartDrawer} onFocus={preloadCartDrawer} onClick={() => cartDrawer.open()}>
       <CartIcon />
-      {count > 0 && (
-        <span className="absolute -right-0.5 top-0 flex h-5 min-w-5 items-center justify-center rounded-full bg-gold px-1 text-[.7rem] font-extrabold text-ink" aria-hidden="true" data-testid="cart-count">
-          {count}
-        </span>
-      )}
-    </Link>
+      {badge}
+    </button>
   );
 }
 
-type AddProps = { productId: string; title: string; priceMinor: number; max: number; state: "available" | "soldout" | "pending"; /** Producto «solo por encargo» (no se vende de stock). */ orderOnly?: boolean; /** Hay unidades en stock confirmadas (solo falta el precio). */ stockKnown?: boolean };
+type AddProps = { productId: string; title: string; /** Foto de portada (solo para mostrar el producto en el panel lateral). */ imageSrc?: string | null; priceMinor: number; max: number; state: "available" | "soldout" | "pending"; /** Producto «solo por encargo» (no se vende de stock). */ orderOnly?: boolean; /** Hay unidades en stock confirmadas (solo falta el precio). */ stockKnown?: boolean };
 
 /** Botón «agregar» de las tarjetas (sin cantidad: suma 1). */
-export function AddToCartIcon({ productId, title, priceMinor, max, state }: AddProps) {
+export function AddToCartIcon({ productId, title, imageSrc, priceMinor, max, state }: AddProps) {
   const cart = useCart();
   const inCart = cart.items.find((i) => i.productId === productId)?.quantity ?? 0;
   const atLimit = inCart >= max;
@@ -39,7 +51,7 @@ export function AddToCartIcon({ productId, title, priceMinor, max, state }: AddP
     return (
       <button
         type="button"
-        onClick={() => cartActions.add(productId, title, 1, 0, ENCARGO_MAX, "encargo")}
+        onClick={() => cartActions.add(productId, title, 1, 0, ENCARGO_MAX, "encargo", imageSrc)}
         aria-label={`Consultar por encargo: ${title}${queued ? " (ya está en tu consulta; suma una unidad)" : ""}`}
         title="Consultar por encargo: la disponibilidad y la cotización se confirman con la tienda"
         data-testid="consultar-encargo"
@@ -53,7 +65,7 @@ export function AddToCartIcon({ productId, title, priceMinor, max, state }: AddP
     <button
       type="button"
       disabled={atLimit}
-      onClick={() => cartActions.add(productId, title, 1, priceMinor, max)}
+      onClick={() => cartActions.add(productId, title, 1, priceMinor, max, "buy", imageSrc)}
       aria-label={atLimit ? `${title}: ya tenés el máximo en el carrito` : `Agregar ${title} al carrito`}
       className="flex h-11 w-11 shrink-0 items-center justify-center bg-ink text-paper hover:bg-emerald disabled:cursor-not-allowed disabled:opacity-50 sm:h-12 sm:w-12"
     >
@@ -81,7 +93,6 @@ function useOutOfView<T extends HTMLElement>() {
 }
 
 function BottomBar({ show, children }: { show: boolean; children: React.ReactNode }) {
-  useBarraInferior(show);
   if (!show) return null;
   return (
     <div className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-ink bg-paper px-3 py-2 pb-[max(.5rem,env(safe-area-inset-bottom))] shadow-[0_-6px_16px_rgba(18,23,21,.18)] lg:hidden" data-testid="barra-compra">
@@ -91,7 +102,7 @@ function BottomBar({ show, children }: { show: boolean; children: React.ReactNod
 }
 
 /** Compra desde la ficha: cantidad + agregar. */
-export function AddToCartPanel({ productId, title, priceMinor, max, state, stockKnown = false, orderOnly = false }: AddProps) {
+export function AddToCartPanel({ productId, title, imageSrc, priceMinor, max, state, stockKnown = false, orderOnly = false }: AddProps) {
   const cart = useCart();
   const inCart = cart.items.find((i) => i.productId === productId)?.quantity ?? 0;
   const room = Math.max(0, max - inCart);
@@ -100,13 +111,13 @@ export function AddToCartPanel({ productId, title, priceMinor, max, state, stock
   const q = Math.min(Math.max(1, qty), Math.max(1, room));
   const [panelRef, out] = useOutOfView<HTMLDivElement>();
   const add = () => {
-    const r = cartActions.add(productId, title, q, priceMinor, max);
+    const r = cartActions.add(productId, title, q, priceMinor, max, "buy", imageSrc);
     setMsg(`Agregaste ${q} ${q === 1 ? "unidad" : "unidades"}. Tenés ${r.quantity} en el carrito.${r.clamped ? " Llegaste al máximo por pedido." : ""}`);
     setQty(1);
   };
 
   if (state === "pending" || state === "soldout" || max === 0) {
-    return <EncargoPanel productId={productId} title={title} pending={state === "pending"} stockKnown={stockKnown} orderOnly={orderOnly} />;
+    return <EncargoPanel productId={productId} title={title} imageSrc={imageSrc} pending={state === "pending"} stockKnown={stockKnown} orderOnly={orderOnly} />;
   }
   return (
     <div className="mt-4 sm:mt-6" ref={panelRef}>
@@ -148,7 +159,7 @@ export function AddToCartPanel({ productId, title, priceMinor, max, state, stock
  * Ficha de un producto SIN precio o stock confirmado (o agotado): no se puede comprar, pero se puede «consultar por encargo».
  * Consultar no reserva mercadería, no fija un precio ni acredita un pago: la disponibilidad y la cotización se confirman con la tienda.
  */
-function EncargoPanel({ productId, title, pending, stockKnown, orderOnly }: { productId: string; title: string; pending: boolean; stockKnown: boolean; orderOnly: boolean }) {
+function EncargoPanel({ productId, title, imageSrc, pending, stockKnown, orderOnly }: { productId: string; title: string; imageSrc?: string | null; pending: boolean; stockKnown: boolean; orderOnly: boolean }) {
   const cart = useCart();
   const inCart = cart.items.find((i) => i.productId === productId && i.mode === "encargo")?.quantity ?? 0;
   const [qty, setQty] = useState(1);
@@ -157,7 +168,7 @@ function EncargoPanel({ productId, title, pending, stockKnown, orderOnly }: { pr
   const q = Math.min(Math.max(1, qty), Math.max(1, room));
   const [panelRef, out] = useOutOfView<HTMLDivElement>();
   const addEncargo = () => {
-    const r = cartActions.add(productId, title, q, 0, ENCARGO_MAX, "encargo");
+    const r = cartActions.add(productId, title, q, 0, ENCARGO_MAX, "encargo", imageSrc);
     setMsg(`Sumaste ${q} ${q === 1 ? "unidad" : "unidades"} a tu consulta por encargo. Tenés ${r.quantity}.`);
     setQty(1);
   };
@@ -199,31 +210,6 @@ function EncargoPanel({ productId, title, pending, stockKnown, orderOnly }: { pr
       <p role="status" aria-live="polite" className="mt-1 min-h-5 text-sm font-semibold text-emerald">
         {msg} {msg && <Link href="/carrito" className="underline">Ver consulta</Link>}
       </p>
-    </div>
-  );
-}
-
-/** Aviso flotante al agregar desde una tarjeta. */
-export function CartToast() {
-  const { lastAdded } = useCart();
-  const [seen, setSeen] = useState(0);
-  const visible = Boolean(lastAdded && lastAdded.seq !== seen);
-  useEffect(() => {
-    if (!lastAdded || lastAdded.seq === seen) return;
-    const t = setTimeout(() => setSeen(lastAdded.seq), 4500);
-    return () => clearTimeout(t);
-  }, [lastAdded, seen]);
-  return (
-    <div role="status" aria-live="polite" className="cart-toast pointer-events-none fixed inset-x-0 bottom-4 z-[90] flex justify-center px-4">
-      {visible && lastAdded && (
-        <div className="pointer-events-auto flex max-w-md items-center gap-4 border border-ink bg-ink px-4 py-3 text-sm text-paper shadow-[6px_6px_0_#d4b872]">
-          <span>
-            {lastAdded.mode === "encargo" ? "Sumaste por encargo" : "Agregaste"} <b>{lastAdded.quantity}× {lastAdded.title}</b>
-          </span>
-          <Link href="/carrito" className="shrink-0 font-bold text-gold underline">Ver carrito</Link>
-          <button type="button" onClick={() => setSeen(lastAdded.seq)} aria-label="Cerrar aviso" className="shrink-0 text-lg leading-none">×</button>
-        </div>
-      )}
     </div>
   );
 }

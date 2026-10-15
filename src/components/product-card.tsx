@@ -9,6 +9,7 @@ import { commercialState } from "@/features/catalog/commercial";
 import { isLowStock } from "@/features/admin/settings";
 import { lowStockThreshold } from "@/features/admin/low-stock-server";
 import { Price } from "./price";
+import { hasAsset } from "./slot";
 import { maxFor } from "@/features/inquiries/pricing";
 import { kindLabel, type Product } from "@/content/schema";
 
@@ -75,7 +76,7 @@ export async function ProductCard({ product: p, index, lowPriority = false }: { 
           {/* La acción va pegada al precio (si no entra al lado, baja justo debajo) y la disponibilidad queda debajo de ambos. */}
           <div className="mt-1.5 flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5">
             <Price product={p} className="min-w-0" />
-            <AddToCartIcon productId={p.id} title={p.title} priceMinor={p.priceMinor ?? 0} max={maxFor(p)} state={state} />
+            <AddToCartIcon productId={p.id} title={p.title} imageSrc={p.images[0] && hasAsset(p.images[0].src) ? p.images[0].src : null} priceMinor={p.priceMinor ?? 0} max={maxFor(p)} state={state} />
           </div>
           <StockBadge product={p} className="mt-1.5 self-start" />
           <PaymentBenefits kind={p.kind} compact />

@@ -5,31 +5,20 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { cartActions, useCart, type DeliveryDraft } from "@/features/cart/store";
-import { DeliverySchema, provinces } from "@/features/inquiries/schemas";
+import { useCartValidation, type ServerLine } from "@/features/cart/validation";
+import { CONTACT_NAME_MESSAGE, DeliverySchema, isFullName, normalizeName, provinces } from "@/features/inquiries/schemas";
 import { buildMessage } from "@/features/inquiries/message";
-import { paymentMethods, pickupPoints } from "@/content/checkout-options";
+import { paymentMethods, PICKUP_ADDRESS, PICKUP_NOTICE } from "@/content/checkout-options";
 import { encargo as politicaEncargo, promo } from "@/content/politicas";
 import { ENCARGO_EXPLICACION } from "@/features/politicas/encargos";
 import { isPromoPayment, PROMO_CONDITION, transferDiscountMinor } from "@/features/politicas/promociones";
 import { LanguageBadge } from "./language-badge";
-import { kindLabel, wideKinds, type Language } from "@/content/schema";
+import { kindLabel, wideKinds } from "@/content/schema";
 import { formatARS } from "@/lib/format";
 import { formatRate, splitInstallments } from "@/features/fx/convert";
 import { BoxArt, PackArt } from "./art";
 import { toneBg } from "./tones";
 import { useAccount } from "./account-provider";
-import { useBarraInferior } from "./use-barra-inferior";
-
-type ServerLine = {
-  productId: string;
-  status: "retired" | "ok" | "price_changed" | "out_of_stock" | "unavailable" | "over_limit" | "pending_commercial" | "encargo";
-  requestedQuantity: number;
-  maxQuantity: number;
-  unitPriceMinor: number | null;
-  unitPriceUsdMinor?: number | null;
-  previousPriceMinor: number | null;
-  product?: { slug: string; title: string; sku: string; language: Language; kind: keyof typeof kindLabel; fallbackTone: keyof typeof toneBg; imageSrc: string | null; imageAlt: string };
-};
 
 const field = "h-12 w-full border border-ink/40 bg-white px-3 text-base sm:text-sm aria-[invalid=true]:border-vermilion aria-[invalid=true]:bg-vermilion/5";
 const label = "mb-1 block text-[.7rem] font-bold uppercase tracking-[.14em] text-ink/70";
@@ -47,7 +36,7 @@ function Thumb({ line }: { line: ServerLine }) {
 function deliveryPayload(d: DeliveryDraft) {
   if (d.method === "andreani") return { method: "andreani", locality: d.locality, province: d.province, postalCode: d.postalCode };
   if (d.method === "moto") return { method: "moto", locality: d.locality, postalCode: d.postalCode };
-  if (d.method === "retiro") return { method: "retiro", pickupPoint: d.pickupPoint };
+  if (d.method === "retiro") return { method: "retiro" };
   return { method: d.method };
 }
 
@@ -58,24 +47,23 @@ export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }
   const router = useRouter();
   // false en el servidor y true en el navegador: evita diferencias de hidratación con el carrito guardado.
   const mounted = useSyncExternalStore(() => () => {}, () => true, () => false);
-  const [lines, setLines] = useState<Record<string, ServerLine> | null>(null);
+  // Validación compartida con el panel lateral: un solo pedido al servidor por contenido del carrito.
+  const validation = useCartValidation(mounted);
+  const lines: Record<string, ServerLine> | null = validation.data?.lines ?? null;
   /** ¿El pedido califica para cuotas / 10% OFF por transferencia? Lo informa el servidor (al menos una caja disponible). */
-  const [qualifies, setQualifies] = useState(false);
+  const qualifies = validation.data?.qualifies ?? false;
   /** Cotización con la que el servidor convirtió los precios USD (null si ningún precio depende del dólar). */
-  const [fx, setFx] = useState<{ rate10k: number; mode: "auto" | "manual"; warn: boolean } | null>(null);
-  const [loadError, setLoadError] = useState("");
-  const [retry, setRetry] = useState(0);
-  const [notices, setNotices] = useState<string[]>([]);
+  const fx = validation.data?.fx ?? null;
+  const loadError = validation.error;
+  const notices = validation.notices;
   const [attempted, setAttempted] = useState(false);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [serverFieldErrors, setServerFieldErrors] = useState<Record<string, string>>({});
-  const seq = useRef(0);
   // Barra inferior del celular (resumen + próximo paso): se oculta cuando el resumen ya se ve y mientras se escribe en un campo (teclado abierto).
   const [resumenVisible, setResumenVisible] = useState(false);
   const [escribiendo, setEscribiendo] = useState(false);
-  useBarraInferior(mounted && cart.items.length > 0 && !resumenVisible && !escribiendo);
   useEffect(() => {
     const el = document.getElementById("resumen-title");
     if (!el || typeof IntersectionObserver === "undefined") return;
@@ -92,52 +80,13 @@ export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }
     return () => { document.removeEventListener("focusin", on); document.removeEventListener("focusout", off); };
   }, []);
 
-  // Con sesión iniciada, se aprovecha el nombre del perfil (una sola vez); como invitado sigue siendo opcional.
+  // Con sesión iniciada, se aprovecha el nombre del perfil (una sola vez) para no volver a escribirlo; igual se puede corregir.
   useEffect(() => {
     if (user && !prefilled.current && !cart.contactName) {
       prefilled.current = true;
       cartActions.setContactName(user.name);
     }
   }, [user, cart.contactName]);
-
-  const itemsKey = cart.items.map((i) => `${i.productId}:${i.quantity}:${i.priceMinor}:${i.mode}`).join("|");
-
-  // Revalida con el servidor cada vez que cambia el carrito (precios, disponibilidad y límites).
-  useEffect(() => {
-    if (!mounted || cart.items.length === 0) return;
-    const mine = ++seq.current;
-    const ctl = new AbortController();
-    const t = setTimeout(async () => {
-      try {
-        const res = await fetch("/api/cart/validate", {
-          method: "POST", headers: { "Content-Type": "application/json" }, signal: ctl.signal,
-          body: JSON.stringify({ items: cart.items.map((i) => ({ productId: i.productId, quantity: i.quantity, mode: i.mode, ...(i.mode === "buy" ? { expectedPriceMinor: i.priceMinor } : {}) })) }),
-        });
-        if (!res.ok) throw new Error(String(res.status));
-        const data = (await res.json()) as { lines: ServerLine[]; qualifiesForPromo: boolean; fx?: { rate10k: number; mode: "auto" | "manual"; warn: boolean } | null };
-        if (mine !== seq.current) return;
-        setLoadError("");
-        setQualifies(Boolean(data.qualifiesForPromo));
-        setFx(data.fx ?? null);
-        setLines(Object.fromEntries(data.lines.map((l) => [l.productId, l])));
-        // Cantidades por encima de lo disponible: se ajustan y se avisa.
-        for (const l of data.lines) {
-          if (l.status === "over_limit" && l.maxQuantity > 0) {
-            cartActions.setQuantity(l.productId, l.maxQuantity);
-            setNotices((n) => [...n, `Ajustamos la cantidad de «${l.product?.title}» a ${l.maxQuantity}: es lo máximo disponible por pedido.`]);
-          }
-        }
-      } catch (e) {
-        if ((e as Error).name === "AbortError") return;
-        if (mine === seq.current) setLoadError("No pudimos verificar precios y disponibilidad.");
-      }
-    }, 150);
-    return () => {
-      clearTimeout(t);
-      ctl.abort();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mounted, itemsKey, retry]);
 
   const view = cart.items.map((item) => ({ item, line: lines?.[item.productId] }));
   const blocking = view.filter(({ line }) => line && line.status !== "ok" && line.status !== "encargo");
@@ -158,35 +107,46 @@ export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }
 
   // Si el pedido dejó de calificar (p. ej. se quitó la última caja), no puede quedar elegido un medio de pago de promoción.
   useEffect(() => {
-    if (lines && !qualifies && isPromoPayment(cart.payment)) cartActions.setPayment("coordinar");
+    if (lines && !qualifies && isPromoPayment(cart.payment)) cartActions.setPayment("");
   }, [lines, qualifies, cart.payment]);
 
   const delivery = cart.delivery;
   const parsed = useMemo(() => (delivery.method ? DeliverySchema.safeParse(deliveryPayload(delivery)) : null), [delivery]);
   const errors = useMemo(() => {
     const out: Record<string, string> = {};
+    if (!isFullName(cart.contactName)) out.contactName = CONTACT_NAME_MESSAGE;
     if (!delivery.method) out.method = "Elegí cómo querés recibirlo.";
     else if (parsed && !parsed.success) for (const i of parsed.error.issues) out[String(i.path[0])] ??= i.message;
+    if (!paymentMethods.some((p) => p.id === cart.payment)) out.payment = "Elegí cómo preferís pagar.";
+    // Un error del servidor sobre un campo solo se muestra mientras ese campo no cambie (si ya lo corrigió, deja de molestar).
     return { ...out, ...serverFieldErrors };
-  }, [delivery.method, parsed, serverFieldErrors]);
+  }, [cart.contactName, cart.payment, delivery.method, parsed, serverFieldErrors]);
   const show = (k: string) => (attempted || touched[k]) && errors[k];
   const touch = (k: string) => setTouched((t) => ({ ...t, [k]: true }));
   const deliveryOk = Boolean(parsed?.success);
+  const formOk = deliveryOk && !errors.contactName && !errors.payment;
 
   const preview = (() => {
     if (cart.items.length === 0 || verifying) return "";
     const okLines = view.filter((v) => v.line?.product && v.line.status !== "unavailable");
-    const method = parsed?.success ? parsed.data : { method: "retiro" as const, pickupPoint: pickupPoints[0].id };
+    const method = parsed?.success ? parsed.data : { method: "retiro" as const };
     let text = buildMessage({
-      reference: "(se asigna al preparar la consulta)", contactName: cart.contactName.trim() || undefined,
+      reference: "(se asigna al preparar la consulta)", contactName: normalizeName(cart.contactName) || undefined,
       lines: okLines.map((v) => ({ quantity: v.item.quantity, title: v.line!.product!.title, language: v.line!.product!.language, sku: v.line!.product!.sku, unitPriceMinor: v.item.mode === "encargo" ? null : unitOf(v) })),
       subtotalMinor: subtotal, discountMinor: discount, delivery: method, paymentLabel: paymentMethods.find((p) => p.id === cart.payment)?.label ?? "",
     });
     if (!parsed?.success) text = text.replace(/Entrega: .*/, "Entrega: (completá los datos de entrega)");
+    if (!cart.payment) text = text.replace(/Método de pago: .*/, "Método de pago: (elegí cómo preferís pagar)");
     return text;
   })();
 
   const canContinue = cart.items.length > 0 && !verifying && blocking.length === 0 && !loadError && !submitting;
+  const scrollToError = () => {
+    const id = errors.contactName ? "contactName" : errors.method || !deliveryOk ? "entrega" : "pago-title";
+    const el = document.getElementById(id);
+    el?.scrollIntoView({ block: "center" });
+    if (el instanceof HTMLInputElement) el.focus({ preventScroll: true });
+  };
 
   const renderLine = ({ item, line }: (typeof view)[number]) => {
     const porEncargo = item.mode === "encargo";
@@ -196,7 +156,7 @@ export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }
     return (
       <li key={item.productId} className="py-4" data-testid={`linea-${item.productId}`}>
         <div className="grid grid-cols-[84px_1fr] gap-3 sm:grid-cols-[96px_1fr_auto] sm:gap-4">
-          <div className={`flex aspect-square items-center justify-center overflow-hidden ${line?.product ? (line.product.imageSrc ? "bg-white" : toneBg[line.product.fallbackTone]) : "bg-ink/10"}`}>{line && <Thumb line={line} />}</div>
+          <div className={`flex aspect-square items-center justify-center overflow-hidden ${line?.product ? (line.product.imageSrc ? "bg-white" : toneBg[line.product.fallbackTone]) : "bg-ink/10"}`}>{line ? <Thumb line={line} /> : item.imageSrc ? <Image src={item.imageSrc} alt="" width={160} height={160} className="h-full w-full object-contain" /> : null}</div>
           <div className="min-w-0">
             {line?.product ? (
               <>
@@ -204,7 +164,7 @@ export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }
                 <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-ink/65"><LanguageBadge language={line.product.language} size="plain" /> · {kindLabel[line.product.kind]} sellado · SKU {line.product.sku}</p>
               </>
             ) : (
-              <p className="font-bold">{line ? "Producto ya no disponible" : "Cargando…"}</p>
+              <p className="font-bold">{line ? "Producto ya no disponible" : item.title ?? "Cargando…"}</p>
             )}
             <p className="mt-1 text-sm">
               {porEncargo ? <b data-testid={`cotizacion-${item.productId}`}>Cotización a confirmar</b> : (
@@ -257,12 +217,12 @@ export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }
     setSubmitError("");
     setServerFieldErrors({});
     if (!canContinue) return;
-    if (!parsed?.success) {
-      document.getElementById("entrega")?.scrollIntoView({ block: "start" });
+    if (!parsed?.success || !formOk) {
+      scrollToError();
       return;
     }
     const itemsPayload = cart.items.map((i) => ({ productId: i.productId, quantity: i.quantity, mode: i.mode, ...(i.mode === "buy" ? { expectedPriceMinor: i.priceMinor } : {}) }));
-    const sig = JSON.stringify([[...itemsPayload].sort((a, b) => a.productId.localeCompare(b.productId)).map((i) => [i.productId, i.quantity, i.mode]), parsed.data, cart.payment, cart.contactName.trim()]);
+    const sig = JSON.stringify([[...itemsPayload].sort((a, b) => a.productId.localeCompare(b.productId)).map((i) => [i.productId, i.quantity, i.mode]), parsed.data, cart.payment, normalizeName(cart.contactName)]);
     // Misma clave mientras el contenido no cambie; si cambia, clave nueva.
     const key = cart.idem?.sig === sig ? cart.idem.key : crypto.randomUUID().replace(/-/g, "");
     if (cart.idem?.sig !== sig) cartActions.setIdempotency({ sig, key });
@@ -270,7 +230,7 @@ export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }
     try {
       const res = await fetch("/api/inquiries", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items: itemsPayload, delivery: parsed.data, payment: cart.payment, contactName: cart.contactName.trim() || undefined, idempotencyKey: key }),
+        body: JSON.stringify({ items: itemsPayload, delivery: parsed.data, payment: cart.payment, contactName: normalizeName(cart.contactName), idempotencyKey: key }),
       });
       const data = await res.json().catch(() => null);
       if (res.ok && data?.reference) {
@@ -283,7 +243,7 @@ export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }
         for (const d of err.details as Array<{ path: string; message: string }>) fe[d.path.split(".")[1] ?? d.path] ??= d.message;
         setServerFieldErrors(fe);
       }
-      if (["price_changed", "pending_commercial", "out_of_stock", "unavailable", "retired", "over_limit", "promo_not_eligible"].includes(err?.code)) setRetry((n) => n + 1);
+      if (["price_changed", "pending_commercial", "out_of_stock", "unavailable", "retired", "over_limit", "promo_not_eligible"].includes(err?.code)) validation.retry();
       setSubmitError(err?.message ?? "No pudimos preparar tu consulta. Intentá de nuevo.");
     } catch {
       setSubmitError("No pudimos conectarnos. Tu consulta no se guardó: revisá tu conexión e intentá de nuevo.");
@@ -312,13 +272,13 @@ export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }
         {notices.length > 0 && (
           <div role="status" className="border-l-4 border-emerald bg-emerald/10 p-4 text-sm">
             {notices.map((n, i) => <p key={i}>{n}</p>)}
-            <button type="button" onClick={() => setNotices([])} className="mt-2 font-semibold underline">Entendido</button>
+            <button type="button" onClick={validation.clearNotices} className="mt-2 font-semibold underline">Entendido</button>
           </div>
         )}
         {loadError && (
           <div role="alert" className="border-l-4 border-vermilion bg-vermilion/10 p-4 text-sm">
             <p>{loadError} No podemos continuar hasta verificar tu pedido.</p>
-            <button type="button" onClick={() => setRetry((n) => n + 1)} className="mt-2 font-semibold underline">Reintentar</button>
+            <button type="button" onClick={validation.retry} className="mt-2 font-semibold underline">Reintentar</button>
           </div>
         )}
 
@@ -347,13 +307,18 @@ export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }
 
         <section id="entrega" aria-labelledby="entrega-title" className="scroll-mt-4 border border-ink/25 bg-white/70 p-4 sm:p-6">
           <h2 id="entrega-title" className="display text-3xl normal-case">¿Cómo lo recibís?</h2>
-          <fieldset className="mt-4" aria-describedby={show("method") ? "err-method" : undefined}>
+          <div className="mt-4 max-w-sm">
+            <label htmlFor="contactName" className={label}>Nombre y apellido <span className="text-vermilion" aria-hidden="true">*</span></label>
+            <input id="contactName" name="contactName" required aria-required="true" autoComplete="name" maxLength={60} value={cart.contactName} onChange={(e) => { cartActions.setContactName(e.target.value); setServerFieldErrors(({ contactName: _drop, ...rest }) => { void _drop; return rest; }); }} onBlur={() => touch("contactName")} aria-invalid={Boolean(show("contactName"))} aria-describedby={show("contactName") ? "err-contactName" : "ayuda-contactName"} className={field} />
+            {show("contactName") ? <p id="err-contactName" role="alert" className="mt-1 text-sm font-semibold text-vermilion">{errors.contactName}</p> : <p id="ayuda-contactName" className="mt-1 text-xs text-ink/65">Obligatorio, también si retirás. Lo usamos para identificar tu pedido.</p>}
+          </div>
+          <fieldset className="mt-5" aria-describedby={show("method") ? "err-method" : undefined}>
             <legend className="sr-only">Modalidad de entrega</legend>
             <div className="grid gap-3 sm:grid-cols-3">
               {([
                 ["andreani", "Andreani", "Envío a todo el país. Costo y plazo a coordinar."],
                 ["moto", "Moto — CABA y AMBA", "Cobertura a confirmar por WhatsApp."],
-                ["retiro", "Retiro — Ramos Mejía / Haedo", "Día y horario a coordinar por WhatsApp."],
+                ["retiro", "Retiro", "Av. Rivadavia 14600. Horario y dirección exacta por WhatsApp."],
               ] as const).map(([id, title, hint]) => (
                 <label key={id} className={`flex min-h-20 cursor-pointer gap-3 border p-3 text-sm ${delivery.method === id ? "border-ink bg-gold/30" : "border-ink/30 bg-white hover:border-ink"}`}>
                   <input type="radio" name="entrega" value={id} checked={delivery.method === id} onChange={() => { cartActions.setDelivery({ method: id }); setServerFieldErrors({}); touch("method"); }} className="mt-1 h-5 w-5 accent-[#0b4032]" />
@@ -384,21 +349,8 @@ export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }
             </div>
           )}
           {delivery.method === "retiro" && (
-            <div className="mt-5 max-w-sm">
-              <Field id="pickupPoint" label="Punto de retiro" error={show("pickupPoint") ? errors.pickupPoint : undefined}>
-                <select id="pickupPoint" value={delivery.pickupPoint} onChange={(e) => cartActions.setDelivery({ pickupPoint: e.target.value })} onBlur={() => touch("pickupPoint")} aria-invalid={Boolean(show("pickupPoint"))} aria-describedby={show("pickupPoint") ? "err-pickupPoint" : undefined} className={field}>
-                  <option value="">Elegí un punto</option>
-                  {pickupPoints.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
-                </select>
-              </Field>
-              <p className="mt-2 text-xs text-ink/65">La dirección y el horario exactos se acuerdan por WhatsApp.</p>
-            </div>
+            <p className="mt-5 max-w-xl border-l-4 border-emerald bg-emerald/10 p-3 text-sm font-semibold" data-testid="aviso-retiro" role="note">{PICKUP_NOTICE}</p>
           )}
-
-          <div className="mt-6 max-w-sm border-t border-ink/15 pt-4">
-            <label htmlFor="contactName" className={label}>Tu nombre (opcional)</label>
-            <input id="contactName" autoComplete="name" maxLength={60} value={cart.contactName} onChange={(e) => cartActions.setContactName(e.target.value)} className={field} />
-          </div>
         </section>
 
         <section aria-labelledby="pago-title" className="border border-ink/25 bg-white/70 p-4 sm:p-6">
@@ -408,17 +360,19 @@ export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }
               ? `Tu pedido incluye una caja: podés elegir ${promo.installments} cuotas sin interés o ${promo.transferDiscountPercent}% OFF por transferencia (alternativas, no se acumulan).`
               : `${promo.installments} cuotas sin interés o ${promo.transferDiscountPercent}% OFF por transferencia: para ${PROMO_CONDITION}. Con sobres solos o con productos por encargo no aplican.`}
           </p>
-          <div className="mt-4 space-y-2">
+          <fieldset className="mt-4 space-y-2" aria-describedby={show("payment") ? "err-payment" : undefined}>
+            <legend className="sr-only">Método de pago</legend>
             {paymentMethods.map((m) => {
               const locked = isPromoPayment(m.id) && !qualifies;
               return (
                 <label key={m.id} className={`flex min-h-12 items-center gap-3 border p-3 text-sm ${locked ? "cursor-not-allowed border-ink/20 bg-ink/5 text-ink/55" : `cursor-pointer ${cart.payment === m.id ? "border-ink bg-gold/30" : "border-ink/30 bg-white"}`}`}>
-                  <input type="radio" name="pago" value={m.id} checked={cart.payment === m.id} disabled={locked} onChange={() => cartActions.setPayment(m.id)} className="h-5 w-5 accent-[#0b4032]" />
+                  <input type="radio" name="pago" value={m.id} checked={cart.payment === m.id} disabled={locked} onChange={() => { cartActions.setPayment(m.id); touch("payment"); }} className="h-5 w-5 accent-[#0b4032]" />
                   <span><b>{m.label}</b>{locked && <span className="block text-xs font-normal">Disponible al sumar una caja a tu pedido.</span>}</span>
                 </label>
               );
             })}
-          </div>
+            {show("payment") && <p id="err-payment" role="alert" className="text-sm font-semibold text-vermilion">{errors.payment}</p>}
+          </fieldset>
           <p className="mt-2 text-xs text-ink/65">El pago se acuerda con la tienda en el chat. No se cobra nada en esta web ni te pedimos datos bancarios.</p>
         </section>
         <p className="text-sm">¿Ya tenés cuenta? <Link href="/cuenta" className="font-semibold underline">Iniciá sesión</Link> (opcional: podés consultar como invitado).</p>
@@ -455,8 +409,9 @@ export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }
             </div>
           )}
           <dl className="mt-3 space-y-1 border-t border-ink/15 pt-3 text-sm">
-            <div className="flex justify-between gap-3"><dt className="text-ink/65">Entrega</dt><dd className="text-right font-semibold">{delivery.method === "andreani" ? "Andreani" : delivery.method === "moto" ? "Moto CABA/AMBA" : delivery.method === "retiro" ? "Retiro" : "Sin elegir"}</dd></div>
-            <div className="flex justify-between gap-3"><dt className="text-ink/65">Pago</dt><dd className="text-right font-semibold">{paymentMethods.find((p) => p.id === cart.payment)?.label}</dd></div>
+            <div className="flex justify-between gap-3"><dt className="text-ink/65">Nombre y apellido</dt><dd className="text-right font-semibold" data-testid="resumen-nombre">{normalizeName(cart.contactName) || "Falta completar"}</dd></div>
+            <div className="flex justify-between gap-3"><dt className="text-ink/65">Entrega</dt><dd className="text-right font-semibold" data-testid="resumen-entrega">{delivery.method === "andreani" ? "Andreani" : delivery.method === "moto" ? "Moto CABA/AMBA" : delivery.method === "retiro" ? `Retiro en ${PICKUP_ADDRESS}` : "Sin elegir"}</dd></div>
+            <div className="flex justify-between gap-3"><dt className="text-ink/65">Pago</dt><dd className="text-right font-semibold" data-testid="resumen-pago">{paymentMethods.find((p) => p.id === cart.payment)?.label ?? "Sin elegir"}</dd></div>
           </dl>
 
           {blocking.length > 0 && <p role="alert" className="mt-4 text-sm font-semibold text-vermilion">Resolvé los avisos del carrito para continuar.</p>}
@@ -464,7 +419,7 @@ export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }
           <button type="button" onClick={submit} disabled={!canContinue} aria-describedby="cta-nota" className="mt-5 flex min-h-14 w-full items-center justify-center gap-2 bg-emerald px-6 text-lg font-bold text-paper hover:bg-emerald-2 disabled:cursor-not-allowed disabled:opacity-50">
             {submitting ? "Preparando tu consulta…" : stockView.length === 0 && encargoView.length > 0 ? "Consultar por encargo por WhatsApp" : "Continuar por WhatsApp"}
           </button>
-          {attempted && !deliveryOk && canContinue && <p role="alert" className="mt-2 text-sm font-semibold text-vermilion">Completá los datos de entrega para continuar.</p>}
+          {attempted && !formOk && canContinue && <p role="alert" className="mt-2 text-sm font-semibold text-vermilion" data-testid="faltan-datos">{errors.contactName ? "Completá tu nombre y apellido para continuar." : errors.payment && deliveryOk ? "Elegí cómo preferís pagar para continuar." : "Completá los datos de entrega para continuar."}</p>}
           <p id="cta-nota" className="mt-3 text-center text-sm">
             {whatsappConfigured ? "Se abrirá el chat con tu pedido listo. Solo tenés que enviarlo." : "Modo demostración: se prepara tu consulta y verás el mensaje para copiarlo; todavía no hay un chat configurado."}
           </p>

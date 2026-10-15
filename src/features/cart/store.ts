@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { paymentMethods } from "@/content/checkout-options";
 
 /**
  * Carrito del navegador (localStorage). Guarda SOLO ids, cantidades y el precio que el cliente vio (para poder avisar
@@ -8,11 +9,13 @@ import { useSyncExternalStore } from "react";
  */
 /** `mode`: buy = compra de lo disponible · encargo = consulta por encargo (sin precio ni cotización; el servidor decide). */
 export type CartMode = "buy" | "encargo";
-export type CartItem = { productId: string; quantity: number; priceMinor: number; mode: CartMode };
-export type DeliveryDraft = { method: "" | "andreani" | "moto" | "retiro"; locality: string; province: string; postalCode: string; pickupPoint: string };
+/** `title` e `imageSrc` son solo para mostrar el panel lateral al instante (sin esperar al servidor); nunca se usan para calcular nada. */
+export type CartItem = { productId: string; quantity: number; priceMinor: number; mode: CartMode; title?: string; imageSrc?: string | null };
+export type DeliveryDraft = { method: "" | "andreani" | "moto" | "retiro"; locality: string; province: string; postalCode: string };
 export type CartState = {
   items: CartItem[];
   delivery: DeliveryDraft;
+  /** Método de pago elegido; vacío = todavía no eligió uno vigente (también el caso de un carrito viejo con una opción que ya no existe). */
   payment: string;
   contactName: string;
   /** Clave de idempotencia vigente y la huella del contenido al que pertenece. */
@@ -22,8 +25,9 @@ export type CartState = {
 };
 
 const KEY = "tienda-carrito-v1";
-const emptyDelivery: DeliveryDraft = { method: "", locality: "", province: "", postalCode: "", pickupPoint: "" };
-const empty: CartState = { items: [], delivery: emptyDelivery, payment: "coordinar", contactName: "", idem: null, lastAdded: null };
+const emptyDelivery: DeliveryDraft = { method: "", locality: "", province: "", postalCode: "" };
+const empty: CartState = { items: [], delivery: emptyDelivery, payment: "", contactName: "", idem: null, lastAdded: null };
+const validPayments: string[] = paymentMethods.map((p) => p.id);
 
 let state: CartState = empty;
 let loaded = false;
@@ -44,7 +48,7 @@ function sanitize(raw: unknown): CartState {
       const p = int(o?.priceMinor, 0, 1_000_000_000);
       if (typeof o?.productId === "string" && o.productId.length <= 80 && q !== null && p !== null && !seen.has(o.productId)) {
         seen.add(o.productId);
-        items.push({ productId: o.productId, quantity: q, priceMinor: p, mode: o.mode === "encargo" ? "encargo" : "buy" });
+        items.push({ productId: o.productId, quantity: q, priceMinor: p, mode: o.mode === "encargo" ? "encargo" : "buy", ...(typeof o.title === "string" && o.title ? { title: o.title.slice(0, 160) } : {}), ...(typeof o.imageSrc === "string" && o.imageSrc.startsWith("/") && o.imageSrc.length <= 300 ? { imageSrc: o.imageSrc } : {}) });
       }
     }
   }
@@ -54,8 +58,9 @@ function sanitize(raw: unknown): CartState {
   const idem = r.idem as { sig?: unknown; key?: unknown } | null;
   return {
     items,
-    delivery: { method, locality: str(d.locality), province: str(d.province), postalCode: str(d.postalCode, 12), pickupPoint: str(d.pickupPoint, 30) },
-    payment: str(r.payment, 30) || "coordinar",
+    delivery: { method, locality: str(d.locality), province: str(d.province), postalCode: str(d.postalCode, 12) },
+    // Un método que ya no existe (p. ej. «coordinar» de un carrito viejo) no se conserva: hay que elegir uno vigente.
+    payment: validPayments.includes(str(r.payment, 30)) ? str(r.payment, 30) : "",
     contactName: str(r.contactName, 60),
     idem: idem && typeof idem.sig === "string" && typeof idem.key === "string" ? { sig: idem.sig, key: idem.key } : null,
     lastAdded: null,
@@ -98,17 +103,60 @@ function commit(next: CartState) {
   emit();
 }
 
+/**
+ * Panel lateral del carrito (no se guarda: arranca cerrado). Comparte el estado de `cartActions` con el pedido (/carrito): es la misma lista, no una copia.
+ * Al abrir recuerda qué elemento tenía el foco para devolvérselo al cerrar.
+ */
+let drawerOpen = false;
+let returnFocusTo: HTMLElement | null = null;
+const drawerListeners = new Set<() => void>();
+export const cartDrawer = {
+  open() {
+    if (drawerOpen) return;
+    if (typeof document !== "undefined") {
+      const a = document.activeElement;
+      returnFocusTo = a instanceof HTMLElement && a !== document.body ? a : null;
+    }
+    drawerOpen = true;
+    drawerListeners.forEach((l) => l());
+  },
+  close() {
+    if (!drawerOpen) return;
+    drawerOpen = false;
+    drawerListeners.forEach((l) => l());
+  },
+  /** Elemento al que corresponde devolver el foco (una sola vez). */
+  takeReturnFocus(): HTMLElement | null {
+    const el = returnFocusTo;
+    returnFocusTo = null;
+    return el;
+  },
+};
+export function useCartDrawerOpen(): boolean {
+  return useSyncExternalStore(
+    (cb) => {
+      drawerListeners.add(cb);
+      return () => drawerListeners.delete(cb);
+    },
+    () => drawerOpen,
+    () => false,
+  );
+}
+
 export const cartActions = {
   /** Suma al carrito sin duplicar líneas; respeta `max` (stock/límite por pedido). Devuelve cuántas unidades quedaron. */
-  add(productId: string, title: string, quantity: number, priceMinor: number, max = 99, mode: CartMode = "buy") {
+  add(productId: string, title: string, quantity: number, priceMinor: number, max = 99, mode: CartMode = "buy", imageSrc?: string | null) {
     load();
     const q = Math.max(1, Math.floor(quantity));
     const cur = state.items.find((i) => i.productId === productId);
     // Un producto es una sola línea: si ya estaba con otro modo, pasa al nuevo y la cantidad previa se conserva solo si es del mismo modo.
     const base = cur && cur.mode === mode ? cur.quantity : 0;
     const nextQty = Math.min(max, base + q);
-    const items = cur ? state.items.map((i) => (i.productId === productId ? { ...i, quantity: nextQty, priceMinor, mode } : i)) : [...state.items, { productId, quantity: nextQty, priceMinor, mode }];
+    const shown = { title: title.slice(0, 160), ...(imageSrc && imageSrc.startsWith("/") && imageSrc.length <= 300 ? { imageSrc } : {}) };
+    const items = cur ? state.items.map((i) => (i.productId === productId ? { ...i, quantity: nextQty, priceMinor, mode, ...shown } : i)) : [...state.items, { productId, quantity: nextQty, priceMinor, mode, ...shown }];
     commit({ ...state, items, lastAdded: { title, quantity: nextQty - base, seq: (state.lastAdded?.seq ?? 0) + 1, mode } });
+    // Se abre el panel lateral solo si realmente se sumó algo (si ya estaba en el máximo no pasó nada nuevo).
+    if (nextQty - base > 0) cartDrawer.open();
     return { quantity: nextQty, clamped: base + q > max };
   },
   /** Pasa una línea a compra o a consulta por encargo (p. ej. un producto que quedó sin precio o sin stock). */

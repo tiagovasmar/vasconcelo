@@ -4,7 +4,7 @@ import "./globals.css";
 import { store } from "@/content/store";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
-import { CartToast } from "@/components/cart-widgets";
+import { CartDrawer } from "@/components/cart-drawer";
 import { AccountProvider } from "@/components/account-provider";
 import { HydrationMarker } from "@/components/hydration-marker";
 
@@ -35,7 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Header />
           <main id="principal">{children}</main>
           <Footer />
-          <CartToast />
+          <CartDrawer />
         </AccountProvider>
       </body>
     </html>

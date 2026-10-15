@@ -117,9 +117,9 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
             <PricePerBooster product={product} className="mt-3" />
             <StockBadge product={product} size="page" className="mt-1.5 sm:mt-2" />
             <PaymentBenefits kind={product.kind} />
-            <AddToCartPanel productId={product.id} title={product.title} priceMinor={product.priceMinor ?? 0} max={maxFor(product)} state={state} stockKnown={isInStock(product)} orderOnly={Boolean(product.orderOnly)} />
+            <AddToCartPanel productId={product.id} title={product.title} imageSrc={product.images[0] && hasAsset(product.images[0].src) ? product.images[0].src : null} priceMinor={product.priceMinor ?? 0} max={maxFor(product)} state={state} stockKnown={isInStock(product)} orderOnly={Boolean(product.orderOnly)} />
             <FavoriteButton productId={product.id} title={product.title} withLabel className="mt-2 min-h-11 sm:mt-3 border border-ink/40 bg-white px-4 text-sm font-semibold hover:bg-gold" />
-            <p className="mt-3 text-sm text-ink/80 sm:mt-4" data-testid="entrega"><b>Entrega:</b> Andreani · moto en CABA y AMBA · retiro en Ramos Mejía o Haedo. Costo y horario por WhatsApp.</p>
+            <p className="mt-3 text-sm text-ink/80 sm:mt-4" data-testid="entrega"><b>Entrega:</b> Andreani · moto en CABA y AMBA · retiro en Av. Rivadavia 14600. Costo, horario y dirección exacta de retiro por WhatsApp.</p>
 
             <GarantiasResumen product={product} guarantees={guarantees} rates={rates} sources={sources} />
             {product.language === "zh" && <p className="mt-3 text-xs text-ink/70">Edición en chino simplificado: no equivale a las ediciones japonesas ni a las internacionales.</p>}

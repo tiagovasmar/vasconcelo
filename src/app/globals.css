@@ -123,8 +123,13 @@ a.panel-cut:focus-visible > .panel-cut-in { outline: 3px solid var(--color-emera
 /* Fondo sutil de las fotos de producto (reemplaza el blanco plano): crema con luz suave en el centro. */
 .tile-soft { background: radial-gradient(ellipse at 50% 42%, #fdfcf7 0%, #efe9d9 62%, #e3dcc7 100%); }
 
-/* Aviso «Agregaste…»: sube sobre la barra fija inferior del celular (ficha y carrito) para no taparla. */
-@media (max-width: 1023px) { body[data-barra-inferior] .cart-toast { bottom: 4.75rem; } }
+/* Panel lateral del carrito: mientras está abierto el fondo no se desplaza. Entra deslizándose (sin movimiento si la persona lo pidió). */
+html[data-cart-drawer] { overflow: hidden; }
+@keyframes drawer-in { from { transform: translateX(100%); } to { transform: none; } }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+.cart-drawer-panel { animation: drawer-in .22s cubic-bezier(.2,.7,.2,1) both; }
+.cart-drawer-backdrop { animation: fade-in .2s ease-out both; }
+@media (prefers-reduced-motion: reduce) { .cart-drawer-panel, .cart-drawer-backdrop { animation: none; } }
 
 /* Campos de formulario en móvil: al menos 16 px (iOS hace zoom automático al enfocar un campo menor y desplaza la página). */
 @media (max-width: 639px) {
