@@ -51,6 +51,8 @@ export async function createBackup(opts: { url: string; dir: string; store?: Pho
       migrationsApplied = Number((mig as unknown as Array<{ n: number }>)[0]?.n ?? 0);
       for (const spec of dataTables(opts.withVolatile)) {
         const cols = await columnsOf(tx as unknown as postgres.Sql, spec.name);
+        // Una tabla opcional (agregada en una migración posterior) que todavía no existe se omite: así se puede respaldar una base antes de migrarla.
+        if (!cols.length && spec.optional) continue;
         if (!cols.length) throw new Error(`Falta la tabla ${spec.name}: ¿se aplicaron las migraciones (npm run db:migrate)?`);
         const rows = await readTable(tx as unknown as postgres.Sql, spec.name);
         fs.writeFileSync(path.join(dest, "data", `${spec.name}.ndjson`), rows.map((r) => JSON.stringify(toJsonRow(r))).join("\n") + (rows.length ? "\n" : ""));
