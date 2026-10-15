@@ -8,7 +8,7 @@ import { cartActions, cartCount, cartDrawer, useCart, type CartItem } from "@/fe
 import { useCartValidation, type ServerLine } from "@/features/cart/validation";
 import { formatARS } from "@/lib/format";
 import { LanguageBadge } from "./language-badge";
-import { kindLabel } from "@/content/schema";
+import { kindLabel } from "@/content/labels";
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 

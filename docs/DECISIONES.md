@@ -103,3 +103,12 @@
 - **Correo**: API HTTP de Resend/Brevo; sin proveedor, registro público deshabilitado (503) y el administrador ingresa con `npm run admin:crear` o su cuenta migrada.
 - **Respaldo**: carpeta con NDJSON por tabla + fotos + manifiesto con huellas (no `pg_dump`: no hay garantía de que esté instalado y no cubre Storage); lectura en una transacción REPEATABLE READ.
 - **Lint**: `no-floating-promises` en `src/` y `scripts/` (ya detectó dos `await` omitidos).
+
+## Tanda 7 (15/10/2026)
+- **Base de desarrollo separada:** PostgreSQL real y local (`embedded-postgres`, `npm run dev:db`) en vez de un segundo proyecto de Supabase: no usa red ni credenciales, es descartable y reproduce el motor de producción. `ENTORNO_LOCAL=1` hace que `createDb` rechace cualquier host que no sea local. Los scripts de siembra (`dev:datos`, `dev:admin`) se niegan a correr contra una base remota.
+- **Panel lateral con carga diferida:** la cáscara vive en el layout y el panel completo se descarga en un tiempo libre (o al acercarse al ícono), para no sumar peso a la primera carga.
+- **Una sola validación con el servidor** para panel y pedido (módulo con caché por contenido del carrito): evita pedidos repetidos y garantiza que ambos muestren lo mismo.
+- **Ventas inmutables + anulación** (en lugar de editar/borrar): es la forma de que el stock no quede inconsistente; los disparadores de la base lo hacen cumplir aunque falle la aplicación.
+- **Precio de venta en pesos enteros**, editable; no se aplican descuentos automáticos en ventas manuales (el dueño escribe lo cobrado).
+- **Nombre y apellido:** al menos dos palabras, solo letras, espacios, apóstrofes, puntos y guiones (una persona con un solo nombre tendría que agregar algo; decisión a revisar).
+- **Avatar de «Mi cuenta»:** dibujo original en SVG; no se usó arte de Pikachu por no haber un recurso con permiso en el proyecto.

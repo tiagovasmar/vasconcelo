@@ -18,7 +18,7 @@ No existe una credencial compartida, contraseña pública ni cuenta administrado
 
 ## Menú
 
-**Productos** (lista y edición rápida) · **Cotización** (dólar blue) · **Mayoristas** (solo lectura) · **Historial de cambios**.
+**Productos** (lista y edición rápida) · **Ventas** (registro de ventas, anulaciones y movimientos de stock: ver [VENTAS-Y-STOCK.md](VENTAS-Y-STOCK.md)) · **Cotización** (dólar blue) · **Mayoristas** (solo lectura) · **Historial de cambios**.
 
 ## Lista de productos (`/admin`)
 

@@ -104,6 +104,8 @@ async function medirCarga(browser, perfilNombre, prof, [nombre, ruta, opts = {}]
 const eventoMax = (page, desde) => page.evaluate((d) => Math.max(0, ...window.__m.ev.filter(([n, s]) => s >= d && ["click", "pointerdown", "pointerup", "mousedown", "mouseup", "keydown", "keyup"].includes(n)).map(([, , dur]) => dur)), desde);
 const ahora = (page) => page.evaluate(() => performance.now());
 
+const esPanelOMarco = (a, b) => a || b;
+
 async function esperarHidratada(page) {
   await page.locator("html[data-hydrated='true']").waitFor({ timeout: 60000 });
   await page.waitForTimeout(600);
@@ -126,6 +128,8 @@ async function medirInteracciones(browser, perfilNombre, prof) {
       await btn.click();
       await page.locator('[data-testid="cart-count"]').waitFor({ timeout: 30000 });
       guardar("agregar desde tarjeta · contador visible ms", Date.now() - t0);
+      const marco = await page.locator('[data-testid="cart-drawer"], [data-testid="cart-drawer-cargando"]').first().waitFor({ state: "visible", timeout: 4000 }).then(() => true).catch(() => false);
+      if (marco) guardar("agregar desde tarjeta · primer feedback del panel (marco o contenido) ms", Date.now() - t0);
       const drawer = await page.locator('[data-testid="cart-drawer"]').first().waitFor({ state: "visible", timeout: 4000 }).then(() => true).catch(() => false);
       if (drawer) guardar("agregar desde tarjeta · panel lateral visible ms", Date.now() - t0);
       await page.waitForTimeout(500);
@@ -142,7 +146,10 @@ async function medirInteracciones(browser, perfilNombre, prof) {
       await page.getByRole("link", { name: /^Carrito/ }).or(page.getByRole("button", { name: /^Carrito/ })).first().click();
       // Lo primero que aparezca: el panel lateral (después) o la página /carrito (antes).
       const drawer = page.locator('[data-testid="cart-drawer"]');
-      await drawer.or(page.locator('[data-testid^="linea-"]').first()).first().waitFor({ state: "visible", timeout: 60000 });
+      await drawer.or(page.locator('[data-testid="cart-drawer-cargando"]')).or(page.locator('[data-testid^="linea-"]').first()).first().waitFor({ state: "visible", timeout: 60000 });
+      const marcoVisible = await page.locator('[data-testid="cart-drawer-cargando"]').isVisible();
+      if (esPanelOMarco(await drawer.isVisible(), marcoVisible)) guardar("abrir carrito · primer feedback del panel ms", Date.now() - t0);
+      if (marcoVisible) await drawer.waitFor({ state: "visible", timeout: 30000 });
       const esPanel = await drawer.isVisible();
       if (esPanel) {
         await page.locator('[data-testid="cart-drawer"] [data-testid^="drawer-linea-"]').first().waitFor({ timeout: 30000 });

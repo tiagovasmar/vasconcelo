@@ -1,4 +1,5 @@
-import { languageLabel, type Language } from "@/content/schema";
+import { languageLabel } from "@/content/labels";
+import type { Language } from "@/content/schema";
 
 /** Banderas pequeñas en SVG propio (los emojis de bandera se ven como letras en Windows). Decorativas: el texto identifica el idioma. */
 const flags: Partial<Record<Language, React.ReactNode>> = {

@@ -50,6 +50,8 @@ export function AddToCartIcon({ productId, title, imageSrc, priceMinor, max, sta
     return (
       <button
         type="button"
+        onPointerDown={preloadCartDrawer}
+        onFocus={preloadCartDrawer}
         onClick={() => cartActions.add(productId, title, 1, 0, ENCARGO_MAX, "encargo", imageSrc)}
         aria-label={`Consultar por encargo: ${title}${queued ? " (ya está en tu consulta; suma una unidad)" : ""}`}
         title="Consultar por encargo: la disponibilidad y la cotización se confirman con la tienda"
@@ -64,6 +66,8 @@ export function AddToCartIcon({ productId, title, imageSrc, priceMinor, max, sta
     <button
       type="button"
       disabled={atLimit}
+      onPointerDown={preloadCartDrawer}
+      onFocus={preloadCartDrawer}
       onClick={() => cartActions.add(productId, title, 1, priceMinor, max, "buy", imageSrc)}
       aria-label={atLimit ? `${title}: ya tenés el máximo en el carrito` : `Agregar ${title} al carrito`}
       className="flex h-11 w-11 shrink-0 items-center justify-center bg-ink text-paper hover:bg-emerald disabled:cursor-not-allowed disabled:opacity-50 sm:h-12 sm:w-12"
@@ -126,7 +130,7 @@ export function AddToCartPanel({ productId, title, imageSrc, priceMinor, max, st
           <output className="w-7 text-center font-bold" aria-label="Cantidad elegida">{q}</output>
           <button type="button" onClick={() => setQty(Math.min(room, q + 1))} disabled={q >= room} aria-label="Subir cantidad" className="h-11 w-10 text-xl disabled:opacity-40">+</button>
         </div>
-        <button type="button" disabled={room === 0} onClick={add} aria-label={room === 0 ? "Máximo en el carrito" : `Sumar ${q} al pedido`} className="h-11 bg-ink px-4 text-sm font-bold text-paper hover:bg-emerald disabled:cursor-not-allowed disabled:opacity-50">
+        <button type="button" disabled={room === 0} onPointerDown={preloadCartDrawer} onClick={add} aria-label={room === 0 ? "Máximo en el carrito" : `Sumar ${q} al pedido`} className="h-11 bg-ink px-4 text-sm font-bold text-paper hover:bg-emerald disabled:cursor-not-allowed disabled:opacity-50">
           {room === 0 ? "Máximo" : "Agregar"}
         </button>
       </BottomBar>
@@ -139,6 +143,8 @@ export function AddToCartPanel({ productId, title, imageSrc, priceMinor, max, st
         <button
           type="button"
           disabled={room === 0}
+          onPointerDown={preloadCartDrawer}
+          onFocus={preloadCartDrawer}
           onClick={add}
           className="h-14 flex-1 bg-ink px-6 font-bold text-paper hover:bg-emerald disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
         >
@@ -193,6 +199,7 @@ function EncargoPanel({ productId, title, imageSrc, pending, stockKnown, orderOn
           type="button"
           disabled={room === 0}
           data-testid="consultar-encargo"
+          onPointerDown={preloadCartDrawer}
           onClick={addEncargo}
           className="h-14 flex-1 bg-ink px-6 font-bold text-paper hover:bg-emerald disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
         >

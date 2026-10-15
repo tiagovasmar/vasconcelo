@@ -13,7 +13,7 @@ import { encargo as politicaEncargo, promo } from "@/content/politicas";
 import { ENCARGO_EXPLICACION } from "@/features/politicas/encargos";
 import { isPromoPayment, PROMO_CONDITION, transferDiscountMinor } from "@/features/politicas/promociones";
 import { LanguageBadge } from "./language-badge";
-import { kindLabel, wideKinds } from "@/content/schema";
+import { kindLabel, wideKinds } from "@/content/labels";
 import { formatARS } from "@/lib/format";
 import { formatRate, splitInstallments } from "@/features/fx/convert";
 import { BoxArt, PackArt } from "./art";

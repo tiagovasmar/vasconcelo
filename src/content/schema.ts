@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+export { kindLabel, languageLabel, wideKinds } from "./labels";
+
 /** Esquemas del catálogo. Campos desconocidos quedan ausentes/nulos: nunca se rellenan con certezas ficticias. */
 
 /** Idiomas de edición. `zh` = chino simplificado (China continental); no se asigna a ediciones sin verificar. */
@@ -218,10 +220,6 @@ export type Catalog = {
   guarantees: Guarantee[];
 };
 
-export const languageLabel: Record<Language, string> = { ja: "Japonés", en: "Inglés", es: "Español", zh: "Chino simplificado" };
-export const kindLabel = { booster: "Sobre", pack: "Pack", box: "Caja", bundle: "Bundle", kit: "Kit de mazo", "special-box": "Caja especial", "illustration-set": "Set de ilustraciones" } as const;
 /** Valor del filtro `formato` en la URL para cada formato. */
 export const kindSlug = { booster: "sobre", pack: "pack", box: "caja", bundle: "bundle", kit: "kit", "special-box": "especial", "illustration-set": "ilustraciones" } as const satisfies Record<ProductKind, string>;
-/** Formatos que se dibujan con la caja ancha (ilustración de reserva y carrito). */
-export const wideKinds: readonly ProductKind[] = ["box", "bundle", "kit", "special-box", "illustration-set"];
 export type RarityReview = z.infer<typeof RarityReviewSchema>;

@@ -62,6 +62,9 @@ export const seedCart = async (page: Page, items = [{ productId: "storm-sobre", 
 };
 export async function prepareInquiry(page: Page) {
   await go(page, "/carrito");
+  // Espera a que lleguen los precios y se acomode la página (las líneas crecen al validar): así el toque no cae en un diseño que todavía se mueve.
+  await expect(page.getByTestId("vista-previa")).toContainText("Unitario");
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
   await page.getByRole("radio", { name: /Retiro/ }).check();
   await page.getByLabel(/Nombre y apellido/).fill("Ana Pérez");
   await page.getByRole("radio", { name: /Efectivo/ }).check();

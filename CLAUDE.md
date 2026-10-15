@@ -98,3 +98,14 @@ Antes de continuar, leer la última revisión en `docs/CAMBIOS-HOME-Y-PAGOS.md` 
 - El panel `/admin` ahora también edita **título, descripción, publicación, estado de stock (cantidad, desconocida, por encargo), fotos y cotización**; sigue sin alta de productos nuevos ni pagos. Seeds e importadores nunca pisan lo cargado en el panel. Ver `docs/ADMIN.md`.
 - Cada consulta guarda una **instantánea de cotización** y precio USD; esta tanda **no** implementa cotización de encargos (solo precios de catálogo).
 - **Portadas del aniversario** (solo fichas Vol.2 y Vol.3) y **ficha nueva de Bulbasaur como borrador sin confirmar**: el envase indica 9 tipos y 1 carta al azar; no se promete Bulbasaur hasta confirmarlo con el proveedor. No cambiar el banner ni las cartas destacadas del inicio.
+
+
+# Cambios de alcance del dueño (15/10/2026, séptimo lote; rama `feature/carrito-ventas-rendimiento`, NO publicada)
+
+- **Carrito lateral** (panel desde la derecha): se abre con el ícono y automáticamente al agregar (tarjetas y fichas); mismo estado que `/carrito`, una sola validación con el servidor (`src/features/cart/validation.ts`), foco/Escape/teclado, fondo bloqueado. Se retiró el aviso flotante «Agregaste…».
+- **Pedido:** «Nombre y apellido» obligatorio en todos los pedidos (también retiro), validado en el servidor. **Retiro único** en Av. Rivadavia 14600 con el aviso «Consultá por WhatsApp el horario…» (no inventar horarios ni afirmar que se puede retirar sin confirmación). **Se eliminó «Coordinar por WhatsApp»** como método de pago; quedan tarjeta 3 cuotas, transferencia y efectivo con las mismas reglas (caja mínima, 10% solo por transferencia, no acumulables). Un carrito viejo debe elegir un método vigente.
+- **WhatsApp:** subtotal y total en negrita (`*…*`), con nombre, entrega y método de pago; el envío sigue «a coordinar».
+- **Admin → Ventas** (`docs/VENTAS-Y-STOCK.md`): ventas manuales con descuento atómico de stock, anulaciones, historial inmutable de movimientos (entradas/ventas/ajustes/anulaciones). Una consulta o un carrito nunca descuentan stock. **Requiere aplicar la migración 0001 en la base real antes de publicar.**
+- **Mi cuenta:** avatar original (persona + rayo) hecho para la tienda; no hay imagen de Pikachu con permiso en el proyecto: no se reprodujo el personaje.
+- **Mayoristas: PENDIENTE.** El dueño quiere cambiar esa sección pero todavía no definió qué. No tocarla ni resolver compra mínima, acumulación de descuentos ni aprobación de cuentas hasta recibir instrucciones.
+- **Entornos:** `.env.local` apunta a la base de desarrollo local (`npm run dev:db`, PostgreSQL embebido en `.local/dev-pg`, con `ENTORNO_LOCAL=1`, que impide conectarse a servidores remotos). Las credenciales reales están respaldadas en `.local/backups/env.local.produccion` (ignorado por Git) y como variables de Netlify. En Netlify se conserva la conexión de sesión (5432) y `DATABASE_POOL_MAX=1`. Nada de esta tanda se publicó ni se hizo push.
