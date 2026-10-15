@@ -69,7 +69,7 @@ export function ConsultaDetail({ inquiry, autoOpen, links }: { inquiry: InquiryV
             {hasStock && <div className="flex justify-between"><dt>Subtotal de productos{hasEncargo ? " (sin los por encargo)" : ""}</dt><dd className="font-extrabold">{formatARS(inquiry.subtotalMinor)}</dd></div>}
             {inquiry.discountMinor > 0 && <div className="flex justify-between"><dt>Descuento por transferencia</dt><dd className="font-semibold">−{formatARS(inquiry.discountMinor)}</dd></div>}
             {inquiry.discountMinor > 0 && <div className="flex justify-between"><dt>Productos con descuento</dt><dd className="font-extrabold">{formatARS(inquiry.subtotalMinor - inquiry.discountMinor)}</dd></div>}
-            <div className="flex justify-between"><dt>Envío</dt><dd className="font-semibold">A coordinar</dd></div>
+            <div className="flex justify-between"><dt>Envío</dt><dd className="font-semibold" data-testid="detalle-envio">{inquiry.delivery.method === "retiro" ? "No aplica: retiro" : "A coordinar"}</dd></div>
             <div className="flex justify-between gap-4"><dt>Entrega</dt><dd className="text-right">{describeDelivery(inquiry.delivery)}</dd></div>
             <div className="flex justify-between"><dt>Preferencia de pago</dt><dd>{inquiry.paymentLabel}</dd></div>
             <div className="flex justify-between"><dt>Preparada el</dt><dd>{fmt(inquiry.createdAt)}</dd></div>

@@ -98,7 +98,7 @@ describe("promoción por caja en la consulta (servidor)", () => {
     const { inquiry } = await createInquiry(db, body(11, [caja, sobre], { payment: "transferencia" }), owner);
     expect(inquiry.subtotalMinor).toBe(20400000);
     expect(inquiry.discountMinor).toBe(2040000);
-    expect(inquiry.message).toContain("Envío: a coordinar");
+    expect(inquiry.message).not.toMatch(/Envío:/); // retiro: sin línea de envío
   });
   it("cuotas con una caja: se acepta y no hay descuento (son alternativas)", async () => {
     const { inquiry } = await createInquiry(db, body(12, [caja], { payment: "tarjeta-3-cuotas" }), owner);

@@ -3,6 +3,7 @@ import { go } from "./helpers";
 
 // Servidor con el catálogo REAL. Carrusel de banners por colección (inicio) y banner en el detalle de cada expansión.
 const ORDEN = ["storm-emeralda", "30th-celebration", "abyss-eye", "mega-dream-ex", "inferno-x", "heat-wave-arena", "white-flare", "black-bolt"];
+const MS = 6000;
 const TITULOS: Record<string, string> = { "storm-emeralda": "Storm", "30th-celebration": "30th", "abyss-eye": "Abyss", "mega-dream-ex": "MEGA", "inferno-x": "Inferno", "heat-wave-arena": "Heat", "white-flare": "White", "black-bolt": "Black" };
 const activo = (page: Page) => page.locator("[data-testid^=diapositiva-][data-active=true]").getAttribute("data-testid");
 const imgs = (page: Page, id: string) => page.getByTestId(`diapositiva-${id}`).locator("img");
@@ -49,14 +50,14 @@ test("solo el banner visible carga sus imágenes; las de los demás se difieren 
   expect(await activo(page)).toBe("diapositiva-30th-celebration");
   await expect.poll(() => imgs(page, "30th-celebration").count()).toBe(3);
   await expect.poll(() => imgs(page, "abyss-eye").count()).toBe(3); // el contiguo queda listo
-  expect(await imgs(page, "black-bolt").count()).toBe(0);
+  expect(await imgs(page, "inferno-x").count()).toBe(0); // el último sí puede estar listo: es el «anterior» del primero
 });
 
 test("flechas, indicadores y teclado; los banners ocultos quedan fuera de la tabulación", async ({ page }) => {
   await go(page, "/");
   const prev = page.getByTestId("carrusel-anterior");
   const next = page.getByTestId("carrusel-siguiente");
-  await expect(prev).toHaveAttribute("aria-disabled", "true");
+  await expect(prev).not.toHaveAttribute("aria-disabled", "true"); // continuo: siempre hay anterior y siguiente
   await next.click();
   await expect.poll(() => activo(page)).toBe("diapositiva-30th-celebration");
   await expect(page.getByTestId("carrusel-anuncio")).toHaveText(/Banner 2 de 8: 30th CELEBRATION/);
@@ -66,7 +67,7 @@ test("flechas, indicadores y teclado; los banners ocultos quedan fuera de la tab
   await expect.poll(() => activo(page)).toBe("diapositiva-storm-emeralda");
   await page.getByTestId("indicador-black-bolt").click();
   await expect.poll(() => activo(page)).toBe("diapositiva-black-bolt");
-  await expect(next).toHaveAttribute("aria-disabled", "true");
+  await expect(next).not.toHaveAttribute("aria-disabled", "true");
   await expect(page.getByRole("button", { name: "Ir al banner 8: Black Bolt" })).toHaveAttribute("aria-current", "true");
   // teclado, con el foco dentro del carrusel
   await page.getByTestId("banner-black-bolt").getByRole("link", { name: "Ver productos" }).focus();
@@ -84,13 +85,99 @@ test("flechas, indicadores y teclado; los banners ocultos quedan fuera de la tab
   expect(fuera).toBe(true);
 });
 
-test("el deslizado (scroll táctil) cambia de banner y el indicador lo sigue, sin desborde horizontal", async ({ page }) => {
+test("el deslizado táctil cambia de banner (a izquierda siguiente, a derecha anterior, con vuelta) y el indicador lo sigue, sin desborde horizontal", async ({ page }) => {
   await go(page, "/");
-  await page.getByTestId("carrusel-pista").evaluate((el) => el.scrollTo({ left: el.clientWidth * 2, behavior: "instant" }));
-  await expect.poll(() => activo(page)).toBe("diapositiva-abyss-eye");
-  await expect(page.getByTestId("indicador-abyss-eye")).toHaveAttribute("aria-current", "true");
-  await expect.poll(() => imgs(page, "abyss-eye").count()).toBe(3);
+  // Gesto táctil simulado con eventos de puntero (Playwright no desliza con el dedo en escritorio).
+  const deslizar = async (fraccion: number) => {
+    await expect(page.getByTestId("carrusel-pista")).toHaveAttribute("data-moviendo", "false"); // un gesto nuevo recién cuando el anterior terminó
+    await page.getByTestId("carrusel-pista").evaluate(async (el, fraccion) => {
+    const host = el.parentElement!;
+    const r = host.getBoundingClientRect();
+    const d = fraccion * r.width;
+    const y = r.top + 80;
+    const x0 = r.left + r.width / 2;
+    const ev = (type: string, x: number) => host.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 7, pointerType: "touch", clientX: x, clientY: y, isPrimary: true }));
+    ev("pointerdown", x0);
+    for (let i = 1; i <= 6; i++) { ev("pointermove", x0 + (d * i) / 6); await new Promise((r2) => requestAnimationFrame(r2)); }
+    ev("pointerup", x0 + d);
+  }, fraccion);
+  };
+  await deslizar(-0.4);
+  await expect.poll(() => activo(page)).toBe("diapositiva-30th-celebration");
+  await expect(page.getByTestId("indicador-30th-celebration")).toHaveAttribute("aria-current", "true");
+  await deslizar(0.4);
+  await expect.poll(() => activo(page)).toBe("diapositiva-storm-emeralda");
+  await deslizar(0.4); // desde el primero, hacia atrás: el último
+  await expect.poll(() => activo(page)).toBe("diapositiva-black-bolt");
+  await deslizar(-0.4); // desde el último, hacia adelante: el primero
+  await expect.poll(() => activo(page)).toBe("diapositiva-storm-emeralda");
+  await deslizar(-0.04); // un roce corto no cambia de banner
+  await expect(page.getByTestId("carrusel-pista")).toHaveAttribute("data-moviendo", "false");
+  expect(await activo(page)).toBe("diapositiva-storm-emeralda");
+  await expect.poll(() => imgs(page, "30th-celebration").count()).toBe(3);
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0);
+});
+
+test.describe("carrusel continuo con transición horizontal (movimiento normal)", () => {
+  const pista = (page: Page) => page.getByTestId("carrusel-pista");
+  const quieta = (page: Page) => expect(pista(page)).toHaveAttribute("data-moviendo", "false", { timeout: 10_000 });
+  test.beforeEach(async ({ page }) => { await page.emulateMedia({ reducedMotion: "no-preference" }); });
+
+  test("el último sigue hacia adelante con el primero y el anterior desde el primero lleva al último, sin pasar por los demás ni duplicar banners", async ({ page }) => {
+    await go(page, "/");
+    // Sin duplicados: exactamente los 8 banners, un solo h1 y solo uno accesible (el resto inert).
+    expect(await page.locator("[data-testid^=diapositiva-]").count()).toBe(8);
+    expect(await page.locator("[data-testid^=diapositiva-]:not([inert])").count()).toBe(1);
+    await page.getByTestId("carrusel-pausa").click(); // sin avance automático mientras se prueba
+    const visitados = async (accion: () => Promise<void>) => {
+      await page.evaluate(() => {
+        const w = window as unknown as { __v: string[] };
+        w.__v = [];
+        new MutationObserver(() => { const a = document.querySelector("[data-testid^=diapositiva-][data-active=true]")?.getAttribute("data-testid"); if (a && w.__v[w.__v.length - 1] !== a) w.__v.push(a); }).observe(document.querySelector("[data-testid=carrusel-pista]")!, { attributes: true, subtree: true, attributeFilter: ["data-active"] });
+      });
+      await accion();
+      await quieta(page);
+      return page.evaluate(() => (window as unknown as { __v: string[] }).__v);
+    };
+    // Hacia atrás desde el primero: directo al último.
+    expect(await visitados(() => page.getByTestId("carrusel-anterior").click())).toEqual(["diapositiva-black-bolt"]);
+    // Hacia adelante desde el último: directo al primero (una sola transición hacia la derecha, sin retroceder por los 7 anteriores).
+    expect(await visitados(() => page.getByTestId("carrusel-siguiente").click())).toEqual(["diapositiva-storm-emeralda"]);
+    // Recorrido completo hacia adelante: 8 pasos y vuelve al primero.
+    for (const id of ORDEN.slice(1)) { await page.getByTestId("carrusel-siguiente").click(); await quieta(page); expect(await activo(page)).toBe("diapositiva-" + id); }
+    await page.getByTestId("carrusel-siguiente").click();
+    await quieta(page);
+    expect(await activo(page)).toBe("diapositiva-storm-emeralda");
+  });
+
+  test("la transición es un desplazamiento horizontal real (sin salto): el banner entrante se mueve en x mientras dura", async ({ page }) => {
+    await go(page, "/");
+    await page.getByTestId("carrusel-pausa").click();
+    const x = (id: string) => page.getByTestId("diapositiva-" + id).evaluate((e) => Math.round(e.getBoundingClientRect().left));
+    const ancho = await page.getByTestId("carrusel").evaluate((e) => Math.round(e.getBoundingClientRect().width));
+    await page.getByTestId("carrusel-anterior").click(); // primero → último (entra desde la izquierda)
+    const muestras: number[] = [];
+    for (let i = 0; i < 12; i++) { muestras.push(await x("black-bolt")); await page.waitForTimeout(40); }
+    await quieta(page);
+    expect(muestras.some((m) => m < 0 && m > -ancho)).toBe(true); // en algún momento estuvo a medio camino
+    expect(await x("black-bolt")).toBe(0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0);
+  });
+
+  test("el avance automático y las flechas usan la misma transición y el último pasa al primero en el recorrido automático", async ({ page }) => {
+    await page.clock.install();
+    await go(page, "/");
+    await expect(page.getByTestId("carrusel")).toHaveAttribute("data-autoplay", "on");
+    await page.getByTestId("indicador-black-bolt").click();
+    await quieta(page);
+    await page.getByRole("link", { name: "Cómo comprar" }).first().focus();
+    await page.mouse.move(5, 5);
+    await expect(page.getByTestId("carrusel")).toHaveAttribute("data-autoplay", "on");
+    await page.clock.runFor(MS + 200);
+    await expect(pista(page)).toHaveAttribute("data-moviendo", "true"); // arrancó la transición horizontal
+    await quieta(page);
+    expect(await activo(page)).toBe("diapositiva-storm-emeralda");
+  });
 });
 
 test("cada banner usa su propio arte, sus fotos de la colección y su paleta, sin deformar las fotos", async ({ page }) => {

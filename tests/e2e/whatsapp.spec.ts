@@ -38,7 +38,7 @@ test("con número configurado se abre el chat con el mensaje exacto y sin marcar
   expect(url.searchParams.get("text")).toBe(json.message);
   expect(json.message).toContain("Hola, soy Ana Pérez.");
   expect(json.message).toContain("*Subtotal: $ 61.000*");
-  expect(json.message).toContain("Envío: a coordinar");
+  expect(json.message).not.toContain("Envío:"); // retiro: no hay envío
   expect(hits.length).toBeGreaterThan(0);
 
   // Al volver, la consulta sigue "preparada", con enlace para reabrir y el carrito intacto

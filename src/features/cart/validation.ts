@@ -73,7 +73,8 @@ function request(key: string, items: CartItem[]) {
   requestedKey = key;
   if (timer) clearTimeout(timer);
   set({ pendingKey: key });
-  timer = setTimeout(() => void run(key, items), 150);
+  // La primera validación sale enseguida (no hay nada que juntar); las siguientes esperan un instante por si la persona sigue tocando «+».
+  timer = setTimeout(() => void run(key, items), snap.data ? 150 : 0);
 }
 
 function retry() {

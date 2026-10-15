@@ -169,4 +169,27 @@ test.describe("pedido: nombre y apellido, retiro y método de pago", () => {
     await expect(msg).toContainText("*Total: $ 166.500*");
     await expect(msg).toContainText("Método de pago: Transferencia · 10% OFF (con una caja)");
   });
+
+  test("retiro no lleva envío: el resumen y la vista previa dicen «No aplica: retiro»; al pasar a moto o Andreani vuelve la aclaración", async ({ page }) => {
+    await seed(page, [caja], { contactName: "Ana Pérez", payment: "efectivo" });
+    await go(page, "/carrito");
+    const vista = page.getByTestId("vista-previa");
+    await page.getByRole("radio", { name: /Retiro/ }).check();
+    await expect(page.getByTestId("resumen-envio")).toHaveText("No aplica: retiro");
+    await expect(vista).toContainText("Entrega: Retiro en Av. Rivadavia 14600");
+    await expect(vista).not.toContainText("Envío:");
+    await expect(page.getByTestId("aviso-retiro")).toContainText("Consultá por WhatsApp el horario para retirar y la dirección exacta.");
+    await page.getByLabel(/^Moto/).check();
+    await expect(page.getByTestId("resumen-envio")).toHaveText("A coordinar");
+    await expect(vista).toContainText("Envío: a coordinar");
+    await page.getByLabel(/^Andreani/).check();
+    await expect(vista).toContainText("Envío: a coordinar");
+    await page.getByRole("radio", { name: /Retiro/ }).check();
+    await expect(vista).not.toContainText("Envío:");
+    await page.getByRole("button", { name: /Continuar por WhatsApp/ }).click();
+    await expect(page).toHaveURL(/consulta/);
+    await expect(page.getByTestId("mensaje")).not.toContainText("Envío:");
+    await expect(page.getByTestId("mensaje")).toContainText("Retiro en Av. Rivadavia 14600 (horario y dirección exacta a confirmar por WhatsApp)");
+    await expect(page.getByTestId("detalle-envio")).toHaveText("No aplica: retiro");
+  });
 });

@@ -32,6 +32,9 @@ export function describeDelivery(d: Delivery): string {
 /** Negrita de WhatsApp: un asterisco por lado, sin espacios pegados a los asteriscos. */
 const bold = (t: string) => `*${t.trim()}*`;
 
+/** Envío en el mensaje: con retiro no hay envío (se omite la línea; la entrega ya dice dónde y que el horario se confirma); con Andreani o moto sigue la aclaración. */
+export const shippingLines = (d: Delivery): string[] => (d.method === "retiro" ? [] : ["Envío: a coordinar (no está incluido en el total)"]);
+
 const titleOf = (l: MessageLine) => `${l.quantity} × ${l.title} [${languageLabel[l.language]}] — SKU ${l.sku}`;
 
 /** Mensaje completo, con el formato acordado. Importes siempre calculados por el servidor. Los productos por encargo van aparte y sin importe. */
@@ -53,7 +56,7 @@ export function buildMessage(m: MessageData): string {
     out.push(bold(`Total: ${money(m.subtotalMinor - discount)}`));
   }
   if (m.fx && stock.length) out.push(`Precios en pesos: ${m.fx.mode === "manual" ? "cotización fijada por la tienda" : "dólar blue (venta)"} ${formatRate(m.fx.rate10k).replace(/[  ]/g, " ")} por dólar, redondeado a múltiplos de $100.`);
-  out.push(`Entrega: ${describeDelivery(m.delivery)}`, "Envío: a coordinar (no está incluido en el total)", `Método de pago: ${m.paymentLabel}`);
+  out.push(`Entrega: ${describeDelivery(m.delivery)}`, ...shippingLines(m.delivery), `Método de pago: ${m.paymentLabel}`);
   if (encargo.length) out.push(`Encargo: sin cotización todavía. Si se confirman disponibilidad y cotización, la seña es del ${politicaEncargo.senaPercent}% de lo cotizado y el saldo del ${100 - politicaEncargo.senaPercent}%; el pago y la entrega se coordinan con la tienda.`);
   out.push("", encargo.length ? "¿Me confirmás disponibilidad y cotización de lo que pedí por encargo?" : "¿Me confirmás disponibilidad e importe final?");
   return out.join("\n");
@@ -77,7 +80,7 @@ export function summaryMessage(m: MessageData): string {
     `${m.lines.length} productos distintos (${items} unidades)${m.lines.some((l) => l.unitPriceMinor === null) ? " · incluye productos por encargo (sin cotizar)" : ""}`,
     ...(m.lines.some((l) => l.unitPriceMinor !== null) ? [bold(`Subtotal: ${money(m.subtotalMinor)}`), ...((m.discountMinor ?? 0) > 0 ? [`Descuento por transferencia: -${money(m.discountMinor!)}`] : []), bold(`Total: ${money(m.subtotalMinor - (m.discountMinor ?? 0))}`)] : []),
     `Entrega: ${describeDelivery(m.delivery)}`,
-    "Envío: a coordinar (no está incluido en el total)",
+    ...shippingLines(m.delivery),
     `Método de pago: ${m.paymentLabel}`,
     "Te paso el detalle completo en el siguiente mensaje.",
   ].join("\n");

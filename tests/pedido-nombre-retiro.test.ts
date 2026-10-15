@@ -53,6 +53,17 @@ describe("retiro: una única opción", () => {
   });
 });
 
+describe("envío según la entrega", () => {
+  it("con retiro no hay línea de envío; con Andreani o moto vuelve la aclaración (mensaje definitivo del servidor)", async () => {
+    const retiro = (await createInquiry(db, body(), owner)).inquiry.message;
+    expect(retiro).not.toMatch(/Envío/);
+    const andreani = (await createInquiry(db, body({ delivery: { method: "andreani", locality: "Haedo", province: "Buenos Aires", postalCode: "1706" } }), owner)).inquiry.message;
+    expect(andreani).toContain("Envío: a coordinar (no está incluido en el total)");
+    const moto = (await createInquiry(db, body({ delivery: { method: "moto", locality: "Haedo", postalCode: "1706" } }), owner)).inquiry.message;
+    expect(moto).toContain("Envío: a coordinar (no está incluido en el total)");
+  });
+});
+
 describe("métodos de pago: «Coordinar por WhatsApp» ya no existe", () => {
   it("quedan los tres vigentes y el servidor rechaza el eliminado con un mensaje claro", async () => {
     expect(paymentMethods.map((p) => p.id)).toEqual(["tarjeta-3-cuotas", "transferencia", "efectivo"]);
@@ -79,7 +90,8 @@ describe("mensaje de WhatsApp: subtotal y total destacados (un asterisco por lad
     const lineas = inquiry.message.split("\n");
     expect(lineas).toContain("*Subtotal: $ 61.000*");
     expect(lineas).toContain("*Total: $ 61.000*");
-    expect(inquiry.message).toContain("Envío: a coordinar (no está incluido en el total)");
+    expect(inquiry.message).not.toMatch(/Envío:/); // retiro: no se escribe «Envío a coordinar»
+    expect(inquiry.message).toContain("Entrega: Retiro en Av. Rivadavia 14600 (horario y dirección exacta a confirmar por WhatsApp)");
     expect(inquiry.message.match(/\*[^*\n]+\*/g)).toEqual(["*Subtotal: $ 61.000*", "*Total: $ 61.000*"]);
   });
   it("con descuento: subtotal sin descuento, descuento aparte y total con descuento", async () => {

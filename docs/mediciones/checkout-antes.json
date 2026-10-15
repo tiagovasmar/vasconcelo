@@ -1,0 +1,41 @@
+{
+  "etiqueta": "checkout-antes",
+  "fecha": "2026-10-15T20:16:59.129Z",
+  "base": "http://localhost:3300",
+  "corridasPorMedida": 7,
+  "nota": "Laboratorio local (Chromium + CPU/red emuladas, build de producción, base de desarrollo). No son datos de usuarios reales ni garantizan los tiempos en Netlify. TBT no es INP.",
+  "resultados": [
+    {
+      "tipo": "carga",
+      "perfil": "escritorio",
+      "escenario": "checkout",
+      "ruta": "/carrito",
+      "FCP ms": 100,
+      "LCP ms": 100,
+      "CLS": 0.126,
+      "TBT ms": 0,
+      "KB totales": 313,
+      "KB JS": 195,
+      "KB imágenes": 40,
+      "pedidos": 29,
+      "consultas BD": 13,
+      "corridas": 7
+    },
+    {
+      "tipo": "carga",
+      "perfil": "movil",
+      "escenario": "checkout",
+      "ruta": "/carrito",
+      "FCP ms": 936,
+      "LCP ms": 936,
+      "CLS": 0.207,
+      "TBT ms": 198,
+      "KB totales": 306,
+      "KB JS": 195,
+      "KB imágenes": 40,
+      "pedidos": 29,
+      "consultas BD": 13,
+      "corridas": 7
+    }
+  ]
+}

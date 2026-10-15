@@ -1,0 +1,56 @@
+{
+  "etiqueta": "cls-pedido-antes",
+  "fecha": "2026-10-15T20:15:58.350Z",
+  "base": "http://localhost:3300",
+  "nota": "Laboratorio local; no son datos de usuarios reales.",
+  "resultados": [
+    {
+      "perfil": "movil",
+      "escenario": "A · carrito de esta versión (con título)",
+      "CLS mediana": 0.036,
+      "min": 0.036,
+      "max": 0.036,
+      "corridas": 9
+    },
+    {
+      "perfil": "movil",
+      "escenario": "B · carrito viejo, precios vigentes",
+      "CLS mediana": 0.036,
+      "min": 0.036,
+      "max": 0.036,
+      "corridas": 9
+    },
+    {
+      "perfil": "movil",
+      "escenario": "C · carrito viejo con precios cambiados",
+      "CLS mediana": 0.173,
+      "min": 0.173,
+      "max": 0.173,
+      "corridas": 9
+    },
+    {
+      "perfil": "escritorio",
+      "escenario": "A · carrito de esta versión (con título)",
+      "CLS mediana": 0.109,
+      "min": 0.109,
+      "max": 0.144,
+      "corridas": 9
+    },
+    {
+      "perfil": "escritorio",
+      "escenario": "B · carrito viejo, precios vigentes",
+      "CLS mediana": 0.109,
+      "min": 0.109,
+      "max": 0.144,
+      "corridas": 9
+    },
+    {
+      "perfil": "escritorio",
+      "escenario": "C · carrito viejo con precios cambiados",
+      "CLS mediana": 0.127,
+      "min": 0.127,
+      "max": 0.162,
+      "corridas": 9
+    }
+  ]
+}

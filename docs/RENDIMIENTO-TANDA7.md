@@ -18,6 +18,20 @@
 
 \* Los LCP y TBT del celular **varían entre corridas más que las mejoras que se buscan**: la verificación con 7 corridas dio, antes→después, inicio 1744→1580, catálogo 1264→1216, ficha 1584→1604, pedido 920→900, admin 1388→1416 ms de LCP y TBT 251→172, 206→172, 199→200, 322→348, 209→232 ms. Conclusión honesta: **no hay mejora ni empeoramiento demostrables en LCP/TBT del celular**; todas las páginas quedan por debajo de 2,5 s de LCP en este laboratorio. El TBT del pedido es el más alto (≈ 350 ms en un celular 6× más lento) y no se resolvió.
 
+## Corrección posterior: CLS del pedido en el celular (15/10/2026, segunda revisión)
+La tabla de arriba mostraba **CLS 0,169 en el celular** (objetivo ≤ 0,1) con el carrito de la medición general (productos sin título guardado y precios que no coincidían con los vigentes, por lo que al validar aparecía el aviso «Cambió el precio»). Qué se movía: las líneas del carrito al llegar el título, el idioma y el SKU, el aviso de precio cambiado (≈ 150 px) que empuja todo lo de abajo, y el aviso de cotización.
+**Corrección:** mientras no llega la primera validación con el servidor no se dibuja el pedido a medias, sino un marco de altura fija («Verificando precios y disponibilidad…»); la primera validación sale enseguida (antes esperaba 150 ms) y el pedido aparece ya completo, con sus avisos. No se oculta nada: si el precio cambió, el aviso sigue ahí. Además las líneas reservan el espacio de idioma/SKU y el cartel de cotización.
+
+Medición con `scripts/medir-cls-pedido.mjs` (mediana, **9 corridas** por caso, celular 6× más lento / 1,6 Mb/s y escritorio; mismo script y mismas condiciones en «antes» y «después»; laboratorio local):
+
+| Carrito guardado | Celular antes → después | Escritorio antes → después |
+|---|---|---|
+| A · guardado por esta versión (con título) | 0,036 → **0** | 0,109 → **0** (máx. 0,035) |
+| B · viejo, sin título, precios vigentes | 0,036 → **0** | 0,109 → **0** (máx. 0,035) |
+| C · viejo con precios cambiados (aviso al validar) | 0,173 → **0** | 0,127 → **0** (máx. 0,035) |
+
+Con la medición general (`medir-rendimiento.mjs`, 7 corridas): pedido en celular **CLS 0,207 → 0**, en escritorio 0,126 → 0; LCP 936 → 884 ms (celular) y 100 → 72 ms (escritorio), TBT 198 → 212 ms (celular): **el LCP y el TBT no cambian de forma demostrable**. Tiempo hasta ver los productos del pedido en el celular emulado (7 corridas): 2812 → 2666 ms, es decir, no se pierde tiempo por mostrar el marco primero. Límites: es laboratorio, no usuarios reales; en un teléfono real con otra red el tiempo hasta ver el pedido puede cambiar; el CLS depende de que el contenido que llega sea el que ya se dibujó.
+
 ## Interacciones guionadas (latencia de laboratorio; el peor evento medido con Event Timing)
 Antes, el ícono del carrito navegaba a `/carrito`; ahora abre el panel. Mediana en ms.
 | Gesto | Escritorio antes → después | Celular antes → después |

@@ -119,6 +119,8 @@ export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }
   }, [lines, qualifies, cart.payment]);
 
   const delivery = cart.delivery;
+  /** Con retiro no hay envío; con Andreani, moto o sin elegir sigue «A coordinar». */
+  const envioTexto = delivery.method === "retiro" ? "No aplica: retiro" : "A coordinar";
   const parsed = useMemo(() => (delivery.method ? DeliverySchema.safeParse(deliveryPayload(delivery)) : null), [delivery]);
   const errors = useMemo(() => {
     const out: Record<string, string> = {};
@@ -137,7 +139,8 @@ export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }
   const preview = (() => {
     if (cart.items.length === 0 || verifying) return "";
     const okLines = view.filter((v) => v.line?.product && v.line.status !== "unavailable");
-    const method = parsed?.success ? parsed.data : { method: "retiro" as const };
+    // Sin datos de entrega completos se usa un valor provisional solo para armar la vista previa (la línea «Entrega» se reemplaza más abajo); con retiro no hay envío, con cualquier otra modalidad (o sin elegir) sí.
+    const method = parsed?.success ? parsed.data : delivery.method === "retiro" ? { method: "retiro" as const } : { method: "moto" as const, locality: "", postalCode: "" };
     let text = buildMessage({
       reference: "(se asigna al preparar la consulta)", contactName: normalizeName(cart.contactName) || undefined,
       lines: okLines.map((v) => ({ quantity: v.item.quantity, title: v.line!.product!.title, language: v.line!.product!.language, sku: v.line!.product!.sku, unitPriceMinor: v.item.mode === "encargo" ? null : unitOf(v) })),
@@ -278,6 +281,16 @@ export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }
     );
   }
 
+  // Primera validación pendiente: no se dibuja el pedido a medias. Un marco de altura fija evita que, al llegar los precios, los avisos (cambió el precio, sin stock)
+  // y los datos de cada línea empujen todo lo que ya se veía. Si la validación falla se muestra el pedido con el error y el botón de reintento.
+  if (!lines && !loadError) {
+    return (
+      <div role="status" aria-live="polite" className="flex min-h-[70vh] items-start border border-dashed border-ink/30 bg-white/50 p-6 text-sm text-ink/70" data-testid="verificando-pedido">
+        <p>Verificando precios y disponibilidad de tu carrito…</p>
+      </div>
+    );
+  }
+
   return (
     <div className="grid gap-4 pb-20 sm:gap-6 lg:grid-cols-[1.55fr_1fr] lg:items-start lg:pb-0">
       <div className="space-y-4 sm:space-y-6">
@@ -398,7 +411,7 @@ export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }
               <dl className="mt-4 space-y-2 text-base">
                 <div className="flex justify-between"><dt>{mixed ? "Productos disponibles" : "Productos"} ({units})</dt><dd data-testid="resumen-productos">{money(subtotal)}</dd></div>
                 {discount > 0 && <div className="flex justify-between text-emerald"><dt>Descuento por transferencia ({promo.transferDiscountPercent}%)</dt><dd className="font-semibold" data-testid="resumen-descuento">−{money(discount)}</dd></div>}
-                <div className="flex justify-between"><dt>Envío</dt><dd className="font-semibold" data-testid="resumen-envio">A coordinar</dd></div>
+                <div className="flex justify-between"><dt>Envío</dt><dd className="font-semibold" data-testid="resumen-envio">{envioTexto}</dd></div>
                 <div className="flex items-end justify-between border-t border-ink/20 pt-3"><dt className="text-lg font-bold">{discount > 0 ? "Subtotal sin descuento" : "Subtotal de productos"}</dt><dd className="text-3xl font-extrabold" data-testid="resumen-subtotal">{money(subtotal)}</dd></div>
                 {discount > 0 && <div className="flex items-end justify-between"><dt className="font-bold">Productos con descuento</dt><dd className="text-2xl font-extrabold" data-testid="resumen-total-descuento">{money(subtotal - discount)}</dd></div>}
               </dl>
@@ -406,12 +419,12 @@ export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }
                 <p className="mt-2 text-sm font-semibold" data-testid="resumen-cuotas">{promo.installments} cuotas sin interés: {splitInstallments(subtotal, promo.installments).map((c) => money(c)).join(" + ")} = {money(subtotal)}</p>
               )}
               <div className="min-h-[3.1rem]">{fx && stockView.some((v) => v.line?.unitPriceUsdMinor) && <p className="mt-1 text-xs text-ink/70" data-testid="resumen-fx">Precios en pesos calculados con {fx.mode === "manual" ? "la cotización fijada por la tienda" : "el dólar blue (venta)"} a {formatRate(fx.rate10k)} por dólar, redondeados a múltiplos de $100 por unidad. La consulta que prepares guarda esta cotización.</p>}</div>
-              <p className="mt-1 text-xs text-ink/70">{discount > 0 ? "El 10% OFF se calcula sobre los productos disponibles de un pedido con caja; el envío no entra. " : ""}{mixed ? "No incluye los productos por encargo (sin cotizar). " : ""}Envío e importe final se confirman por WhatsApp.</p>
+              <p className="mt-1 text-xs text-ink/70">{discount > 0 ? "El 10% OFF se calcula sobre los productos disponibles de un pedido con caja; el envío no entra. " : ""}{mixed ? "No incluye los productos por encargo (sin cotizar). " : ""}{delivery.method === "retiro" ? "El importe final y el horario de retiro se confirman por WhatsApp." : "Envío e importe final se confirman por WhatsApp."}</p>
             </>
           ) : (
             <dl className="mt-4 space-y-2 text-base">
               <div className="flex justify-between"><dt>Productos con precio</dt><dd data-testid="resumen-productos">—</dd></div>
-              <div className="flex justify-between"><dt>Envío</dt><dd className="font-semibold" data-testid="resumen-envio">A coordinar</dd></div>
+              <div className="flex justify-between"><dt>Envío</dt><dd className="font-semibold" data-testid="resumen-envio">{envioTexto}</dd></div>
             </dl>
           )}
           {encargoView.length > 0 && (

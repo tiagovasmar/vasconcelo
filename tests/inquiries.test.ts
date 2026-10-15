@@ -35,7 +35,7 @@ describe("importes y mensaje", () => {
     expect(formatARS(inquiry.subtotalMinor).replace(/\s/g, " ")).toMatch(/61\.000/);
     expect(inquiry.message).toContain("*Subtotal: $ 61.000*");
     expect(inquiry.message).toContain("*Total: $ 61.000*");
-    expect(inquiry.message).toContain("Envío: a coordinar");
+    expect(inquiry.message).not.toMatch(/Envío:/); // con retiro no hay envío
     expect(inquiry.message).not.toMatch(/Envío: \$/);
     expect(inquiry.message).not.toMatch(/importe final: \$/i);
     expect(inquiry.status).toBe("consulta_preparada");

@@ -29,12 +29,8 @@ async function abrir(page: Page) {
     try { await page.clock.pauseAt(ahora + margen); break; } catch (e) { if (margen === 2000) throw e; }
   }
 }
-/** Espera (en tiempo real, no simulado) a que el desplazamiento suave termine: el reloj simulado salta, pero el scroll del navegador no. */
-const asentado = (page: Page) => expect.poll(() => page.evaluate(() => {
-  const t = document.querySelector("[data-testid=carrusel-pista]")!;
-  const i = [...document.querySelectorAll("[data-testid^=diapositiva-]")].findIndex((e) => e.getAttribute("data-active") === "true");
-  return Math.abs(t.scrollLeft - i * t.clientWidth) < 2;
-})).toBe(true);
+/** Espera (en tiempo real, no simulado) a que termine la transición horizontal: el reloj simulado salta, pero la animación del navegador no. */
+const asentado = (page: Page) => expect(page.getByTestId("carrusel-pista")).toHaveAttribute("data-moviendo", "false", { timeout: 10_000 });
 const avanzar = async (page: Page, ms: number) => { await page.clock.runFor(ms); await asentado(page); };
 
 test("avanza cada 6 segundos y, tras el último banner, vuelve al primero", async ({ page }) => {

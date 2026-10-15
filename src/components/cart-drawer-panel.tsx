@@ -55,7 +55,7 @@ function Line({ item, line, onNavigate }: { item: CartItem; line?: ServerLine; o
     <li className="py-4" data-testid={`drawer-linea-${item.productId}`}>
       <div className="grid grid-cols-[64px_1fr] gap-3">
         <div className="flex aspect-square items-center justify-center overflow-hidden bg-white">
-          {src ? <Image src={src} alt="" width={96} height={96} sizes="64px" className="h-full w-full object-contain" /> : <span className="text-[.6rem] font-bold uppercase text-ink/50">{p ? kindLabel[p.kind] : "—"}</span>}
+          {src ? <Image src={src} alt="" width={96} height={96} sizes="64px" className="h-full w-full object-contain" /> : <span className="text-[.6rem] font-bold uppercase text-ink/75">{p ? kindLabel[p.kind] : "—"}</span>}
         </div>
         <div className="min-w-0">
           {p ? <Link href={`/productos/${p.slug}`} onClick={onNavigate} className="block font-bold leading-tight hover:underline">{name}</Link> : <p className="font-bold leading-tight">{name}</p>}
