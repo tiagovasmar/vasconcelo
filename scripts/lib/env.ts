@@ -2,7 +2,8 @@ import fs from "node:fs";
 import { createDb } from "../../src/db/client";
 
 /** Carga `.env.local` y `.env` (si existen) sin pisar variables ya definidas. Los archivos .env* están ignorados por Git: ahí van las credenciales locales. */
-for (const f of [".env.local", ".env"]) {
+// SKIP_ENV_FILES=1 (lo usan las pruebas automáticas) evita cargar credenciales reales: una prueba nunca debe poder tocar la base de producción.
+for (const f of process.env.SKIP_ENV_FILES === "1" ? [] : [".env.local", ".env"]) {
   if (fs.existsSync(f)) {
     try {
       process.loadEnvFile(f);

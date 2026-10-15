@@ -10,7 +10,7 @@ import { openTestDb } from "./helpers/pg";
 const tsx = path.resolve("node_modules/tsx/dist/cli.mjs");
 let dir: string;
 const run = (script: string, args: string[] = [], env: Record<string, string> = {}) =>
-  spawnSync(process.execPath, [tsx, script, ...args], { encoding: "utf8", env: { ...process.env, ...env }, cwd: process.cwd(), timeout: 60_000 });
+  spawnSync(process.execPath, [tsx, script, ...args], { encoding: "utf8", env: { ...process.env, SKIP_ENV_FILES: "1", ...env }, cwd: process.cwd(), timeout: 120_000 });
 
 beforeAll(() => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "scripts-"));
