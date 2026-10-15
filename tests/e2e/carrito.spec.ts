@@ -6,7 +6,7 @@ const KEY = "tienda-carrito-v1";
 const clip = async (page: Page) => (await page.evaluate(() => navigator.clipboard.readText())).split(String.fromCharCode(13, 10)).join(String.fromCharCode(10));
 const seed = async (page: Page, items: Array<{ productId: string; quantity: number; priceMinor: number }>, extra: Record<string, unknown> = {}) => {
   await go(page, "/");
-  await page.evaluate(([k, v]) => localStorage.setItem(k as string, JSON.stringify(v)), [KEY, { items, delivery: {}, payment: "coordinar", contactName: "", idem: null, ...extra }]);
+  await page.evaluate(([k, v]) => localStorage.setItem(k as string, JSON.stringify(v)), [KEY, { items, delivery: {}, payment: "efectivo", contactName: "Ana Pérez", idem: null, ...extra }]);
 };
 const open = async (page: Page) => {
   await go(page, "/carrito");
@@ -15,8 +15,9 @@ const cta = (page: Page) => page.getByRole("button", { name: /Continuar por What
 const base = [{ productId: "storm-sobre", quantity: 2, priceMinor: 950000 }, { productId: "storm-pack5", quantity: 1, priceMinor: 4200000 }];
 
 async function fillRetiro(page: Page) {
-  await page.getByLabel(/Retiro — Ramos Mejía/).check();
-  await page.getByLabel("Punto de retiro").selectOption("haedo");
+  await page.getByRole("radio", { name: /Retiro/ }).check();
+  await page.getByLabel(/Nombre y apellido/).fill("Ana Pérez");
+  await page.getByRole("radio", { name: /Efectivo/ }).check();
 }
 
 test.describe("agregar y conservar el carrito", () => {
@@ -25,9 +26,16 @@ test.describe("agregar y conservar el carrito", () => {
     const add = page.getByRole("button", { name: "Agregar Storm Emeralda · Sobre al carrito" });
     await add.click();
     await expect(page.getByTestId("cart-count")).toHaveText("1");
+    // Agregar abre solo el panel lateral; se cierra con Escape y devuelve el foco al botón que se tocó.
+    await expect(page.getByTestId("cart-drawer")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("cart-drawer")).toHaveCount(0);
+    await expect(add).toBeFocused();
     await add.click();
     await expect(page.getByTestId("cart-count")).toHaveText("2");
-    await expect(page.getByRole("status").filter({ hasText: "Agregaste" })).toBeVisible();
+    await expect(page.getByTestId("drawer-unidades")).toHaveText("(2)");
+    await expect(page.getByTestId("drawer-linea-storm-sobre")).toHaveCount(1); // la misma línea, sin duplicar
+    await page.keyboard.press("Escape");
     await page.reload();
     await page.locator("html[data-hydrated='true']").waitFor();
     await expect(page.getByTestId("cart-count")).toHaveText("2");
@@ -42,6 +50,7 @@ test.describe("agregar y conservar el carrito", () => {
     await expect(page.getByRole("button", { name: "Más" })).toBeDisabled(); // máximo 2 por pedido
     await page.getByRole("button", { name: "Agregar al carrito" }).click();
     await expect(page.getByRole("status").filter({ hasText: "Agregaste 2 unidades" })).toBeVisible();
+    await expect(page.getByTestId("cart-drawer")).toBeVisible(); // también se abre desde la ficha
     await expect(page.getByRole("button", { name: "Máximo en el carrito" })).toBeDisabled();
   });
 
@@ -148,20 +157,22 @@ test.describe("entrega, pago y consulta", () => {
     await expect(page.getByText(/Código postal inválido/)).toBeHidden();
     await page.getByLabel(/^Moto/).check();
     await expect(page.getByLabel("Provincia")).toHaveCount(0); // moto no pide provincia
-    await page.getByLabel(/Retiro — Ramos Mejía/).check();
-    await expect(page.getByLabel("Punto de retiro")).toBeVisible();
-    await cta(page).click();
-    await expect(page.getByText(/Punto de retiro: elegí/)).toBeVisible();
+    await page.getByRole("radio", { name: /Retiro/ }).check();
+    // Un único punto de retiro: no hay selector de sucursal, solo el aviso acordado.
+    await expect(page.getByLabel("Punto de retiro")).toHaveCount(0);
+    await expect(page.getByTestId("aviso-retiro")).toHaveText("Retiro en Av. Rivadavia 14600. Consultá por WhatsApp el horario para retirar y la dirección exacta.");
+    await expect(page.locator("main")).not.toContainText(/Ramos Mej|Haedo/);
     // no se pide DNI ni dirección completa
     await expect(page.locator("body")).not.toContainText(/DNI|Calle y número/);
   });
 
   test("ofrece cuotas y descuento sin cambiar la preferencia por defecto (pedido con una caja)", async ({ page }) => {
-    await seed(page, [...base, { productId: "storm-caja", quantity: 1, priceMinor: 18500000 }]);
+    await seed(page, [...base, { productId: "storm-caja", quantity: 1, priceMinor: 18500000 }], { payment: "", contactName: "" });
     await open(page);
-    const radios = page.getByRole("radio", { name: /A coordinar por WhatsApp/ });
-    await expect(radios).toBeChecked();
+    // «Coordinar por WhatsApp» ya no existe y no hay un método elegido de antemano: queda a elección.
+    await expect(page.getByRole("radio", { name: /A coordinar por WhatsApp/ })).toHaveCount(0);
     await expect(page.getByRole("radio", { name: /transferencia|efectivo|tarjeta/i })).toHaveCount(3);
+    await expect(page.getByRole("radio", { checked: true, name: /transferencia|efectivo|tarjeta/i })).toHaveCount(0);
     await page.getByRole("radio", { name: /Tarjeta de crédito/ }).check();
     await expect(page.getByTestId("vista-previa")).toContainText("Tarjeta de crédito · 3 cuotas sin interés");
     await page.getByRole("radio", { name: /Transferencia/ }).check();
@@ -177,9 +188,10 @@ test.describe("entrega, pago y consulta", () => {
     await page.getByLabel("Localidad").fill("Ramos Mejía");
     await page.getByLabel("Provincia").selectOption("Buenos Aires");
     await page.getByLabel("Código postal").fill("1704");
-    await page.getByLabel(/Tu nombre/).fill("Inés");
-    await expect(page.getByTestId("vista-previa")).toContainText("Hola, soy Inés. Quiero consultar este pedido:");
-    await expect(page.getByTestId("vista-previa")).toContainText("Subtotal de productos: $ 61.000");
+    await page.getByLabel(/Nombre y apellido/).fill("Inés Muñoz");
+    await expect(page.getByTestId("vista-previa")).toContainText("Hola, soy Inés Muñoz. Quiero consultar este pedido:");
+    await expect(page.getByTestId("vista-previa")).toContainText("*Subtotal: $ 61.000*");
+    await expect(page.getByTestId("vista-previa")).toContainText("*Total: $ 61.000*");
     await expect(page.getByText("Modo demostración: se prepara tu consulta")).toBeVisible();
     await cta(page).click();
     await expect(page).toHaveURL(/\/carrito\/consulta\/TT-[A-Z2-9]{8}/);
@@ -188,7 +200,8 @@ test.describe("entrega, pago y consulta", () => {
     const msg = page.getByTestId("mensaje");
     await expect(msg).toContainText("Envío: a coordinar");
     await expect(msg).toContainText("Entrega: Andreani · Ramos Mejía, Buenos Aires (CP 1704)");
-    await expect(msg).toContainText("Preferencia de pago: A coordinar por WhatsApp");
+    await expect(msg).toContainText("Método de pago: Efectivo · a coordinar");
+    await expect(msg).toContainText("Nombre y apellido: Inés Muñoz");
     await expect(page.getByTestId("abrir-whatsapp")).toHaveCount(0); // sin teléfono no hay enlace a un chat
     await page.getByTestId("copiar-mensaje").click();
     await expect(page.getByTestId("copiado")).toHaveText("Mensaje copiado.");
@@ -251,11 +264,12 @@ test.describe("entrega, pago y consulta", () => {
     await page.route("**/api/cart/validate", (r) => r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ lines: [] }) }));
     await page.reload();
     await page.locator("html[data-hydrated='true']").waitFor();
-    await page.getByLabel(/Retiro — Ramos Mejía/).check();
-    await page.getByLabel("Punto de retiro").selectOption("haedo");
+    await page.getByRole("radio", { name: /Retiro/ }).check();
+    await page.getByLabel(/Nombre y apellido/).fill("Ana Pérez");
+    await page.getByRole("radio", { name: /Efectivo/ }).check();
     await page.unroute("**/api/cart/validate");
     // la validación vacía deja el carrito en "verificando"; se fuerza el envío directo a la API real
-    const res = await page.request.post("/api/inquiries", { data: { items: [{ productId: "storm-sobre", quantity: 1, expectedPriceMinor: 1 }], delivery: { method: "retiro", pickupPoint: "haedo" }, payment: "coordinar", idempotencyKey: "clave-e2e-precio-0000001" } });
+    const res = await page.request.post("/api/inquiries", { data: { items: [{ productId: "storm-sobre", quantity: 1, expectedPriceMinor: 1 }], delivery: { method: "retiro" }, payment: "efectivo", contactName: "Ana Pérez", idempotencyKey: "clave-e2e-precio-0000001" } });
     expect(res.status()).toBe(409);
     expect((await res.json()).error.code).toBe("price_changed");
   });
@@ -263,7 +277,7 @@ test.describe("entrega, pago y consulta", () => {
 
 test.describe("API: el servidor es la fuente de verdad", () => {
   const body = (over: Record<string, unknown> = {}) => ({
-    items: [{ productId: "storm-sobre", quantity: 2, expectedPriceMinor: 950000 }], delivery: { method: "retiro", pickupPoint: "ramos-mejia" }, payment: "coordinar",
+    items: [{ productId: "storm-sobre", quantity: 2, expectedPriceMinor: 950000 }], delivery: { method: "retiro" }, payment: "efectivo", contactName: "Ana Pérez",
     idempotencyKey: `clave-e2e-${Math.random().toString(36).slice(2)}-aaaa`, ...over,
   });
 

@@ -418,7 +418,7 @@ test.describe("perfil y datos personales", () => {
     // el carrito toma el nombre del perfil; al cerrar sesión se limpia lo personal
     await seedCart(page);
     await go(page, "/carrito");
-    await expect(page.getByLabel(/Tu nombre/)).toHaveValue("Paula G.");
+    await expect(page.getByLabel(/Nombre y apellido/)).toHaveValue("Paula G.");
     await page.getByLabel(/^Andreani/).check();
     await page.getByLabel("Localidad").fill("Haedo");
     await go(page, "/cuenta/perfil");
@@ -426,7 +426,7 @@ test.describe("perfil y datos personales", () => {
     await expect(page).toHaveURL(/\/cuenta\/ingresar/);
     await go(page, "/carrito");
     await expect(page.getByTestId("cantidad-storm-sobre")).toHaveText("2");
-    await expect(page.getByLabel(/Tu nombre/)).toHaveValue("");
+    await expect(page.getByLabel(/Nombre y apellido/)).toHaveValue("");
     await expect(page.getByLabel(/^Andreani/)).not.toBeChecked();
     await loginUI(page, email, "otra-clave-segura-789");
     await expect(page).toHaveURL(/\/cuenta$/);

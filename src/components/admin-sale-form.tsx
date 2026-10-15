@@ -166,7 +166,7 @@ export function AdminSaleForm({ products }: { products: SaleProduct[] }) {
       )}
 
       {step === "revisar" && preview && (
-        <div className="rounded-xl border border-ink/20 bg-white p-4" data-testid="venta-resumen">
+        <div className="min-w-0 rounded-xl border border-ink/20 bg-white p-4" data-testid="venta-resumen">
           <h3 className="text-lg font-semibold">Resumen: revisá antes de confirmar</h3>
           <div className="mt-3 overflow-x-auto">
             <table className="w-full min-w-[560px] text-left text-sm">

@@ -37,7 +37,7 @@ export function AdminSalesList({ sales }: { sales: SaleView[] }) {
             <p className="text-sm text-ink/70">{when(s.createdAt)} · {s.createdByEmail}</p>
           </div>
           <ul className="mt-2 text-sm">
-            {s.lines.map((l) => <li key={l.productId} className="flex justify-between gap-3"><span>{l.quantity} × {l.title} <span className="font-mono text-xs text-ink/55">{l.sku}</span></span><span className="shrink-0">{formatARS(l.unitPriceMinor)} c/u</span></li>)}
+            {s.lines.map((l) => <li key={l.productId} className="flex justify-between gap-3"><span>{l.quantity} × {l.title} <span className="font-mono text-xs text-ink/70">{l.sku}</span></span><span className="shrink-0">{formatARS(l.unitPriceMinor)} c/u</span></li>)}
           </ul>
           <p className="mt-2 flex flex-wrap items-baseline justify-between gap-2 border-t border-ink/10 pt-2 text-sm"><span>{s.paymentLabel}{s.note ? ` · ${s.note}` : ""}</span><b className="text-lg">{formatARS(s.totalMinor)}</b></p>
           {s.status === "anulada" ? (

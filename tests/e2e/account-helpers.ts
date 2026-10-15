@@ -58,12 +58,13 @@ export async function loginUI(page: Page, email: string, password = PASSWORD, ne
 }
 export const seedCart = async (page: Page, items = [{ productId: "storm-sobre", quantity: 2, priceMinor: 950000 }], extra: Record<string, unknown> = {}) => {
   await go(page, "/");
-  await page.evaluate(([k, v]) => localStorage.setItem(k as string, JSON.stringify(v)), [CART_KEY, { items, delivery: {}, payment: "coordinar", contactName: "", idem: null, ...extra }]);
+  await page.evaluate(([k, v]) => localStorage.setItem(k as string, JSON.stringify(v)), [CART_KEY, { items, delivery: {}, payment: "efectivo", contactName: "", idem: null, ...extra }]);
 };
 export async function prepareInquiry(page: Page) {
   await go(page, "/carrito");
-  await page.getByLabel(/Retiro — Ramos Mejía/).check();
-  await page.getByLabel("Punto de retiro").selectOption("haedo");
+  await page.getByRole("radio", { name: /Retiro/ }).check();
+  await page.getByLabel(/Nombre y apellido/).fill("Ana Pérez");
+  await page.getByRole("radio", { name: /Efectivo/ }).check();
   await page.getByRole("button", { name: "Continuar por WhatsApp" }).click();
   await expect(page).toHaveURL(/\/carrito\/consulta\/TT-/);
   return page.url().match(/TT-[A-Z2-9]{8}/)![0];

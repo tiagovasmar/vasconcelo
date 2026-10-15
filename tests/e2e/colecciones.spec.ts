@@ -228,7 +228,7 @@ test.describe("precio pendiente: el servidor nunca lo acepta", () => {
   test("validar carrito e iniciar una consulta con un SKU pendiente falla, aunque se manipule la petición", async ({ request }) => {
     const v = await (await request.post("/api/cart/validate", { data: { items: [{ productId: "storm-caja", quantity: 1, expectedPriceMinor: 1850000 }] } })).json();
     expect(v.lines[0]).toMatchObject({ status: "pending_commercial", unitPriceMinor: null, maxQuantity: 0 });
-    const body = { items: [{ productId: "storm-caja", quantity: 2, expectedPriceMinor: 1 }], delivery: { method: "retiro", pickupPoint: "haedo" }, payment: "coordinar", idempotencyKey: `pendiente-${Date.now()}-${Math.random().toString(36).slice(2)}`, acceptPriceChanges: true, priceMinor: 100, total: 100 };
+    const body = { items: [{ productId: "storm-caja", quantity: 2, expectedPriceMinor: 1 }], delivery: { method: "retiro" }, payment: "efectivo", contactName: "Ana Pérez", idempotencyKey: `pendiente-${Date.now()}-${Math.random().toString(36).slice(2)}`, acceptPriceChanges: true, priceMinor: 100, total: 100 };
     await request.get("/carrito");
     const res = await request.post("/api/inquiries", { data: body });
     expect(res.status()).toBe(409);
@@ -237,7 +237,7 @@ test.describe("precio pendiente: el servidor nunca lo acepta", () => {
 
   test("un carrito guardado con un producto pendiente se bloquea con un aviso y no ofrece continuar", async ({ page }) => {
     await go(page, "/");
-    await page.evaluate(([k, v]) => localStorage.setItem(k as string, JSON.stringify(v)), [KEY, { items: [{ productId: "abyss-eye-caja", quantity: 1, priceMinor: 1 }], delivery: { method: "retiro", pickupPoint: "haedo" }, payment: "coordinar", contactName: "", idem: null }]);
+    await page.evaluate(([k, v]) => localStorage.setItem(k as string, JSON.stringify(v)), [KEY, { items: [{ productId: "abyss-eye-caja", quantity: 1, priceMinor: 1 }], delivery: { method: "retiro", pickupPoint: "haedo" }, payment: "efectivo", contactName: "Ana Pérez", idem: null }]);
     await go(page, "/carrito");
     await expect(page.getByTestId("aviso-pendiente")).toContainText("Todavía no se puede comprar");
     await expect(page.getByRole("button", { name: "Continuar por WhatsApp" })).toBeDisabled();

@@ -17,7 +17,7 @@ async function intercept(context: BrowserContext) {
 }
 async function seed(page: Page, items: Array<{ productId: string; quantity: number; priceMinor: number }>, extra: Record<string, unknown> = {}) {
   await go(page, "/");
-  await page.evaluate(([k, v]) => localStorage.setItem(k as string, JSON.stringify(v)), [KEY, { items, delivery: {}, payment: "coordinar", contactName: "", idem: null, ...extra }]);
+  await page.evaluate(([k, v]) => localStorage.setItem(k as string, JSON.stringify(v)), [KEY, { items, delivery: {}, payment: "efectivo", contactName: "Ana Pérez", idem: null, ...extra }]);
   await go(page, "/carrito");
 }
 const cta = (page: Page) => page.getByRole("button", { name: /Continuar por WhatsApp|Preparando/ });
@@ -27,16 +27,17 @@ test("con número configurado se abre el chat con el mensaje exacto y sin marcar
   const hits = await intercept(context);
   await seed(page, base, { contactName: "Inés Muñoz" });
   await expect(page.getByText("Se abrirá el chat con tu pedido listo. Solo tenés que enviarlo.")).toBeVisible();
-  await page.getByLabel(/Retiro — Ramos Mejía/).check();
-  await page.getByLabel("Punto de retiro").selectOption("ramos-mejia");
+  await page.getByRole("radio", { name: /Retiro/ }).check();
+  await page.getByLabel(/Nombre y apellido/).fill("Ana Pérez");
+  await page.getByRole("radio", { name: /Efectivo/ }).check();
   const [resp] = await Promise.all([page.waitForResponse((r) => r.url().endsWith("/api/inquiries")), cta(page).click()]);
   const json = await resp.json();
   await page.waitForURL(/https:\/\/wa\.me\//);
   const url = new URL(page.url());
   expect(url.pathname).toBe(`/${NUMBER}`);
   expect(url.searchParams.get("text")).toBe(json.message);
-  expect(json.message).toContain("Hola, soy Inés Muñoz.");
-  expect(json.message).toContain("Subtotal de productos: $ 61.000");
+  expect(json.message).toContain("Hola, soy Ana Pérez.");
+  expect(json.message).toContain("*Subtotal: $ 61.000*");
   expect(json.message).toContain("Envío: a coordinar");
   expect(hits.length).toBeGreaterThan(0);
 
@@ -88,12 +89,14 @@ test("recorrido completo con número configurado: catálogo → ficha → carrit
   await page.locator("html[data-hydrated='true']").waitFor();
   await page.getByRole("button", { name: "Más" }).click();
   await page.getByRole("button", { name: "Agregar al carrito" }).click();
-  await page.getByRole("link", { name: "Ver carrito" }).first().click();
+  await page.getByTestId("drawer-continuar").click();
   await expect(page.getByTestId("resumen-subtotal")).toContainText("19.000");
   await page.getByLabel(/^Andreani/).check();
   await page.getByLabel("Localidad").fill("Haedo");
   await page.getByLabel("Provincia").selectOption("Buenos Aires");
   await page.getByLabel("Código postal").fill("1706");
+  await page.getByLabel(/Nombre y apellido/).fill("Ana Pérez");
+  await page.getByRole("radio", { name: /Efectivo/ }).check();
   const [resp] = await Promise.all([page.waitForResponse((r) => r.url().endsWith("/api/inquiries")), cta(page).click()]);
   const json = await resp.json();
   await page.waitForURL(/https:\/\/wa\.me\//);

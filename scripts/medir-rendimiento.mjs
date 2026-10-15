@@ -155,12 +155,14 @@ async function medirInteracciones(browser, perfilNombre, prof) {
       guardar("abrir carrito · evento más lento ms", await eventoMax(page, d));
       // 3) Cambiar cantidad y quitar, dentro del panel si existe o en /carrito si no.
       const scope = esPanel ? '[data-testid="cart-drawer"] ' : "";
-      const out0 = page.locator(`${scope}output[data-testid*="cantidad-"]`).first();
-      const antes = (await out0.textContent())?.trim();
+      // Cantidad: en el panel es un campo (se lee su valor); en la página del pedido es un texto.
+      const selQty = esPanel ? `${scope}input[data-testid^="drawer-cantidad-"]` : `output[data-testid*="cantidad-"]`;
+      const leer = () => page.evaluate((s) => { const e = document.querySelector(s); return e ? (e.value ?? e.textContent).trim() : null; }, selQty);
+      const antes = await leer();
       const d2 = await ahora(page);
       const t2 = Date.now();
       await page.locator(`${scope}button[aria-label="Más"], ${scope}button[aria-label^="Aumentar"]`).first().click();
-      await page.waitForFunction(([sel, a]) => { const e = document.querySelector(sel); return e && e.textContent.trim() !== a; }, [`${scope}output[data-testid*="cantidad-"]`, antes], { timeout: 30000 });
+      await page.waitForFunction(([sel, a]) => { const e = document.querySelector(sel); return e && (e.value ?? e.textContent).trim() !== a; }, [selQty, antes], { timeout: 30000 });
       guardar(`cambiar cantidad (${esPanel ? "panel" : "página"}) · cambia el número ms`, Date.now() - t2);
       await page.waitForTimeout(400);
       guardar("cambiar cantidad · evento más lento ms", await eventoMax(page, d2));

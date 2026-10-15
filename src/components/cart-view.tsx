@@ -65,10 +65,18 @@ export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }
   const [resumenVisible, setResumenVisible] = useState(false);
   const [escribiendo, setEscribiendo] = useState(false);
   useEffect(() => {
-    const el = document.getElementById("resumen-title");
-    if (!el || typeof IntersectionObserver === "undefined") return;
-    const io = new IntersectionObserver(([e]) => setResumenVisible(e.isIntersecting), { threshold: 0 });
-    io.observe(el);
+    // La barra también se oculta mientras se ve el botón «Continuar»: si no, al tocarlo podía aparecer la barra justo encima y quedarse con el toque.
+    const els = ["resumen-title", "cta-continuar"].map((id) => document.getElementById(id)).filter((e): e is HTMLElement => Boolean(e));
+    if (!els.length || typeof IntersectionObserver === "undefined") return;
+    const visibles = new Set<Element>();
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (e.isIntersecting) visibles.add(e.target);
+        else visibles.delete(e.target);
+      }
+      setResumenVisible(visibles.size > 0);
+    }, { threshold: 0 });
+    els.forEach((el) => io.observe(el));
     return () => io.disconnect();
   }, [mounted, cart.items.length]);
   useEffect(() => {
@@ -164,7 +172,11 @@ export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }
                 <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-ink/65"><LanguageBadge language={line.product.language} size="plain" /> · {kindLabel[line.product.kind]} sellado · SKU {line.product.sku}</p>
               </>
             ) : (
-              <p className="font-bold">{line ? "Producto ya no disponible" : item.title ?? "Cargando…"}</p>
+              <>
+                <p className="font-bold leading-tight">{line ? "Producto ya no disponible" : item.title ?? "Cargando…"}</p>
+                {/* Misma altura que la fila de idioma y SKU que aparece al validar: así nada se mueve cuando llega la respuesta. */}
+                <p className="mt-0.5 min-h-[2.45rem] text-xs sm:min-h-6" aria-hidden="true">&nbsp;</p>
+              </>
             )}
             <p className="mt-1 text-sm">
               {porEncargo ? <b data-testid={`cotizacion-${item.productId}`}>Cotización a confirmar</b> : (
@@ -284,7 +296,7 @@ export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }
 
         <section aria-labelledby="carrito-items" className="border border-ink/25 bg-white/70 p-4 sm:p-6">
           <h2 id="carrito-items" className="display text-3xl normal-case">Tu carrito</h2>
-          {verifying && !loadError && <p className="mt-1 text-xs text-ink/60" role="status">Verificando precios y disponibilidad…</p>}
+          <p className="mt-1 min-h-4 text-xs text-ink/60" role="status">{verifying && !loadError ? "Verificando precios y disponibilidad…" : ""}</p>
           {stockView.length > 0 && (
             <>
               {mixed && <h3 className="mt-4 text-sm font-bold uppercase tracking-[.12em] text-ink/70">Para comprar (disponibles)</h3>}
@@ -393,7 +405,7 @@ export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }
               {cart.payment === "tarjeta-3-cuotas" && qualifies && subtotal > 0 && (
                 <p className="mt-2 text-sm font-semibold" data-testid="resumen-cuotas">{promo.installments} cuotas sin interés: {splitInstallments(subtotal, promo.installments).map((c) => money(c)).join(" + ")} = {money(subtotal)}</p>
               )}
-              {fx && stockView.some((v) => v.line?.unitPriceUsdMinor) && <p className="mt-1 text-xs text-ink/70" data-testid="resumen-fx">Precios en pesos calculados con {fx.mode === "manual" ? "la cotización fijada por la tienda" : "el dólar blue (venta)"} a {formatRate(fx.rate10k)} por dólar, redondeados a múltiplos de $100 por unidad. La consulta que prepares guarda esta cotización.</p>}
+              <div className="min-h-[3.1rem]">{fx && stockView.some((v) => v.line?.unitPriceUsdMinor) && <p className="mt-1 text-xs text-ink/70" data-testid="resumen-fx">Precios en pesos calculados con {fx.mode === "manual" ? "la cotización fijada por la tienda" : "el dólar blue (venta)"} a {formatRate(fx.rate10k)} por dólar, redondeados a múltiplos de $100 por unidad. La consulta que prepares guarda esta cotización.</p>}</div>
               <p className="mt-1 text-xs text-ink/70">{discount > 0 ? "El 10% OFF se calcula sobre los productos disponibles de un pedido con caja; el envío no entra. " : ""}{mixed ? "No incluye los productos por encargo (sin cotizar). " : ""}Envío e importe final se confirman por WhatsApp.</p>
             </>
           ) : (
@@ -416,7 +428,7 @@ export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }
 
           {blocking.length > 0 && <p role="alert" className="mt-4 text-sm font-semibold text-vermilion">Resolvé los avisos del carrito para continuar.</p>}
           {submitError && <p role="alert" className="mt-4 border-l-4 border-vermilion bg-vermilion/10 p-3 text-sm font-semibold">{submitError}</p>}
-          <button type="button" onClick={submit} disabled={!canContinue} aria-describedby="cta-nota" className="mt-5 flex min-h-14 w-full items-center justify-center gap-2 bg-emerald px-6 text-lg font-bold text-paper hover:bg-emerald-2 disabled:cursor-not-allowed disabled:opacity-50">
+          <button id="cta-continuar" type="button" onClick={submit} disabled={!canContinue} aria-describedby="cta-nota" className="mt-5 flex min-h-14 w-full items-center justify-center gap-2 bg-emerald px-6 text-lg font-bold text-paper hover:bg-emerald-2 disabled:cursor-not-allowed disabled:opacity-50">
             {submitting ? "Preparando tu consulta…" : stockView.length === 0 && encargoView.length > 0 ? "Consultar por encargo por WhatsApp" : "Continuar por WhatsApp"}
           </button>
           {attempted && !formOk && canContinue && <p role="alert" className="mt-2 text-sm font-semibold text-vermilion" data-testid="faltan-datos">{errors.contactName ? "Completá tu nombre y apellido para continuar." : errors.payment && deliveryOk ? "Elegí cómo preferís pagar para continuar." : "Completá los datos de entrega para continuar."}</p>}

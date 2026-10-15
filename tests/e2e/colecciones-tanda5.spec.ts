@@ -6,7 +6,7 @@ const KEY = "tienda-carrito-v1";
 const RETIRADOS = ["zh-zhenshi-xuanxu-sobre-20", "zh-jiajiang-huihe-sobre-20", "zh-heijing-chicheng-sobre-20", "zh-gengu-kailai-sobre-20", "zh-liren-mengxing-sobre-20", "zh-cuican-guihuan-sobre-20", "zh-qiji-qicheng-sobre-20", "zh-gongzhu-rongguang-sobre-20"];
 const seed = async (page: Page, items: Array<Record<string, unknown>>) => {
   await go(page, "/");
-  await page.evaluate(([k, v]) => localStorage.setItem(k as string, JSON.stringify(v)), [KEY, { items, delivery: { method: "retiro", locality: "", province: "", postalCode: "", pickupPoint: "haedo" }, payment: "coordinar", contactName: "", idem: null }]);
+  await page.evaluate(([k, v]) => localStorage.setItem(k as string, JSON.stringify(v)), [KEY, { items, delivery: { method: "retiro", locality: "", province: "", postalCode: "", pickupPoint: "haedo" }, payment: "efectivo", contactName: "Ana Pérez", idem: null }]);
   await go(page, "/carrito");
 };
 
@@ -67,8 +67,9 @@ test("carrito antiguo con sobres de 20 cartas: se informa que fueron retirados, 
   await page.getByRole("button", { name: /Quitar Arcane Truth · Sobre de 20 cartas del carrito/ }).click();
   await page.getByRole("button", { name: /Quitar Reward Round · Sobre de 20 cartas del carrito/ }).click();
   await expect(avisos).toHaveCount(0);
-  await page.getByLabel(/Retiro — Ramos Mejía/).check();
-  await page.getByLabel("Punto de retiro").selectOption("haedo");
+  await page.getByRole("radio", { name: /Retiro/ }).check();
+  await page.getByLabel(/Nombre y apellido/).fill("Ana Pérez");
+  await page.getByRole("radio", { name: /Efectivo/ }).check();
   await expect(page.getByRole("button", { name: "Consultar por encargo por WhatsApp" })).toBeEnabled();
 });
 
@@ -78,7 +79,7 @@ test("servidor: un retirado no entra en una consulta nueva (compra ni encargo) y
   expect(v.lines[0]).toMatchObject({ status: "retired", unitPriceMinor: null });
   expect(v.lines[1].status).toBe("unavailable");
   for (const mode of ["buy", "encargo"]) {
-    const res = await request.post("/api/inquiries", { data: { items: [{ productId: "zh-cuican-guihuan-sobre-20", quantity: 1, mode }], delivery: { method: "retiro", pickupPoint: "haedo" }, payment: "coordinar", idempotencyKey: `retirado-${mode}-${Date.now()}-${Math.random().toString(36).slice(2)}` } });
+    const res = await request.post("/api/inquiries", { data: { items: [{ productId: "zh-cuican-guihuan-sobre-20", quantity: 1, mode }], delivery: { method: "retiro" }, payment: "efectivo", contactName: "Ana Pérez", idempotencyKey: `retirado-${mode}-${Date.now()}-${Math.random().toString(36).slice(2)}` } });
     expect(res.status()).toBe(409);
     expect((await res.json()).error.message).toContain("retirados");
   }

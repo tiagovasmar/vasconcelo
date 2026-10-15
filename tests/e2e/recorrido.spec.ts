@@ -55,13 +55,15 @@ test("recorrido completo: catálogo → ficha → carrito → consulta (modo dem
   await page.getByRole("button", { name: "Más" }).click();
   await page.getByRole("button", { name: "Agregar al carrito" }).click();
   await expect(page.getByTestId("cart-count")).toHaveText("2");
-  await page.getByRole("link", { name: "Ver carrito" }).first().click();
+  await page.getByTestId("drawer-continuar").click();
   await expect(page).toHaveURL(/\/carrito$/);
   await expect(page.getByTestId("resumen-subtotal")).toContainText("370.000");
   await expect(page.getByTestId("resumen-envio")).toHaveText("A coordinar");
   await page.getByLabel(/^Moto/).check();
   await page.getByLabel("Localidad").fill("Ramos Mejía");
   await page.getByLabel("Código postal").fill("1704");
+  await page.getByLabel(/Nombre y apellido/).fill("Ana Pérez");
+  await page.getByRole("radio", { name: /Efectivo/ }).check();
   await page.getByRole("button", { name: "Continuar por WhatsApp" }).click();
   await expect(page).toHaveURL(/\/carrito\/consulta\/TT-/);
   await expect(page.getByTestId("modo-demo")).toBeVisible();
@@ -92,9 +94,10 @@ test("recorrido con cuenta: registro → favoritos → consulta → Mis consulta
   // consulta con la sesión iniciada (el nombre del perfil se aprovecha)
   await page.getByRole("button", { name: "Agregar al carrito" }).click();
   await go(page, "/carrito");
-  await expect(page.getByLabel(/Tu nombre/)).toHaveValue("Valeria Sosa");
-  await page.getByLabel(/Retiro — Ramos Mejía/).check();
-  await page.getByLabel("Punto de retiro").selectOption("ramos-mejia");
+  await expect(page.getByLabel(/Nombre y apellido/)).toHaveValue("Valeria Sosa");
+  await page.getByRole("radio", { name: /Retiro/ }).check();
+  await page.getByLabel(/Nombre y apellido/).fill("Ana Pérez");
+  await page.getByRole("radio", { name: /Efectivo/ }).check();
   await page.getByRole("button", { name: "Continuar por WhatsApp" }).click();
   await expect(page).toHaveURL(/\/carrito\/consulta\/TT-/);
   const ref = page.url().match(/TT-[A-Z2-9]{8}/)![0];

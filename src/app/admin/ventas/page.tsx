@@ -32,11 +32,11 @@ export default async function Ventas() {
       </nav>
 
       <div className="mt-6 grid gap-8 lg:grid-cols-[1.1fr_1fr] lg:items-start">
-        <section aria-labelledby="registrar-title">
+        <section aria-labelledby="registrar-title" className="min-w-0">
           <h2 id="registrar-title" className="text-lg font-semibold">Registrar una venta</h2>
           <div className="mt-3"><AdminSaleForm products={products} /></div>
         </section>
-        <section aria-labelledby="ultimas-title">
+        <section aria-labelledby="ultimas-title" className="min-w-0">
           <h2 id="ultimas-title" className="text-lg font-semibold">Últimas ventas</h2>
           <p className="mt-1 text-xs text-ink/65">Las ventas no se editan ni se borran. Si te equivocaste, anulala: devuelve el stock y queda constancia.</p>
           <div className="mt-3"><AdminSalesList sales={sales} /></div>

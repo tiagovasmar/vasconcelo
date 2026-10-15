@@ -40,7 +40,7 @@ for (const [name, url] of pages) {
 
 test("axe: carrito con productos, avisos y formulario de entrega", async ({ page }) => {
   await go(page, "/");
-  await page.evaluate(([k, v]) => localStorage.setItem(k as string, JSON.stringify(v)), [KEY, { items: [{ productId: "storm-caja", quantity: 1, priceMinor: 17000000 }, { productId: "parcial-bundle", quantity: 1, priceMinor: 6800000 }, { productId: "storm-sobre", quantity: 2, priceMinor: 950000 }], delivery: { method: "andreani", locality: "", province: "", postalCode: "" }, payment: "coordinar", contactName: "", idem: null }]);
+  await page.evaluate(([k, v]) => localStorage.setItem(k as string, JSON.stringify(v)), [KEY, { items: [{ productId: "storm-caja", quantity: 1, priceMinor: 17000000 }, { productId: "parcial-bundle", quantity: 1, priceMinor: 6800000 }, { productId: "storm-sobre", quantity: 2, priceMinor: 950000 }], delivery: { method: "andreani", locality: "", province: "", postalCode: "" }, payment: "efectivo", contactName: "Ana Pérez", idem: null }]);
   await go(page, "/carrito");
   await page.getByText("Sin stock por ahora.").waitFor();
   await page.getByRole("button", { name: "Continuar por WhatsApp" }).click({ force: true });
@@ -49,7 +49,7 @@ test("axe: carrito con productos, avisos y formulario de entrega", async ({ page
 
 test("axe: consulta preparada", async ({ page }) => {
   await go(page, "/");
-  await page.evaluate(([k, v]) => localStorage.setItem(k as string, JSON.stringify(v)), [KEY, { items: [{ productId: "storm-sobre", quantity: 2, priceMinor: 950000 }], delivery: { method: "retiro", pickupPoint: "haedo" }, payment: "coordinar", contactName: "", idem: null }]);
+  await page.evaluate(([k, v]) => localStorage.setItem(k as string, JSON.stringify(v)), [KEY, { items: [{ productId: "storm-sobre", quantity: 2, priceMinor: 950000 }], delivery: { method: "retiro", pickupPoint: "haedo" }, payment: "efectivo", contactName: "Ana Pérez", idem: null }]);
   await go(page, "/carrito");
   await page.getByRole("button", { name: "Continuar por WhatsApp" }).click();
   await page.waitForURL(/consulta\/TT-/);

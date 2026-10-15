@@ -75,8 +75,9 @@ test("encargo desde un producto sin precio ni stock: tarjeta → ficha → carri
   await expect(page.getByTestId("resumen-encargo")).toContainText("cotización a confirmar");
   await expect(page.locator("aside")).not.toContainText(/\$\s?\d/); // ningún importe ni seña inventados
   await expect(page.getByRole("radio", { name: /Transferencia/ })).toBeDisabled();
-  await page.getByLabel(/Retiro — Ramos Mejía/).check();
-  await page.getByLabel("Punto de retiro").selectOption("ramos-mejia");
+  await page.getByRole("radio", { name: /Retiro/ }).check();
+  await page.getByLabel(/Nombre y apellido/).fill("Ana Pérez");
+  await page.getByRole("radio", { name: /Efectivo/ }).check();
   await page.getByRole("button", { name: "Consultar por encargo por WhatsApp" }).click();
   await expect(page).toHaveURL(/\/carrito\/consulta\/TT-/);
   const msg = page.getByTestId("mensaje");

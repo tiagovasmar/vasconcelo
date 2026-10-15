@@ -220,4 +220,12 @@ export function useCart(): CartState {
   return useSyncExternalStore(subscribe, getSnapshot, () => empty);
 }
 
+/**
+ * Lee solo un dato del carrito (número, texto o booleano): el componente se vuelve a dibujar únicamente si ESE dato cambia. Las tarjetas del catálogo usan
+ * esto para no redibujarse todas juntas cada vez que se agrega o se cambia otra cosa del carrito.
+ */
+export function useCartSelect<T extends string | number | boolean | null>(select: (s: CartState) => T): T {
+  return useSyncExternalStore(subscribe, () => select(getSnapshot()), () => select(empty));
+}
+
 export const cartCount = (s: CartState) => s.items.reduce((n, i) => n + i.quantity, 0);

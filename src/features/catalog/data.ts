@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { catalog } from "@/content/catalog";
 import { getDb, type Db } from "@/db/client";
 import type { Expansion, Product } from "@/content/schema";
@@ -13,12 +14,23 @@ import { applyOverrides, loadGalleries, loadOverrides } from "./overrides";
  * del panel se ve enseguida en el catálogo, las fichas y la validación del carrito, sin recompilar. Las páginas que los
  * muestran son dinámicas (no se prerenderizan con precios viejos).
  */
-export async function listAllProducts(fx?: EffectiveRate, db: Db = getDb()): Promise<Product[]> {
+async function loadAllProducts(fx: EffectiveRate | undefined, db: Db): Promise<Product[]> {
   // Si la cotización venció, este pedido la renueva (con tiempo máximo corto); si falla, usa la guardada.
   const [rate, overrides, galleries] = await Promise.all([fx ? Promise.resolve(fx) : currentRate(db), loadOverrides(db), loadGalleries(db)]);
   return applyOverrides(catalog.products, overrides, rate, galleries);
 }
-export async function listProducts(db: Db = getDb()): Promise<Product[]> {
+
+/**
+ * Una página llama varias veces a las funciones de abajo (destacados, en stock, colecciones…): cada una armaba el catálogo completo con 3 consultas
+ * (cotización, valores del panel y galerías). Dentro de UN mismo pedido de página se arma una sola vez (`cache` de React: vive lo que dura ese pedido,
+ * nunca entre pedidos), así un cambio del panel se ve en el pedido siguiente igual que antes. Fuera de una página (rutas de API, scripts, pruebas) no memoriza nada.
+ */
+const productsOncePerRequest = cache(() => loadAllProducts(undefined, getDb()));
+export async function listAllProducts(fx?: EffectiveRate, db?: Db): Promise<Product[]> {
+  if (!fx && !db) return productsOncePerRequest();
+  return loadAllProducts(fx, db ?? getDb());
+}
+export async function listProducts(db?: Db): Promise<Product[]> {
   return (await listAllProducts(undefined, db)).filter((p) => p.active);
 }
 export async function getProductBySlug(slug: string): Promise<Product | undefined> {

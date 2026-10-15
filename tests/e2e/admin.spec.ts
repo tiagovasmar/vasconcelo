@@ -265,7 +265,7 @@ test.describe("el dueño administra precios, stock, fotos y cotización", () => 
     const g = await guest.newPage();
     await go(g, "/carrito");
     const mk = (price: number, key: string, accept = false) => g.request.post(`${ADMIN}/api/inquiries`, {
-      data: { items: [{ productId: "storm-sobre", quantity: 2, expectedPriceMinor: price }], delivery: { method: "retiro", pickupPoint: "haedo" }, payment: "coordinar", idempotencyKey: key, ...(accept ? { acceptPriceChanges: true } : {}) },
+      data: { items: [{ productId: "storm-sobre", quantity: 2, expectedPriceMinor: price }], delivery: { method: "retiro" }, payment: "efectivo", contactName: "Ana Pérez", idempotencyKey: key, ...(accept ? { acceptPriceChanges: true } : {}) },
       headers: { Origin: ADMIN },
     });
     const first = await mk(1_540_000, `admin-e2e-${uid()}-aaaaaaaa`);
@@ -759,15 +759,95 @@ test.describe("el dueño administra precios, stock, fotos y cotización", () => 
     await visitor.close();
   });
 
+  test("ventas: ajuste y entrada con motivo, venta con resumen y stock resultante, doble clic = una sola venta, sin stock negativo, anulación e historial", async () => {
+    // Punto de partida conocido: ajuste del stock a 20 con motivo.
+    await go(owner, "/admin/ventas/movimientos");
+    await owner.getByTestId("tipo-ajuste").check();
+    const opcion = owner.getByTestId("mov-producto").locator("option", { hasText: "Storm Emeralda · Sobre" }).first();
+    await owner.getByTestId("mov-producto").selectOption(await opcion.getAttribute("value"));
+    await owner.getByTestId("mov-cantidad").fill("20");
+    await owner.getByTestId("mov-motivo").fill("Conteo físico inicial");
+    await owner.getByTestId("mov-guardar").click();
+    await expect(owner.getByTestId("mov-mensaje")).toContainText("20 unidades");
+    await expect(owner.getByText("Conteo físico inicial").first()).toBeVisible();
+    // Sin motivo no se guarda.
+    await owner.getByTestId("mov-cantidad").fill("3");
+    await owner.getByTestId("mov-motivo").fill("");
+    await owner.getByTestId("mov-guardar").click();
+    await expect(owner.getByTestId("mov-mensaje")).toContainText("Escribí el motivo");
+
+    // Armar la venta: 3 sobres a $9.000, transferencia.
+    await go(owner, "/admin/ventas");
+    await owner.getByLabel(/Agregar producto/).fill("Storm Emeralda · Sobre");
+    await owner.getByTestId("agregar-venta-storm-sobre").click();
+    await owner.getByTestId("venta-cantidad-storm-sobre").fill("3");
+    await owner.getByTestId("venta-precio-storm-sobre").fill("9000");
+    await owner.getByTestId("venta-nota").fill("Venta en persona");
+    await expect(owner.getByTestId("venta-total-armado")).toContainText("27.000");
+    // Sin elegir método de pago no avanza.
+    await owner.getByTestId("revisar-venta").click();
+    await expect(owner.getByTestId("venta-error")).toContainText("método de pago");
+    await owner.getByTestId("venta-pago").selectOption("transferencia");
+    await owner.getByTestId("revisar-venta").click();
+    await expect(owner.getByTestId("venta-resumen")).toBeVisible();
+    await expect(owner.getByTestId("stock-resultante-storm-sobre")).toHaveText(/20\s*→\s*17/);
+    await expect(owner.getByTestId("venta-total-resumen")).toContainText("27.000");
+    // Doble clic rápido: una sola venta.
+    await owner.getByTestId("confirmar-venta").dblclick();
+    await expect(owner.getByTestId("venta-registrada")).toBeVisible();
+    await go(owner, "/admin/ventas");
+    await expect(owner.getByTestId("ventas-lista").locator("> li")).toHaveCount(1);
+    await expect(owner.getByTestId("ventas-lista")).toContainText("27.000");
+    await expect(owner.getByTestId("ventas-lista")).toContainText("Venta en persona");
+    await expect(owner.getByTestId("ventas-lista")).toContainText("9.000");
+    await go(owner, "/admin/ventas/movimientos?tipo=venta");
+    await expect(owner.getByTestId("movimiento")).toHaveCount(1);
+    await expect(owner.getByTestId("movimiento").first()).toContainText("-3");
+    await expect(owner.getByTestId("movimiento").first()).toContainText("20 → 17");
+    await expect(owner.getByTestId("movimiento").first()).toContainText(OWNER);
+
+    // Más de lo que hay: el resumen lo marca, no se puede confirmar y el stock no cambia.
+    await go(owner, "/admin/ventas");
+    await owner.getByLabel(/Agregar producto/).fill("Storm Emeralda · Sobre");
+    await owner.getByTestId("agregar-venta-storm-sobre").click();
+    await owner.getByTestId("venta-cantidad-storm-sobre").fill("500");
+    await owner.getByTestId("venta-precio-storm-sobre").fill("9000");
+    await owner.getByTestId("venta-pago").selectOption("efectivo");
+    await owner.getByTestId("revisar-venta").click();
+    await expect(owner.getByTestId("venta-resumen")).toContainText("Stock insuficiente");
+    await expect(owner.getByTestId("confirmar-venta")).toBeDisabled();
+
+    // Entrada de mercadería y anulación: el stock vuelve y todo queda en el historial.
+    await go(owner, "/admin/ventas/movimientos");
+    await owner.getByTestId("mov-producto").selectOption(await opcion.getAttribute("value"));
+    await owner.getByTestId("mov-cantidad").fill("5");
+    await owner.getByTestId("mov-motivo").fill("Compra al proveedor");
+    await owner.getByTestId("mov-guardar").click();
+    await expect(owner.getByTestId("mov-mensaje")).toContainText("pasó de 17 a 22");
+    await go(owner, "/admin/ventas");
+    const id = (await owner.getByTestId("ventas-lista").locator("> li").first().getAttribute("data-testid"))!.replace("venta-", "");
+    await owner.getByTestId(`anular-${id}`).click();
+    await owner.getByTestId("confirmar-anulacion").click();
+    await expect(owner.getByText("Escribí el motivo de la anulación")).toBeVisible();
+    await owner.getByTestId("motivo-anulacion").fill("Error de carga: era otro cliente");
+    await owner.getByTestId("confirmar-anulacion").click();
+    await expect(owner.getByTestId(`venta-${id}`)).toContainText("ANULADA");
+    await go(owner, "/admin/ventas/movimientos");
+    await expect(owner.getByTestId("movimientos")).toContainText("22 → 25");
+    for (const t of ["Anulación", "Venta", "Entrada", "Ajuste"]) await expect(owner.getByTestId("movimientos")).toContainText(t);
+    await go(owner, "/productos/storm-emeralda-sobre");
+    await expect(owner.getByTestId("disponibilidad").first()).toHaveText("Disponible");
+  });
+
   test("accesibilidad (axe) de la lista, la ficha, la cotización y el historial, en escritorio y móvil", async ({ browser }) => {
     const audit = async (page: Page) => (await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze()).violations.map((x) => `${x.id}: ${x.help} → ${x.nodes.slice(0, 2).map((n) => n.target.join(" ")).join(" | ")}`);
-    for (const p of ["/admin", "/admin/productos/storm-sobre", "/admin/cotizacion", "/admin/historial", "/admin/mayoristas"]) {
+    for (const p of ["/admin", "/admin/productos/storm-sobre", "/admin/cotizacion", "/admin/historial", "/admin/mayoristas", "/admin/ventas", "/admin/ventas/movimientos"]) {
       await go(owner, p);
       expect(await audit(owner), p).toEqual([]);
     }
     const ctx = await browser.newContext({ baseURL: ADMIN, viewport: { width: 390, height: 844 }, storageState: await owner.context().storageState() });
     const m = await ctx.newPage();
-    for (const p of ["/admin", "/admin/productos/storm-sobre", "/admin/cotizacion"]) {
+    for (const p of ["/admin", "/admin/productos/storm-sobre", "/admin/cotizacion", "/admin/ventas", "/admin/ventas/movimientos"]) {
       await go(m, p);
       expect(await audit(m), `móvil ${p}`).toEqual([]);
       const sobra = await m.evaluate(() => {

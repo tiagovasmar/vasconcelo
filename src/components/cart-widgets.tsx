@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { formatARS } from "@/lib/format";
-import { cartActions, cartCount, cartDrawer, useCart, useCartDrawerOpen } from "@/features/cart/store";
+import { cartActions, cartCount, cartDrawer, useCart, useCartDrawerOpen, useCartSelect } from "@/features/cart/store";
 import { preloadCartDrawer } from "./cart-drawer";
 import { ENCARGO_EXPLICACION } from "@/features/politicas/encargos";
 import { encargo as encargoPolitica } from "@/content/politicas";
@@ -42,12 +42,11 @@ type AddProps = { productId: string; title: string; /** Foto de portada (solo pa
 
 /** Botón «agregar» de las tarjetas (sin cantidad: suma 1). */
 export function AddToCartIcon({ productId, title, imageSrc, priceMinor, max, state }: AddProps) {
-  const cart = useCart();
-  const inCart = cart.items.find((i) => i.productId === productId)?.quantity ?? 0;
+  const inCart = useCartSelect((s) => s.items.find((i) => i.productId === productId)?.quantity ?? 0);
+  const queued = useCartSelect((s) => s.items.find((i) => i.productId === productId)?.mode === "encargo");
   const atLimit = inCart >= max;
   if (state !== "available" || max === 0) {
     // Sin precio o sin stock confirmado no se puede comprar, pero sí consultar por encargo (no reserva nada ni fija un precio).
-    const queued = cart.items.find((i) => i.productId === productId)?.mode === "encargo";
     return (
       <button
         type="button"
@@ -103,8 +102,7 @@ function BottomBar({ show, children }: { show: boolean; children: React.ReactNod
 
 /** Compra desde la ficha: cantidad + agregar. */
 export function AddToCartPanel({ productId, title, imageSrc, priceMinor, max, state, stockKnown = false, orderOnly = false }: AddProps) {
-  const cart = useCart();
-  const inCart = cart.items.find((i) => i.productId === productId)?.quantity ?? 0;
+  const inCart = useCartSelect((s) => s.items.find((i) => i.productId === productId)?.quantity ?? 0);
   const room = Math.max(0, max - inCart);
   const [qty, setQty] = useState(1);
   const [msg, setMsg] = useState("");
@@ -160,8 +158,7 @@ export function AddToCartPanel({ productId, title, imageSrc, priceMinor, max, st
  * Consultar no reserva mercadería, no fija un precio ni acredita un pago: la disponibilidad y la cotización se confirman con la tienda.
  */
 function EncargoPanel({ productId, title, imageSrc, pending, stockKnown, orderOnly }: { productId: string; title: string; imageSrc?: string | null; pending: boolean; stockKnown: boolean; orderOnly: boolean }) {
-  const cart = useCart();
-  const inCart = cart.items.find((i) => i.productId === productId && i.mode === "encargo")?.quantity ?? 0;
+  const inCart = useCartSelect((s) => s.items.find((i) => i.productId === productId && i.mode === "encargo")?.quantity ?? 0);
   const [qty, setQty] = useState(1);
   const [msg, setMsg] = useState("");
   const room = Math.max(0, ENCARGO_MAX - inCart);

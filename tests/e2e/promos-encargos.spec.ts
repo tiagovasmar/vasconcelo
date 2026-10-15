@@ -7,9 +7,9 @@ const caja = { productId: "storm-caja", quantity: 1, priceMinor: 18500000 };
 const sobres = { productId: "storm-sobre", quantity: 2, priceMinor: 950000 };
 const encargoBundle = { productId: "parcial-bundle", quantity: 1, priceMinor: 0, mode: "encargo" };
 
-const seed = async (page: Page, items: Array<Record<string, unknown>>, payment = "coordinar") => {
+const seed = async (page: Page, items: Array<Record<string, unknown>>, payment = "efectivo") => {
   await go(page, "/");
-  await page.evaluate(([k, v]) => localStorage.setItem(k as string, JSON.stringify(v)), [CART_KEY, { items, delivery: {}, payment, contactName: "", idem: null }]);
+  await page.evaluate(([k, v]) => localStorage.setItem(k as string, JSON.stringify(v)), [CART_KEY, { items, delivery: {}, payment, contactName: "Ana Pérez", idem: null }]);
   await go(page, "/carrito");
 };
 const pago = (page: Page, name: RegExp) => page.getByRole("radio", { name });
@@ -51,7 +51,7 @@ test.describe("promociones: mínimo de una caja", () => {
     await expect(pago(page, /Transferencia/)).toBeDisabled();
     await expect(pago(page, /Tarjeta de crédito/)).toBeDisabled();
     await expect(pago(page, /Efectivo/)).toBeEnabled();
-    await expect(pago(page, /A coordinar/)).toBeChecked();
+    await expect(pago(page, /Efectivo/)).toBeChecked();
     await expect(page.getByTestId("resumen-descuento")).toHaveCount(0);
     await expect(page.getByTestId("resumen-subtotal")).toContainText("19.000");
   });
@@ -78,14 +78,16 @@ test.describe("promociones: mínimo de una caja", () => {
     await page.getByRole("button", { name: /Quitar Storm Emeralda · Caja/ }).click();
     await expect(page.getByTestId("resumen-descuento")).toHaveCount(0);
     await expect(pago(page, /Transferencia/)).toBeDisabled();
-    await expect(pago(page, /A coordinar/)).toBeChecked(); // la preferencia vuelve sola a «a coordinar»
+    // El método de promoción deja de estar elegido y hay que elegir uno vigente (no vuelve a una opción que ya no existe).
+    await expect(page.getByRole("radio", { checked: true })).toHaveCount(0);
+    await expect(page.getByTestId("resumen-pago")).toHaveText("Sin elegir");
     await expect(page.getByTestId("resumen-subtotal")).toContainText("19.000");
     await expect(page.getByTestId("vista-previa")).not.toContainText("Descuento por transferencia");
   });
 
   test("servidor: sobres solos con promoción se rechazan (409) aunque el navegador lo intente; con una caja se acepta", async ({ page, request }) => {
     await go(page, "/");
-    const base = { delivery: { method: "retiro", pickupPoint: "haedo" }, idempotencyKey: `promo-${Date.now()}-${Math.random().toString(36).slice(2)}` };
+    const base = { delivery: { method: "retiro" }, contactName: "Ana Pérez", idempotencyKey: `promo-${Date.now()}-${Math.random().toString(36).slice(2)}` };
     const mal = await request.post("/api/inquiries", { data: { ...base, items: [{ productId: "storm-sobre", quantity: 1 }], payment: "transferencia" } });
     expect(mal.status()).toBe(409);
     expect((await mal.json()).error.code).toBe("promo_not_eligible");
@@ -121,8 +123,9 @@ test.describe("consulta por encargo", () => {
     await expect(page.getByTestId("resumen-encargo")).toContainText("Todavía no hay importe ni seña que pagar");
     await expect(page.getByTestId("resumen-subtotal")).toHaveCount(0);
     await expect(pago(page, /Transferencia/)).toBeDisabled();
-    await page.getByLabel(/Retiro — Ramos Mejía/).check();
-    await page.getByLabel("Punto de retiro").selectOption("haedo");
+    await page.getByRole("radio", { name: /Retiro/ }).check();
+    await page.getByLabel(/Nombre y apellido/).fill("Ana Pérez");
+    await page.getByRole("radio", { name: /Efectivo/ }).check();
     await expect(page.getByTestId("vista-previa")).toContainText("Por encargo (disponibilidad y cotización a confirmar)");
     await expect(page.getByTestId("vista-previa")).not.toContainText("$");
     await page.getByRole("button", { name: "Consultar por encargo por WhatsApp" }).click();
@@ -141,13 +144,14 @@ test.describe("consulta por encargo", () => {
     await expect(page.getByTestId("resumen-subtotal")).toContainText("19.000");
     await expect(page.getByTestId("resumen-encargo")).toBeVisible();
     await expect(page.locator("aside")).not.toContainText(/seña de \$/i);
-    await page.getByLabel(/Retiro — Ramos Mejía/).check();
-    await page.getByLabel("Punto de retiro").selectOption("haedo");
+    await page.getByRole("radio", { name: /Retiro/ }).check();
+    await page.getByLabel(/Nombre y apellido/).fill("Ana Pérez");
+    await page.getByRole("radio", { name: /Efectivo/ }).check();
     await page.getByRole("button", { name: "Continuar por WhatsApp" }).click();
     await expect(page).toHaveURL(/\/carrito\/consulta\/TT-/);
     await expect(page.getByTestId("mensaje")).toContainText("Para comprar (disponibles):");
     await expect(page.getByTestId("mensaje")).toContainText("Por encargo (disponibilidad y cotización a confirmar):");
-    await expect(page.getByTestId("mensaje")).toContainText("Subtotal de productos: $ 19.000 (sin los productos por encargo)");
+    await expect(page.getByTestId("mensaje")).toContainText("*Subtotal: $ 19.000* (sin los productos por encargo)");
   });
 
   test("un producto que quedó sin stock en el carrito se puede pasar a consulta por encargo en lugar de solo quitarlo", async ({ page }) => {
@@ -160,7 +164,7 @@ test.describe("consulta por encargo", () => {
 
   test("servidor: un encargo no acepta un precio del navegador", async ({ page, request }) => {
     await go(page, "/");
-    const body = { items: [{ productId: "parcial-bundle", quantity: 2, mode: "encargo", expectedPriceMinor: 1 }], delivery: { method: "retiro", pickupPoint: "haedo" }, payment: "coordinar", idempotencyKey: `enc-${Date.now()}-${Math.random().toString(36).slice(2)}`, priceMinor: 1, total: 1 };
+    const body = { items: [{ productId: "parcial-bundle", quantity: 2, mode: "encargo", expectedPriceMinor: 1 }], delivery: { method: "retiro" }, payment: "efectivo", contactName: "Ana Pérez", idempotencyKey: `enc-${Date.now()}-${Math.random().toString(36).slice(2)}`, priceMinor: 1, total: 1 };
     const res = await request.post("/api/inquiries", { data: body });
     expect(res.status()).toBe(201);
     const j = await res.json();

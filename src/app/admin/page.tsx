@@ -26,7 +26,7 @@ const ESTADOS = [
 
 const norm = (s: string) => s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
 /** Las fotos subidas tienen una versión chica para listas: así no se cargan los originales como miniaturas. */
-const thumbOf = (src: string) => (src.startsWith("/images/uploads/") ? src.replace(/\.webp$/, "-t.webp") : src);
+const thumbOf = (src: string) => (src.startsWith("/images/uploads/") ? src.replace(/\.webp$/, "-t.webp") : `/_next/image?url=${encodeURIComponent(src)}&w=96&q=60`);
 
 export default async function Admin({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   await requireAdmin("/admin");
