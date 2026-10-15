@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import path from "node:path";
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
@@ -24,6 +25,8 @@ const isLocalHost = (url: string) => {
 };
 
 export function createDb(url: string, opts: { max?: number } = {}) {
+  // Salvaguarda de desarrollo: con ENTORNO_LOCAL=1 (solo en .env.local de esta computadora) jamás se conecta a un servidor remoto, ni por error de configuración.
+  if (process.env.ENTORNO_LOCAL === "1" && !isLocalHost(url)) throw new Error("ENTORNO_LOCAL=1: se rechazó una conexión a un servidor que no es local. Usá la base de desarrollo (npm run dev:db).");
   const ssl = process.env.DATABASE_SSL === "disable" || isLocalHost(url) ? false : "require";
   const client = postgres(url, {
     prepare: false,
@@ -33,6 +36,8 @@ export function createDb(url: string, opts: { max?: number } = {}) {
     ssl,
     // Los mensajes informativos del servidor (NOTICE) no se imprimen: podrían incluir datos.
     onnotice: () => undefined,
+    // Solo para mediciones locales (scripts/medir-rendimiento.mjs): con DB_QUERY_LOG=<archivo> cada consulta deja una línea. Sin esa variable no hace nada.
+    ...(process.env.DB_QUERY_LOG ? { debug: (_c: number, q: string) => fs.appendFileSync(process.env.DB_QUERY_LOG!, `${Date.now()}\t${q.replace(/\s+/g, " ").slice(0, 140)}\n`) } : {}),
   });
   return drizzle(client, { schema });
 }

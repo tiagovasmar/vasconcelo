@@ -39,7 +39,10 @@
     "storage:probar": "tsx scripts/probar-storage.ts",
     "admin:crear": "tsx scripts/crear-admin.ts",
     "pg:test": "tsx scripts/pg-test-server.ts",
-    "mail:last": "tsx scripts/mail-last.ts"
+    "mail:last": "tsx scripts/mail-last.ts",
+    "dev:db": "tsx scripts/dev-db.ts",
+    "dev:datos": "tsx scripts/dev-datos.ts",
+    "dev:admin": "tsx scripts/dev-admin.ts"
   },
   "dependencies": {
     "@fontsource-variable/figtree": "^5.3.0",
