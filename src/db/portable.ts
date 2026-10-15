@@ -13,6 +13,8 @@ export type TableSpec = {
   identity?: string;
   /** Datos volátiles (sesiones, tokens de un solo uso, contadores de límite): no se incluyen en respaldos ni migraciones salvo pedido expreso. */
   volatile?: boolean;
+  /** Tabla agregada después del primer respaldo: un respaldo anterior que no la trae sigue siendo válido. */
+  optional?: boolean;
 };
 
 /** En orden de dependencias (las tablas «padre» primero). */
@@ -28,6 +30,9 @@ export const TABLES: TableSpec[] = [
   { name: "rate_limits", pk: ["key"], volatile: true },
   { name: "product_overrides", pk: ["product_id"] },
   { name: "product_audit", pk: ["id"], identity: "id" },
+  { name: "sales", pk: ["id"], optional: true },
+  { name: "sale_lines", pk: ["id"], identity: "id", optional: true },
+  { name: "stock_movements", pk: ["id"], identity: "id", optional: true },
   { name: "wholesale_requests", pk: ["id"] },
   { name: "fx_settings", pk: ["id"] },
   { name: "fx_log", pk: ["id"], identity: "id" },

@@ -1,0 +1,282 @@
+import { createHash, randomBytes } from "node:crypto";
+import { desc, eq, inArray, sql } from "drizzle-orm";
+import { z } from "zod";
+import type { Db } from "@/db/client";
+import { lockKey } from "@/db/lock";
+import { productOverrides, saleLines, sales, stockMovements } from "@/db/schema";
+import { catalog } from "@/content/catalog";
+import { paymentMethods } from "@/content/checkout-options";
+import type { Language, Product } from "@/content/schema";
+import { AdminError, writeStock, type Actor } from "@/features/catalog/overrides";
+import { listAllProducts } from "@/features/catalog/data";
+import { defaultStock } from "@/features/catalog/commercial";
+import { currentRate } from "@/features/fx/service";
+import type { EffectiveRate } from "@/features/fx/convert";
+
+/**
+ * Ventas manuales (incluidas las hechas fuera de la web) y movimientos de stock.
+ *
+ * Reglas que NO se negocian (todas se hacen cumplir acá, en el servidor, dentro de UNA transacción):
+ *  - registrar una venta descuenta el stock una sola vez y deja venta + líneas + movimientos + historial de cambios, o no deja nada;
+ *  - nunca se vende más de lo que hay (ni stock pendiente/desconocido) y el stock nunca queda negativo;
+ *  - un doble clic o un reintento con la misma clave de idempotencia devuelve la MISMA venta, no una segunda;
+ *  - los precios guardados son los realmente cobrados y no cambian aunque después cambien el catálogo o la cotización;
+ *  - ventas, líneas y movimientos no se editan ni se borran (también lo impide la base); un error se corrige anulando la venta, que devuelve el stock.
+ * Una consulta por WhatsApp o un carrito armado NO pasan por acá: nunca descuentan stock.
+ */
+export const SALE_PAYMENT_IDS = paymentMethods.map((p) => p.id) as [string, ...string[]];
+export const paymentLabelOf = (id: string) => paymentMethods.find((p) => p.id === id)?.label ?? id;
+
+export type SaleErrorCode = "invalid_input" | "not_found" | "insufficient_stock" | "stock_pending" | "idempotency_conflict" | "already_voided" | "order_only" | "retired";
+export class SaleError extends Error {
+  constructor(public readonly status: number, public readonly code: SaleErrorCode, message: string, public readonly details?: unknown) {
+    super(message);
+  }
+}
+
+const KEY = z.string().min(16, "Falta la clave de la operación.").max(64).regex(/^[A-Za-z0-9_-]+$/, "La clave de la operación no es válida.");
+
+export const SaleInputSchema = z.object({
+  items: z
+    .array(
+      z.object({
+        productId: z.string().min(1).max(80),
+        quantity: z.number({ error: "La cantidad debe ser un número." }).int("La cantidad debe ser un número entero.").min(1, "La cantidad mínima es 1.").max(999, "La cantidad es demasiado alta."),
+        /** Precio unitario cobrado, en centavos de ARS; siempre en pesos enteros. */
+        unitPriceMinor: z.number({ error: "Escribí el precio de venta." }).int("El precio debe ser un número entero.").min(100, "El precio de venta debe ser de al menos $1.").max(1_000_000_000, "El precio es demasiado alto.").multipleOf(100, "El precio debe estar en pesos enteros."),
+      }),
+    )
+    .min(1, "Elegí al menos un producto.")
+    .max(30, "Demasiados productos en una sola venta."),
+  paymentMethod: z.enum(SALE_PAYMENT_IDS, { error: "Elegí un método de pago." }),
+  note: z.string().trim().max(300, "La observación es demasiado larga (máximo 300).").optional().transform((v) => (v ? v : undefined)),
+  idempotencyKey: KEY,
+});
+export type SaleInput = z.input<typeof SaleInputSchema>;
+
+export type PreviewLine = {
+  productId: string; sku: string; title: string; quantity: number; unitPriceMinor: number; lineTotalMinor: number;
+  /** Stock actual (null = pendiente) y cómo quedaría. */
+  stockNow: number | null; stockAfter: number | null; problem: string | null;
+};
+export type SalePreview = { lines: PreviewLine[]; totalMinor: number; ok: boolean };
+
+export type SaleView = {
+  id: string; status: string; paymentMethod: string; paymentLabel: string; note: string | null; totalMinor: number; createdAt: number; createdByEmail: string;
+  voidedAt: number | null; voidedByEmail: string | null; voidReason: string | null;
+  lines: Array<{ productId: string; sku: string; title: string; language: Language; quantity: number; unitPriceMinor: number; catalogPriceMinor: number | null; catalogPriceUsdMinor: number | null; lineTotalMinor: number }>;
+};
+
+const sha = (s: string) => createHash("sha256").update(s).digest("hex");
+export function newSaleId(): string {
+  const alphabet = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+  return "VT-" + Array.from(randomBytes(8), (b) => alphabet[b % alphabet.length]).join("");
+}
+
+type Parsed = z.output<typeof SaleInputSchema>;
+const hashOf = (i: Parsed) => sha(JSON.stringify({ items: [...i.items].map((x) => [x.productId, x.quantity, x.unitPriceMinor]).sort((a, b) => String(a[0]).localeCompare(String(b[0]))), p: i.paymentMethod, n: i.note ?? "" }));
+
+function parse(body: unknown): Parsed {
+  const r = SaleInputSchema.safeParse(body);
+  if (!r.success) throw new SaleError(400, "invalid_input", r.error.issues[0]?.message ?? "Revisá los datos de la venta.", r.error.issues.map((i) => ({ path: i.path.join("."), message: i.message })));
+  const ids = r.data.items.map((i) => i.productId);
+  if (new Set(ids).size !== ids.length) throw new SaleError(400, "invalid_input", "Un producto no puede repetirse en la misma venta: sumá las cantidades en una sola línea.");
+  return r.data;
+}
+
+const productOf = (id: string): Product => {
+  const p = catalog.products.find((x) => x.id === id);
+  if (!p) throw new SaleError(404, "not_found", "Hay un producto que no existe en el catálogo.");
+  if (p.retired) throw new SaleError(409, "retired", `«${p.title}» está retirado de la oferta: no se puede registrar una venta.`);
+  return p;
+};
+
+/** Vista previa SIN escribir nada: qué stock hay ahora y cómo quedaría. El servidor es la autoridad; el navegador solo la muestra. */
+export async function previewSale(db: Db, body: unknown): Promise<SalePreview> {
+  const input = parse(body);
+  const rows = new Map((await db.select().from(productOverrides).where(inArray(productOverrides.productId, input.items.map((i) => i.productId)))).map((r) => [r.productId, r]));
+  const lines = input.items.map((it): PreviewLine => {
+    const p = productOf(it.productId);
+    const row = rows.get(p.id);
+    const stockNow = row ? row.stockQuantity : defaultStock(p);
+    const orderOnly = row ? row.orderOnly : Boolean(p.orderOnly);
+    let problem: string | null = null;
+    if (stockNow === null) problem = "El stock está pendiente: cargalo en Productos o con un ajuste antes de vender.";
+    else if (orderOnly && stockNow === 0) problem = "Este producto es solo por encargo y no tiene stock cargado: registrá primero la entrada.";
+    else if (it.quantity > stockNow) problem = `Stock insuficiente: hay ${stockNow} y querés vender ${it.quantity}.`;
+    return { productId: p.id, sku: p.sku, title: row?.title ?? p.title, quantity: it.quantity, unitPriceMinor: it.unitPriceMinor, lineTotalMinor: it.unitPriceMinor * it.quantity, stockNow, stockAfter: problem || stockNow === null ? null : stockNow - it.quantity, problem };
+  });
+  return { lines, totalMinor: lines.reduce((n, l) => n + l.lineTotalMinor, 0), ok: lines.every((l) => !l.problem) };
+}
+
+async function loadSale(db: Db, id: string): Promise<SaleView | null> {
+  const [s] = await db.select().from(sales).where(eq(sales.id, id));
+  if (!s) return null;
+  return toView(s, await db.select().from(saleLines).where(eq(saleLines.saleId, id)).orderBy(saleLines.id));
+}
+
+function toView(s: typeof sales.$inferSelect, lines: Array<typeof saleLines.$inferSelect>): SaleView {
+  return {
+    id: s.id, status: s.status, paymentMethod: s.paymentMethod, paymentLabel: paymentLabelOf(s.paymentMethod), note: s.note, totalMinor: s.totalMinor, createdAt: s.createdAt, createdByEmail: s.createdByEmail,
+    voidedAt: s.voidedAt, voidedByEmail: s.voidedByEmail, voidReason: s.voidReason,
+    lines: lines.map((l) => ({ productId: l.productId, sku: l.sku, title: l.title, language: l.language as Language, quantity: l.quantity, unitPriceMinor: l.unitPriceMinor, catalogPriceMinor: l.catalogPriceMinor, catalogPriceUsdMinor: l.catalogPriceUsdMinor, lineTotalMinor: l.lineTotalMinor })),
+  };
+}
+
+/**
+ * Registra la venta y descuenta el stock en UNA transacción. Toma los candados `override:<producto>` (los mismos que usa el panel al editar un
+ * producto) en orden fijo, así dos ventas o una venta y una edición simultáneas se serializan sin interbloqueos y la segunda ve el stock ya descontado.
+ */
+export async function registerSale(db: Db, body: unknown, actor: Actor, ctx: { fx?: EffectiveRate; products?: Product[]; now?: number } = {}): Promise<{ sale: SaleView; replayed: boolean }> {
+  const input = parse(body);
+  const hash = hashOf(input);
+  const existing = await loadByKey(db, input.idempotencyKey);
+  if (existing) return replay(existing, hash);
+
+  // Referencia de catálogo (solo informativa): precio vigente en pesos y en dólares al momento de vender.
+  const fx = ctx.fx ?? (await currentRate(db));
+  const current = new Map((ctx.products ?? (await listAllProducts(fx, db))).map((p) => [p.id, p]));
+  const catalogProducts = input.items.map((i) => productOf(i.productId));
+  const now = ctx.now ?? Date.now();
+  const id = newSaleId();
+  const ordered = [...input.items].sort((a, b) => a.productId.localeCompare(b.productId));
+
+  try {
+    await db.transaction(async (tx) => {
+      await lockKey(tx, `sale:${input.idempotencyKey}`);
+      const again = await tx.select({ id: sales.id }).from(sales).where(eq(sales.idempotencyKey, input.idempotencyKey));
+      if (again.length) throw new Replayed();
+      for (const it of ordered) await lockKey(tx, `override:${it.productId}`);
+      const rows = new Map((await tx.select().from(productOverrides).where(inArray(productOverrides.productId, ordered.map((i) => i.productId)))).map((r) => [r.productId, r]));
+      const total = input.items.reduce((n, i) => n + i.unitPriceMinor * i.quantity, 0);
+      await tx.insert(sales).values({
+        id, idempotencyKey: input.idempotencyKey, contentHash: hash, paymentMethod: input.paymentMethod, note: input.note ?? null, totalMinor: total,
+        fxRate10k: fx.rate10k ?? null, status: "registrada", createdAt: now, createdByUserId: actor.id, createdByEmail: actor.email,
+      });
+      for (const it of input.items) {
+        const p = catalogProducts.find((x) => x.id === it.productId)!;
+        const row = rows.get(p.id);
+        const stock = row ? row.stockQuantity : defaultStock(p);
+        const orderOnly = row ? row.orderOnly : Boolean(p.orderOnly);
+        if (stock === null) throw new SaleError(409, "stock_pending", `El stock de «${p.title}» está pendiente: cargalo antes de vender.`, { productId: p.id });
+        if (orderOnly && stock === 0) throw new SaleError(409, "order_only", `«${p.title}» es solo por encargo y no tiene stock cargado.`, { productId: p.id });
+        if (it.quantity > stock) throw new SaleError(409, "insufficient_stock", `Stock insuficiente de «${p.title}»: hay ${stock} y querés vender ${it.quantity}.`, { productId: p.id, stock, quantity: it.quantity });
+        const title = row?.title ?? p.title;
+        const w = await writeStock(tx, p, row, stock - it.quantity, actor, `${actor.email} (venta ${id})`, now);
+        await tx.insert(stockMovements).values({ productId: p.id, sku: p.sku, title, kind: "venta", delta: -it.quantity, stockBefore: stock, stockAfter: stock - it.quantity, reason: `Venta ${id}`, saleId: id, userId: actor.id, userEmail: actor.email, createdAt: w.version });
+        const live = current.get(p.id);
+        await tx.insert(saleLines).values({ saleId: id, productId: p.id, sku: p.sku, title, language: p.language, quantity: it.quantity, unitPriceMinor: it.unitPriceMinor, catalogPriceMinor: live?.priceMinor ?? null, catalogPriceUsdMinor: live?.priceUsdMinor ?? null, lineTotalMinor: it.unitPriceMinor * it.quantity });
+      }
+    });
+  } catch (e) {
+    if (e instanceof Replayed) {
+      const raced = await loadByKey(db, input.idempotencyKey);
+      if (raced) return replay(raced, hash);
+    }
+    throw e;
+  }
+  return { sale: (await loadSale(db, id))!, replayed: false };
+}
+
+class Replayed extends Error {}
+
+async function loadByKey(db: Db, key: string) {
+  const [s] = await db.select().from(sales).where(eq(sales.idempotencyKey, key));
+  if (!s) return null;
+  return { s, lines: await db.select().from(saleLines).where(eq(saleLines.saleId, s.id)).orderBy(saleLines.id) };
+}
+function replay(found: NonNullable<Awaited<ReturnType<typeof loadByKey>>>, hash: string): { sale: SaleView; replayed: true } {
+  if (found.s.contentHash !== hash) throw new SaleError(422, "idempotency_conflict", "Esa operación ya se registró con otros datos. Armá la venta de nuevo.");
+  return { sale: toView(found.s, found.lines), replayed: true };
+}
+
+/** Anula una venta registrada: devuelve el stock, deja el motivo y la marca de anulada. Una sola vez, de forma atómica. */
+export async function voidSale(db: Db, saleId: string, reasonRaw: string, actor: Actor, now = Date.now()): Promise<SaleView> {
+  const reason = (reasonRaw ?? "").trim();
+  if (reason.length < 5 || reason.length > 200) throw new SaleError(400, "invalid_input", "Escribí el motivo de la anulación (entre 5 y 200 caracteres).");
+  await db.transaction(async (tx) => {
+    await lockKey(tx, `sale-void:${saleId}`);
+    const [s] = await tx.select().from(sales).where(eq(sales.id, saleId));
+    if (!s) throw new SaleError(404, "not_found", "La venta no existe.");
+    if (s.status === "anulada") throw new SaleError(409, "already_voided", "Esa venta ya está anulada.");
+    const lines = await tx.select().from(saleLines).where(eq(saleLines.saleId, saleId)).orderBy(saleLines.productId);
+    for (const l of lines) await lockKey(tx, `override:${l.productId}`);
+    const rows = new Map((await tx.select().from(productOverrides).where(inArray(productOverrides.productId, lines.map((l) => l.productId)))).map((r) => [r.productId, r]));
+    for (const l of lines) {
+      const p = catalog.products.find((x) => x.id === l.productId);
+      if (!p) throw new SaleError(404, "not_found", `El producto ${l.sku} ya no está en el catálogo.`);
+      const row = rows.get(p.id);
+      const stock = row ? row.stockQuantity : defaultStock(p);
+      if (stock === null) throw new SaleError(409, "stock_pending", `El stock de «${l.title}» quedó pendiente: fijalo con un ajuste antes de anular.`, { productId: p.id });
+      const w = await writeStock(tx, p, row, stock + l.quantity, actor, `${actor.email} (anulación de ${saleId})`, now);
+      await tx.insert(stockMovements).values({ productId: p.id, sku: p.sku, title: l.title, kind: "anulacion", delta: l.quantity, stockBefore: stock, stockAfter: stock + l.quantity, reason: `Anulación de ${saleId}: ${reason}`, saleId, userId: actor.id, userEmail: actor.email, createdAt: w.version });
+    }
+    await tx.update(sales).set({ status: "anulada", voidedAt: now, voidedByEmail: actor.email, voidReason: reason }).where(eq(sales.id, saleId));
+  });
+  return (await loadSale(db, saleId))!;
+}
+
+/* ---------- Entradas y ajustes de stock ---------- */
+
+export const StockMoveSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("entrada"), productId: z.string().min(1).max(80), quantity: z.number({ error: "Escribí cuántas unidades entraron." }).int("La cantidad debe ser un número entero.").min(1, "Tiene que entrar al menos 1 unidad.").max(100000, "La cantidad es demasiado alta."), reason: z.string().trim().min(3, "Escribí el motivo (mínimo 3 caracteres).").max(200, "El motivo es demasiado largo (máximo 200)."), idempotencyKey: KEY }),
+  z.object({ kind: z.literal("ajuste"), productId: z.string().min(1).max(80), newQuantity: z.number({ error: "Escribí la cantidad que hay realmente." }).int("La cantidad debe ser un número entero.").min(0, "El stock no puede ser negativo.").max(1_000_000, "La cantidad es demasiado alta."), reason: z.string().trim().min(3, "Escribí el motivo (mínimo 3 caracteres).").max(200, "El motivo es demasiado largo (máximo 200)."), idempotencyKey: KEY }),
+]);
+export type StockMoveInput = z.input<typeof StockMoveSchema>;
+
+/**
+ * Entrada de mercadería (suma) o ajuste a la cantidad realmente contada (fija el valor). Ambos exigen motivo y quedan en el historial con quién y cuándo.
+ * La clave de idempotencia evita repetir el mismo movimiento por un doble clic: la marca vive en la razón del movimiento (`[op:<clave>]`) bajo el mismo candado.
+ */
+export async function moveStock(db: Db, body: unknown, actor: Actor, now = Date.now()): Promise<{ stockBefore: number | null; stockAfter: number; replayed: boolean }> {
+  const r = StockMoveSchema.safeParse(body);
+  if (!r.success) throw new SaleError(400, "invalid_input", r.error.issues[0]?.message ?? "Revisá los datos.", r.error.issues.map((i) => ({ path: i.path.join("."), message: i.message })));
+  const input = r.data;
+  const p = productOf(input.productId);
+  const mark = `[op:${input.idempotencyKey}]`;
+  try {
+    return await db.transaction(async (tx) => {
+      await lockKey(tx, `override:${p.id}`);
+      const done = await tx.select().from(stockMovements).where(sql`${stockMovements.productId} = ${p.id} and position(${mark} in ${stockMovements.reason}) > 0`);
+      if (done.length) return { stockBefore: done[0].stockBefore, stockAfter: done[0].stockAfter, replayed: true };
+      const [row] = await tx.select().from(productOverrides).where(eq(productOverrides.productId, p.id));
+      const stock = row ? row.stockQuantity : defaultStock(p);
+      let after: number;
+      if (input.kind === "entrada") {
+        if (stock === null) throw new SaleError(409, "stock_pending", "El stock de este producto está pendiente: usá «Ajuste» para fijar la cantidad contada.");
+        after = stock + input.quantity;
+      } else {
+        after = input.newQuantity;
+        if (stock === after) throw new SaleError(400, "invalid_input", "El stock ya es esa cantidad: no hay nada que ajustar.");
+      }
+      const orderOnly = row ? row.orderOnly : Boolean(p.orderOnly);
+      if (orderOnly && after > 0) throw new SaleError(409, "order_only", "Este producto está marcado «solo por encargo»: desmarcalo en Productos antes de cargarle stock.");
+      const label = input.kind === "entrada" ? "entrada" : "ajuste";
+      const w = await writeStock(tx, p, row, after, actor, `${actor.email} (${label} de stock)`, now);
+      await tx.insert(stockMovements).values({ productId: p.id, sku: p.sku, title: row?.title ?? p.title, kind: input.kind, delta: after - (stock ?? 0), stockBefore: stock, stockAfter: after, reason: `${input.reason} ${mark}`, saleId: null, userId: actor.id, userEmail: actor.email, createdAt: w.version });
+      return { stockBefore: stock, stockAfter: after, replayed: false };
+    });
+  } catch (e) {
+    if (e instanceof AdminError) throw new SaleError(e.status, "invalid_input", e.message);
+    throw e;
+  }
+}
+
+/* ---------- Listados ---------- */
+
+export async function listSales(db: Db, limit = 50): Promise<SaleView[]> {
+  const rows = await db.select().from(sales).orderBy(desc(sales.createdAt), desc(sales.id)).limit(Math.min(limit, 500));
+  if (!rows.length) return [];
+  const lines = await db.select().from(saleLines).where(inArray(saleLines.saleId, rows.map((s) => s.id))).orderBy(saleLines.id);
+  return rows.map((s) => toView(s, lines.filter((l) => l.saleId === s.id)));
+}
+
+export type MovementView = typeof stockMovements.$inferSelect;
+/** El marcador interno de idempotencia `[op:…]` no se muestra. */
+export const cleanReason = (r: string) => r.replace(/\s*\[op:[A-Za-z0-9_-]+\]$/, "");
+export async function listMovements(db: Db, opts: { productId?: string; kind?: string; limit?: number } = {}): Promise<MovementView[]> {
+  const conds = [opts.productId ? eq(stockMovements.productId, opts.productId) : undefined, opts.kind ? eq(stockMovements.kind, opts.kind) : undefined].filter((c): c is NonNullable<typeof c> => Boolean(c));
+  const q = db.select().from(stockMovements);
+  const filtered = conds.length ? q.where(conds.length === 1 ? conds[0] : sql.join(conds, sql` and `)) : q;
+  return filtered.orderBy(desc(stockMovements.createdAt), desc(stockMovements.id)).limit(Math.min(opts.limit ?? 100, 1000));
+}

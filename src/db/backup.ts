@@ -96,7 +96,7 @@ export function verifyBackup(dir: string): string[] {
   for (const spec of TABLES) {
     const t = manifest.tables[spec.name];
     if (!t) {
-      if (!spec.volatile) problems.push(`falta la tabla ${spec.name}`);
+      if (!spec.volatile && !spec.optional) problems.push(`falta la tabla ${spec.name}`);
       continue;
     }
     let rows: Array<Record<string, unknown>>;

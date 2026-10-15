@@ -1,4 +1,5 @@
-import { bigint, boolean, index, integer, pgTable, text } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { bigint, boolean, check, index, integer, pgTable, text } from "drizzle-orm/pg-core";
 import { user } from "./auth-schema";
 
 /**
@@ -103,7 +104,7 @@ export const productOverrides = pgTable("product_overrides", {
   /** Versión para detectar ediciones simultáneas (ms de la última modificación). */
   updatedAt: ms("updated_at").notNull(),
   updatedByEmail: text("updated_by_email").notNull(),
-});
+}, (t) => [check("product_overrides_stock_check", sql`${t.stockQuantity} is null or ${t.stockQuantity} >= 0`)]);
 
 /** Historial de cambios: una fila por dato modificado, con quién, cuándo y los valores anterior y nuevo (JSON). Nunca se edita. */
 export const productAudit = pgTable(
@@ -230,3 +231,86 @@ export const adminSettings = pgTable("admin_settings", {
   updatedAt: ms("updated_at").notNull(),
   updatedByEmail: text("updated_by_email").notNull(),
 });
+
+/**
+ * Ventas registradas a mano desde /admin (incluidas las hechas fuera de la web). Son un REGISTRO HISTÓRICO: no se editan ni se borran (la base lo impide con
+ * disparadores). Un error se corrige con una anulación, que devuelve el stock y deja constancia; la venta original queda como «anulada», no desaparece.
+ * Los precios son los realmente cobrados: no cambian aunque después cambien el catálogo o la cotización.
+ */
+export const sales = pgTable(
+  "sales",
+  {
+    /** Referencia no secuencial (p. ej. VT-7K3M9QX2). */
+    id: text("id").primaryKey(),
+    /** Clave de idempotencia: un doble clic o un reintento con la misma clave devuelve esta misma venta, no una segunda. */
+    idempotencyKey: text("idempotency_key").notNull().unique(),
+    contentHash: text("content_hash").notNull(),
+    /** tarjeta-3-cuotas | transferencia | efectivo */
+    paymentMethod: text("payment_method").notNull(),
+    note: text("note"),
+    /** Total cobrado (suma de las líneas), en centavos de ARS. */
+    totalMinor: ms("total_minor").notNull(),
+    /** Cotización vigente al registrar (solo informativa; el precio cobrado es el de cada línea). */
+    fxRate10k: ms("fx_rate_10k"),
+    /** registrada | anulada */
+    status: text("status").notNull().default("registrada"),
+    voidedAt: ms("voided_at"),
+    voidedByEmail: text("voided_by_email"),
+    voidReason: text("void_reason"),
+    createdAt: ms("created_at").notNull(),
+    createdByUserId: text("created_by_user_id").notNull(),
+    createdByEmail: text("created_by_email").notNull(),
+  },
+  (t) => [index("sales_created_idx").on(t.createdAt), check("sales_total_check", sql`${t.totalMinor} >= 0`)],
+);
+
+export const saleLines = pgTable(
+  "sale_lines",
+  {
+    id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
+    saleId: text("sale_id").notNull().references(() => sales.id),
+    productId: text("product_id").notNull(),
+    sku: text("sku").notNull(),
+    title: text("title").notNull(),
+    language: text("language").notNull(),
+    quantity: integer("quantity").notNull(),
+    /** Precio unitario REALMENTE cobrado (centavos de ARS). */
+    unitPriceMinor: ms("unit_price_minor").notNull(),
+    /** Precio de catálogo (ARS) y precio base en USD vigentes en ese momento, solo como referencia (null si estaban pendientes). */
+    catalogPriceMinor: ms("catalog_price_minor"),
+    catalogPriceUsdMinor: integer("catalog_price_usd_minor"),
+    lineTotalMinor: ms("line_total_minor").notNull(),
+  },
+  (t) => [index("sale_lines_sale_idx").on(t.saleId), check("sale_lines_qty_check", sql`${t.quantity} > 0`)],
+);
+
+/**
+ * Historial de movimientos de stock (solo se agrega; nunca se edita ni se borra): entradas de mercadería, ventas, ajustes por conteo o corrección y
+ * anulaciones. Cada fila guarda el stock antes y después, el motivo y quién lo hizo. El stock nunca queda negativo (restricción de la base).
+ */
+export const stockMovements = pgTable(
+  "stock_movements",
+  {
+    id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
+    productId: text("product_id").notNull(),
+    sku: text("sku").notNull(),
+    title: text("title").notNull(),
+    /** entrada | venta | ajuste | anulacion */
+    kind: text("kind").notNull(),
+    /** Variación firmada (venta = negativa). En un ajuste desde stock pendiente es la cantidad que se fijó. */
+    delta: integer("delta").notNull(),
+    /** Stock antes del movimiento; null = estaba pendiente (cantidad desconocida). */
+    stockBefore: integer("stock_before"),
+    stockAfter: integer("stock_after").notNull(),
+    reason: text("reason").notNull(),
+    saleId: text("sale_id"),
+    userId: text("user_id").notNull(),
+    userEmail: text("user_email").notNull(),
+    createdAt: ms("created_at").notNull(),
+  },
+  (t) => [
+    index("stock_movements_product_idx").on(t.productId, t.createdAt),
+    index("stock_movements_created_idx").on(t.createdAt),
+    check("stock_movements_after_check", sql`${t.stockAfter} >= 0`),
+  ],
+);

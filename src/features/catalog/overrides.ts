@@ -1,8 +1,8 @@
 import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import type { Db } from "@/db/client";
-import { lockKey } from "@/db/lock";
-import { productAudit, productGalleries, productOverrides, systemFlags } from "@/db/schema";
+import { lockKey, type Tx } from "@/db/lock";
+import { productAudit, productGalleries, productOverrides, stockMovements, systemFlags } from "@/db/schema";
 import { defaultStock } from "./commercial";
 import { ImageAssetSchema, type ImageAsset, type Product } from "@/content/schema";
 import { usdToArsMinor, type EffectiveRate } from "@/features/fx/convert";
@@ -89,6 +89,8 @@ export const ProductEditSchema = z.object({
   title: z.string().trim().min(3, "El título debe tener al menos 3 caracteres.").max(160, "El título es demasiado largo (máximo 160).").nullable().optional(),
   /** Descripción breve editada; null = la del catálogo. */
   description: z.string().trim().min(10, "La descripción debe tener al menos 10 caracteres.").max(1500, "La descripción es demasiado larga (máximo 1500).").nullable().optional(),
+  /** Motivo del cambio de stock (opcional): queda en el historial de movimientos. Sin motivo se registra «Edición directa en Productos». */
+  stockReason: z.string().trim().max(200, "El motivo es demasiado largo (máximo 200).").optional(),
   /** Para publicar una ficha en borrador hay que confirmar expresamente que se resolvió el dato pendiente. */
   acknowledgeDraft: z.boolean().optional(),
   /** Versión que el panel tenía cargada (0 = sin cambios guardados todavía). */
@@ -192,6 +194,10 @@ export async function saveProductChange(db: Db, base: Product[], productId: stri
     await tx.insert(productAudit).values(changedKeys.map((k) => ({
       productId, sku: p.sku, field: FIELD_OF[k], oldValue: JSON.stringify(before[k]), newValue: JSON.stringify(after[k]), userId: actor.id, userEmail: actor.email, createdAt: nextVersion,
     })));
+    // Todo cambio de stock queda también en el historial de movimientos (un ajuste con su motivo), venga de donde venga.
+    if (changedKeys.includes("stockQuantity") && after.stockQuantity !== null) {
+      await tx.insert(stockMovements).values({ productId, sku: p.sku, title: after.title ?? p.title, kind: "ajuste", delta: after.stockQuantity - (before.stockQuantity ?? 0), stockBefore: before.stockQuantity, stockAfter: after.stockQuantity, reason: edit.stockReason || "Edición directa en Productos", userId: actor.id, userEmail: actor.email, createdAt: nextVersion });
+    }
     return { changed: changedKeys.map((k) => FIELD_OF[k]), version: nextVersion };
   });
 }
@@ -209,6 +215,24 @@ export async function resetProduct(db: Db, base: Product[], productId: string, e
     await tx.insert(productAudit).values({ productId, sku: p.sku, field: "reset", oldValue: JSON.stringify({ ...rowValues(current), legacyPriceMinor: current.priceMinor }), newValue: JSON.stringify(baseValues(p)), userId: actor.id, userEmail: actor.email, createdAt: Math.max(now, current.updatedAt + 1) });
     return { version: 0 };
   });
+}
+
+/**
+ * Escribe un NUEVO valor de stock de un producto dentro de una transacción que ya tiene el candado `override:<id>` (el llamador lo toma). Actualiza la
+ * fila del panel (o la crea con los valores del código), sube la versión y deja el cambio en el historial de cambios. NO valida reglas de negocio:
+ * quien lo llama decide si la cantidad es permitida. Devuelve el stock anterior (null = estaba pendiente).
+ */
+export async function writeStock(tx: Tx, p: Product, row: OverrideRow | undefined, after: number, actor: Actor, auditLabel: string, now: number): Promise<{ before: number | null; version: number }> {
+  if (!Number.isInteger(after) || after < 0) throw new AdminError(400, "invalid_input", "El stock no puede ser negativo.");
+  const before = row ? row.stockQuantity : defaultStock(p);
+  const stamp = Math.max(now, (row?.updatedAt ?? 0) + 1);
+  if (row) await tx.update(productOverrides).set({ stockQuantity: after, updatedAt: stamp, updatedByEmail: actor.email }).where(eq(productOverrides.productId, p.id));
+  else {
+    const v = baseValues(p);
+    await tx.insert(productOverrides).values({ productId: p.id, priceUsdMinor: v.priceUsdMinor, stockQuantity: after, maxPerOrder: v.maxPerOrder, visible: v.visible, orderOnly: v.orderOnly, title: null, description: null, updatedAt: stamp, updatedByEmail: actor.email });
+  }
+  await tx.insert(productAudit).values({ productId: p.id, sku: p.sku, field: "stock_quantity", oldValue: JSON.stringify(before), newValue: JSON.stringify(after), userId: actor.id, userEmail: auditLabel, createdAt: stamp });
+  return { before, version: stamp };
 }
 
 export type AuditEntry = typeof productAudit.$inferSelect;

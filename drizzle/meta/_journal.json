@@ -8,6 +8,13 @@
       "when": 1792029295825,
       "tag": "0000_inicial_postgres",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792082482412,
+      "tag": "0001_ventas_y_movimientos_de_stock",
+      "breakpoints": true
     }
   ]
 }
