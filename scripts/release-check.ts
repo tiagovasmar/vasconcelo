@@ -4,7 +4,6 @@ import { realCatalog as catalog } from "../src/content/catalog";
 import { commercialState } from "../src/features/catalog/commercial";
 import { store } from "../src/content/store";
 import { legal, pendingLegalFields } from "../src/content/legal";
-import { paymentMethods } from "../src/content/checkout-options";
 import { validateCatalog } from "../src/features/catalog/validate";
 import arteInicio from "../src/content/colecciones/imagenes-inicio.json";
 import { scriptDb } from "./lib/env";
@@ -92,7 +91,6 @@ const unverified = catalog.guarantees.filter((g) => g.evidence === "unverified")
 if (unverified.length) add("aviso", "Garantías", `${unverified.length} garantía(s) sin verificar (no se muestran como promesa).`, "Verificar con fuente aplicable o eliminarlas.");
 const noRates = catalog.pullRates.filter((r) => r.evidence === "unavailable");
 if (noRates.length) add("info", "Probabilidades", `${noRates.length} tasa(s) figuran como «Dato no disponible»: no hay evidencia cargada (es correcto no inventarla).`, "Cargar tasas oficiales/observadas solo con fuente y método (docs/CATALOGO.md).");
-if (paymentMethods.every((m) => m.id === "coordinar")) add("info", "Pagos", "Solo está habilitada la preferencia «A coordinar por WhatsApp».", "Agregar métodos en src/content/checkout-options.ts cuando el dueño confirme cuáles acepta.");
 add("info", "Stock", "El stock es manual: se actualiza editando stockQuantity y publicando.", "Definir quién y cuándo actualiza el stock tras cada venta (docs/OPERACION.md).");
 add("info", "Accesibilidad", "Las pruebas automatizadas (axe) no reemplazan una prueba con lector de pantalla.", "Hacer una revisión manual con lector de pantalla antes de publicar.");
 

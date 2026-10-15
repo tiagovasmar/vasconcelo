@@ -6,7 +6,7 @@ import { listAllProducts } from "@/features/catalog/data";
 import type { EffectiveRate } from "@/features/fx/convert";
 import { currentRate } from "@/features/fx/service";
 import type { Language, Product } from "@/content/schema";
-import { paymentMethods } from "@/content/checkout-options";
+import { legacyPaymentLabels, paymentMethods } from "@/content/checkout-options";
 import { isPromoPayment } from "@/features/politicas/promociones";
 import { evaluateCart, type EvaluatedLine } from "./pricing";
 import { buildLaunch, buildMessage, type Launch, type MessageData } from "./message";
@@ -56,7 +56,7 @@ export function newReference(): string {
 function contentHash(input: { items: Array<{ productId: string; quantity: number; mode?: string }>; delivery: Delivery; payment: string; contactName?: string }): string {
   const items = [...input.items].map((i) => ({ productId: i.productId, quantity: i.quantity, mode: i.mode === "encargo" ? "encargo" : "buy" })).sort((a, b) => a.productId.localeCompare(b.productId));
   const d = input.delivery;
-  const delivery = d.method === "retiro" ? { m: d.method, p: d.pickupPoint } : d.method === "moto" ? { m: d.method, l: d.locality.trim().toLowerCase(), c: d.postalCode.toUpperCase() } : { m: d.method, l: d.locality.trim().toLowerCase(), pr: d.province, c: d.postalCode.toUpperCase() };
+  const delivery = d.method === "retiro" ? { m: d.method } : d.method === "moto" ? { m: d.method, l: d.locality.trim().toLowerCase(), c: d.postalCode.toUpperCase() } : { m: d.method, l: d.locality.trim().toLowerCase(), pr: d.province, c: d.postalCode.toUpperCase() };
   return sha(JSON.stringify({ items, delivery, payment: input.payment, name: input.contactName ?? "" }));
 }
 
@@ -83,7 +83,7 @@ export async function allowRequest(db: Db, key: string, limit: number, windowSec
 }
 
 function paymentLabel(id: string): string {
-  return paymentMethods.find((p) => p.id === id)?.label ?? id;
+  return paymentMethods.find((p) => p.id === id)?.label ?? legacyPaymentLabels[id] ?? id;
 }
 
 function toView(row: typeof inquiries.$inferSelect, lines: Array<typeof inquiryLines.$inferSelect>): InquiryView {

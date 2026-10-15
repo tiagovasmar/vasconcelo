@@ -42,7 +42,7 @@ export default function Condiciones() {
         {
           id: "entregas",
           title: "Entregas, retiros y pagos",
-          body: <p>Andreani a todo el país, moto en CABA y AMBA (cobertura a confirmar) y retiro en Ramos Mejía o Haedo. Costos, plazos, puntos de retiro y medios de pago se acuerdan por WhatsApp. No pedimos datos bancarios en el sitio.</p>,
+          body: <p>Andreani a todo el país, moto en CABA y AMBA (cobertura a confirmar) y retiro en Av. Rivadavia 14600. Costos, plazos, el horario y la dirección exacta de retiro y los medios de pago se acuerdan por WhatsApp antes de ir a retirar. No pedimos datos bancarios en el sitio.</p>,
         },
         {
           id: "cambios",

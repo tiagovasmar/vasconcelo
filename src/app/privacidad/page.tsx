@@ -30,7 +30,7 @@ export default function Privacidad() {
           title: "Qué datos usamos",
           body: (
             <>
-              <p><b>Si no tenés cuenta</b> y preparás una consulta: los productos y cantidades, la modalidad de entrega y los datos mínimos que elegís para coordinarla (localidad, provincia y código postal si es Andreani; localidad y código postal si es moto; punto de retiro si retirás), tu nombre si lo escribís (es opcional) y la preferencia de pago. No pedimos DNI, dirección completa ni datos bancarios.</p>
+              <p><b>Si no tenés cuenta</b> y preparás una consulta: los productos y cantidades, la modalidad de entrega y los datos mínimos que elegís para coordinarla (localidad, provincia y código postal si es Andreani; localidad y código postal si es moto; si retirás, no pedimos más datos de entrega), tu nombre y apellido (obligatorio para preparar la consulta) y la preferencia de pago. No pedimos DNI, dirección completa ni datos bancarios.</p>
               <p><b>Si creás una cuenta:</b> tu nombre, tu correo y tu contraseña (que se guarda cifrada con un hash, nunca en texto plano), tus favoritos y las consultas que asociás a tu cuenta.</p>
               <p><b>Si solicitás una cuenta mayorista:</b> además guardamos el nombre comercial o actividad, la localidad y la provincia, la nota opcional sobre artículos o volumen de interés, la fecha y el estado de la solicitud (pendiente, aprobada o rechazada). No pedimos documentos ni identificaciones.</p>
               <p><b>Si consultás por encargo:</b> los productos y cantidades que pedís cotizar se guardan como parte de tu consulta, sin precio hasta que la tienda cotice.</p>

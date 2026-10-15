@@ -31,7 +31,7 @@ afterEach(async () => {
 async function seed(db: TestDb) {
   await db.insert(user).values([{ id: "ana", name: "Ana", email: "ana@example.com", emailVerified: true, createdAt: now, updatedAt: now }, { id: "beto", name: "Beto", email: "beto@example.com", emailVerified: false, createdAt: now, updatedAt: now }]);
   await saveProductChange(db, demoCatalog.products, "storm-sobre", { priceUsdMinor: 1000, stock: 7, expectedVersion: 0 }, actor, 1_700_000_000_000);
-  const body = { items: [{ productId: "storm-sobre", quantity: 1, expectedPriceMinor: 1230000 }], delivery: { method: "retiro", pickupPoint: "haedo" }, payment: "coordinar", idempotencyKey: "clave-de-prueba-000001" };
+  const body = { items: [{ productId: "storm-sobre", quantity: 1, expectedPriceMinor: 1230000 }], delivery: { method: "retiro" }, payment: "efectivo", contactName: "Ana Pérez", idempotencyKey: "clave-de-prueba-000001" };
   const { inquiry } = await createInquiry(db, body, { sessionTokenHash: hashToken("s"), userId: "ana", fx: { status: "manual", mode: "manual", rate10k: 12_340_000, asOf: 1, providerUpdatedAt: null, source: "prueba", warn: false } });
   const img = await sharp({ create: { width: 500, height: 500, channels: 3, background: { r: 1, g: 100, b: 50 } } }).png().toBuffer();
   const photo = await storeUpload(db, { data: img, uploadedByEmail: actor.email });
@@ -80,7 +80,7 @@ describe("respaldo y restauración de PostgreSQL + fotos", () => {
     expect((await getInquiryFor(dst, ref, { userId: "ana" }))?.lines[0]).toMatchObject({ unitPriceUsdMinor: 1000, unitPriceMinor: 1_230_000 });
     expect(readManifest(out).tables.user.sha256).toBe(manifest.tables.user.sha256);
     // La secuencia de identidad continúa después del máximo: una consulta nueva no choca con el id de la línea restaurada.
-    const body2 = { items: [{ productId: "storm-sobre", quantity: 2, expectedPriceMinor: 1230000 }], delivery: { method: "retiro", pickupPoint: "haedo" }, payment: "coordinar", idempotencyKey: "clave-de-prueba-000002" };
+    const body2 = { items: [{ productId: "storm-sobre", quantity: 2, expectedPriceMinor: 1230000 }], delivery: { method: "retiro" }, payment: "efectivo", contactName: "Ana Pérez", idempotencyKey: "clave-de-prueba-000002" };
     const again = await createInquiry(dst, body2, { sessionTokenHash: hashToken("s"), userId: "ana", fx: { status: "manual", mode: "manual", rate10k: 12_340_000, asOf: 1, providerUpdatedAt: null, source: "prueba", warn: false } });
     expect(again.inquiry.lines).toHaveLength(1);
   });

@@ -22,7 +22,7 @@ export function Header() {
           <p className="flex items-center gap-2">
             <TruckIcon />
             <span>
-              <b>Andreani</b> · Moto en CABA y AMBA · Retiro en Ramos Mejía / Haedo
+              <b>Andreani</b> · Moto en CABA y AMBA · Retiro en Av. Rivadavia 14600
             </span>
           </p>
           <p className="mono-label hidden shrink-0 text-gold lg:block">Pokémon TCG // Productos sellados // Envíos a todo el país</p>
@@ -80,7 +80,7 @@ export function Header() {
                       </li>
                     ))}
                   </ul>
-                  <p className="mono-label mt-3 text-ink/60">Andreani · Moto CABA y AMBA · Retiro Ramos Mejía / Haedo</p>
+                  <p className="mono-label mt-3 text-ink/60">Andreani · Moto CABA y AMBA · Retiro Av. Rivadavia 14600</p>
                 </div>
               </nav>
             </MobileMenu>

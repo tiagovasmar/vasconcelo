@@ -11,9 +11,9 @@ let db: Db;
 const now = new Date();
 const addUser = async (id: string) => await db.insert(user).values({ id, name: `Usuario ${id}`, email: `${id}@example.com`, emailVerified: true, createdAt: now, updatedAt: now });
 const owner = { sessionTokenHash: hashToken("sesion-encargos") };
-const retiro = { method: "retiro", pickupPoint: "haedo" } as const;
+const retiro = { method: "retiro" } as const;
 const key = (n: number) => `clave-encargo-${String(n).padStart(8, "0")}`;
-const body = (n: number, items: Array<Record<string, unknown>>, over: Record<string, unknown> = {}) => ({ items, delivery: retiro, payment: "coordinar", idempotencyKey: key(n), ...over });
+const body = (n: number, items: Array<Record<string, unknown>>, over: Record<string, unknown> = {}) => ({ items, delivery: retiro, payment: "efectivo", contactName: "Ana Pérez", idempotencyKey: key(n), ...over });
 const fail = async (fn: () => unknown) => {
   try { await fn(); } catch (e) { if (e instanceof InquiryError) return e.info; if (e instanceof WholesaleError) return e.info; throw e; }
   throw new Error("se esperaba un error");
@@ -36,7 +36,7 @@ describe("consulta por encargo", () => {
     expect(inquiry.lines[0]).toMatchObject({ fulfillment: "encargo", quantity: 3, unitPriceMinor: null, lineSubtotalMinor: null });
     expect(inquiry.message).toContain("Por encargo (disponibilidad y cotización a confirmar):");
     expect(inquiry.message).toContain("3 × Storm Emeralda · Sobre [Japonés] — SKU DEMO-STORM-SOBRE");
-    expect(inquiry.message).not.toMatch(/Subtotal de productos|Unitario|\$/);
+    expect(inquiry.message).not.toMatch(/Subtotal|Total:|Unitario|\$/);
     expect(inquiry.message).toContain("seña es del 20% de lo cotizado y el saldo del 80%");
     expect(inquiry.message.endsWith("¿Me confirmás disponibilidad y cotización de lo que pedí por encargo?")).toBe(true);
     expect(inquiry.status).toBe("consulta_preparada"); // no es una compra, una reserva ni un pago
@@ -57,7 +57,7 @@ describe("consulta por encargo", () => {
     expect(inquiry.lines.map((l) => l.fulfillment).sort()).toEqual(["encargo", "stock"]);
     expect(inquiry.message).toContain("Para comprar (disponibles):");
     expect(inquiry.message).toContain("Por encargo (disponibilidad y cotización a confirmar):");
-    expect(inquiry.message).toContain("Subtotal de productos: $ 42.000 (sin los productos por encargo)");
+    expect(inquiry.message).toContain("*Subtotal: $ 42.000* (sin los productos por encargo)");
     expect(inquiry.message).not.toMatch(/seña.*\$/);
   });
   it("un producto agotado también se puede consultar por encargo", async () => {
@@ -91,7 +91,7 @@ describe("promoción por caja en la consulta (servidor)", () => {
     expect(inquiry.subtotalMinor).toBe(18500000);
     expect(inquiry.discountMinor).toBe(1850000);
     expect(inquiry.message).toContain("Descuento por transferencia: -$ 18.500");
-    expect(inquiry.message).toContain("Productos con descuento: $ 166.500");
+    expect(inquiry.message).toContain("*Total: $ 166.500*");
     expect((await db.select().from(inquiries).where(eq(inquiries.id, inquiry.reference)))[0]!.discountMinor).toBe(1850000);
   });
   it("caja + sobres con transferencia: el 10% alcanza a todo el subtotal de productos; el envío queda aparte", async () => {
@@ -116,11 +116,15 @@ describe("promoción por caja en la consulta (servidor)", () => {
   it("una caja que solo se consulta por encargo no habilita la promoción", async () => {
     expect((await fail(async () => await createInquiry(db, body(15, [{ ...caja, mode: "encargo" }, sobre], { payment: "transferencia" }), owner))).code).toBe("promo_not_eligible");
   });
-  it("efectivo y «a coordinar» valen siempre y sin descuento (el 10% no se extendió al efectivo)", async () => {
-    for (const [n, payment] of [[16, "efectivo"], [17, "coordinar"]] as const) {
-      const { inquiry } = await createInquiry(db, body(n, [sobre], { payment }), owner);
-      expect(inquiry.discountMinor).toBe(0);
-    }
+  it("efectivo vale siempre y sin descuento (el 10% no se extendió al efectivo)", async () => {
+    const { inquiry } = await createInquiry(db, body(16, [sobre], { payment: "efectivo" }), owner);
+    expect(inquiry.discountMinor).toBe(0);
+  });
+  it("«A coordinar por WhatsApp» ya no existe: el servidor lo rechaza y pide elegir un método vigente", async () => {
+    const err = await fail(async () => await createInquiry(db, body(17, [sobre], { payment: "coordinar" }), owner));
+    expect(err.code).toBe("invalid_input");
+    expect(JSON.stringify(err.details)).toContain("método de pago");
+    expect((await db.select().from(inquiries))).toHaveLength(0);
   });
 });
 

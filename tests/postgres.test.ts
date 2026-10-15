@@ -20,7 +20,7 @@ let db: TestDb;
 const instancia = () => createDb(db.testUrl, { max: 2 });
 beforeEach(async () => { db = await openTestDb({ max: 4 }); });
 
-const body = (n: number, qty = 1) => ({ items: [{ productId: "storm-sobre", quantity: qty, expectedPriceMinor: 950000 }], delivery: { method: "retiro", pickupPoint: "haedo" }, payment: "coordinar", idempotencyKey: `clave-de-prueba-${String(n).padStart(6, "0")}` });
+const body = (n: number, qty = 1) => ({ items: [{ productId: "storm-sobre", quantity: qty, expectedPriceMinor: 950000 }], delivery: { method: "retiro" }, payment: "efectivo", contactName: "Ana Pérez", idempotencyKey: `clave-de-prueba-${String(n).padStart(6, "0")}` });
 const addUser = (id: string) => db.insert(user).values({ id, name: id, email: `${id}@example.com`, emailVerified: true, createdAt: now, updatedAt: now });
 
 describe("concurrencia entre instancias", () => {

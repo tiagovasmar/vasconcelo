@@ -14,10 +14,10 @@ import { formatARS } from "@/lib/format";
 let db: Db;
 const owner = { sessionTokenHash: hashToken("sesion-a") };
 const key = (n: number | string) => `clave-de-prueba-${String(n).padStart(6, "0")}`;
-const retiro = { method: "retiro", pickupPoint: "haedo" } as const;
+const retiro = { method: "retiro" } as const;
 const base = (over: Record<string, unknown> = {}) => ({
   items: [{ productId: "storm-sobre", quantity: 2, expectedPriceMinor: 950000 }, { productId: "storm-pack5", quantity: 1, expectedPriceMinor: 4200000 }],
-  delivery: retiro, payment: "coordinar", idempotencyKey: key(1), ...over,
+  delivery: retiro, payment: "efectivo", contactName: "Ana Pérez", idempotencyKey: key(1), ...over,
 });
 const fail = async (fn: () => unknown) => {
   try { await fn(); } catch (e) { if (e instanceof InquiryError) return e.info; throw e; }
@@ -33,7 +33,8 @@ describe("importes y mensaje", () => {
     const { inquiry } = await createInquiry(db, base(), { sessionTokenHash: owner.sessionTokenHash });
     expect(inquiry.subtotalMinor).toBe(6100000);
     expect(formatARS(inquiry.subtotalMinor).replace(/\s/g, " ")).toMatch(/61\.000/);
-    expect(inquiry.message).toContain("Subtotal de productos: $ 61.000");
+    expect(inquiry.message).toContain("*Subtotal: $ 61.000*");
+    expect(inquiry.message).toContain("*Total: $ 61.000*");
     expect(inquiry.message).toContain("Envío: a coordinar");
     expect(inquiry.message).not.toMatch(/Envío: \$/);
     expect(inquiry.message).not.toMatch(/importe final: \$/i);
@@ -44,11 +45,12 @@ describe("importes y mensaje", () => {
     expect(inquiry.message).toMatch(/^Hola, soy Inés Muñoz\. Quiero consultar este pedido:\nReferencia: TT-[A-Z2-9]{8}\n/);
     expect(inquiry.message).toContain("2 × Storm Emeralda · Sobre [Japonés] — SKU DEMO-STORM-SOBRE");
     expect(inquiry.message).toContain("Entrega: Andreani · Ramos Mejía, Buenos Aires (CP 1704)");
-    expect(inquiry.message).toContain("Preferencia de pago: A coordinar por WhatsApp");
+    expect(inquiry.message).toContain("Método de pago: Efectivo · a coordinar");
+    expect(inquiry.message).toContain("Nombre y apellido: Inés Muñoz");
     expect(inquiry.message.endsWith("¿Me confirmás disponibilidad e importe final?")).toBe(true);
   });
   it("la URL de WhatsApp codifica y decodifica sin pérdida", async () => {
-    const { inquiry } = await createInquiry(db, base({ contactName: "Inés" }), { sessionTokenHash: owner.sessionTokenHash });
+    const { inquiry } = await createInquiry(db, base({ contactName: "Inés Muñoz" }), { sessionTokenHash: owner.sessionTokenHash });
     const launch = launchFor(inquiry, "5491155550000");
     expect(launch.mode).toBe("full");
     const url = new URL(launch.url!);
@@ -68,7 +70,7 @@ describe("importes y mensaje", () => {
   it("carrito largo: usa resumen con referencia y conserva el detalle íntegro, sin truncar", async () => {
     const data: MessageData = {
       reference: "TT-LARGO234", lines: Array.from({ length: 40 }, (_, i) => ({ quantity: 3, title: `Producto de nombre bastante largo número ${i}`, language: "ja" as const, sku: `SKU-LARGO-${i}`, unitPriceMinor: 123400 + i })),
-      subtotalMinor: 99999900, delivery: retiro, paymentLabel: "A coordinar por WhatsApp",
+      subtotalMinor: 99999900, delivery: retiro, paymentLabel: "Efectivo · a coordinar",
     };
     const full = buildMessage(data);
     expect(encodeURIComponent(full).length).toBeGreaterThan(WA_URL_SOFT_LIMIT);
@@ -124,7 +126,9 @@ describe("validación en servidor", () => {
     expect((await bad({ method: "andreani", locality: "Haedo", province: "Buenos Aires", postalCode: "17" })).code).toBe("invalid_input");
     expect((await bad({ method: "andreani", locality: "Haedo", province: "Narnia", postalCode: "1706" })).code).toBe("invalid_input");
     expect((await bad({ method: "moto", locality: "", postalCode: "1706" })).code).toBe("invalid_input");
-    expect((await bad({ method: "retiro", pickupPoint: "moron" })).code).toBe("invalid_input");
+    // Un único punto de retiro: un `pickupPoint` viejo se ignora (no hay nada que elegir) y no se guarda.
+    expect(CreateInquirySchema.safeParse(base({ delivery: { method: "retiro", pickupPoint: "moron" } })).success).toBe(true);
+    expect(CreateInquirySchema.safeParse(base({ delivery: { method: "retiro", pickupPoint: "moron" } })).data?.delivery).toEqual({ method: "retiro" });
     expect((await bad({ method: "correo" })).code).toBe("invalid_input");
     expect(CreateInquirySchema.safeParse(base({ delivery: { method: "moto", locality: "Haedo", postalCode: "B1706ABC" } })).success).toBe(true);
   });
@@ -139,12 +143,13 @@ describe("validación en servidor", () => {
   ])("conserva las condiciones de %s en la consulta y en WhatsApp (pedido con una caja)", async (payment, label) => {
     const result = await createInquiry(db, base({ payment, items: [{ productId: "storm-caja", quantity: 1 }, { productId: "storm-sobre", quantity: 2 }] }), { sessionTokenHash: owner.sessionTokenHash });
     expect(result.inquiry.paymentLabel).toBe(label);
-    expect(result.inquiry.message).toContain(`Preferencia de pago: ${label}`);
+    expect(result.inquiry.message).toContain(`Método de pago: ${label}`);
     const data: MessageData = { reference: result.inquiry.reference, lines: result.inquiry.lines, subtotalMinor: result.inquiry.subtotalMinor, delivery: retiro, paymentLabel: label };
     const launch = buildLaunch("5491155550000", data, "x".repeat(2000));
     expect(launch.mode).toBe("summary");
     expect(launch.text).toContain(label);
-    expect(launch.text).toContain("Retiro · Haedo");
+    expect(launch.text).toContain("Retiro en Av. Rivadavia 14600");
+    expect(launch.text).not.toMatch(/Ramos Mej|Haedo/);
   });
   it("evaluateCart: estados por línea", async () => {
     const ev = evaluateCart([{ productId: "storm-sobre", quantity: 1, expectedPriceMinor: 950000 }, { productId: "parcial-bundle", quantity: 1 }, { productId: "x", quantity: 1 }, { productId: "storm-pack5", quantity: 9 }], catalog.products);

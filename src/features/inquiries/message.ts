@@ -1,6 +1,6 @@
 import { formatRate, formatUSD } from "@/features/fx/convert";
 import { formatARS } from "@/lib/format";
-import { pickupPoints } from "@/content/checkout-options";
+import { PICKUP_MESSAGE } from "@/content/checkout-options";
 import { encargo as politicaEncargo } from "@/content/politicas";
 import { languageLabel, type Language } from "@/content/schema";
 import type { Delivery } from "./schemas";
@@ -26,9 +26,11 @@ const money = (m: number) => formatARS(m).replace(/[  ]/g, " ");
 export function describeDelivery(d: Delivery): string {
   if (d.method === "andreani") return `Andreani · ${d.locality}, ${d.province} (CP ${d.postalCode.toUpperCase()})`;
   if (d.method === "moto") return `Moto CABA/AMBA · ${d.locality} (CP ${d.postalCode.toUpperCase()}) · cobertura a confirmar`;
-  const point = pickupPoints.find((p) => p.id === d.pickupPoint)?.label ?? d.pickupPoint;
-  return `Retiro · ${point} (dirección y horario a acordar)`;
+  return PICKUP_MESSAGE;
 }
+
+/** Negrita de WhatsApp: un asterisco por lado, sin espacios pegados a los asteriscos. */
+const bold = (t: string) => `*${t.trim()}*`;
 
 const titleOf = (l: MessageLine) => `${l.quantity} × ${l.title} [${languageLabel[l.language]}] — SKU ${l.sku}`;
 
@@ -39,18 +41,19 @@ export function buildMessage(m: MessageData): string {
   const encargo = m.lines.filter((l) => l.unitPriceMinor === null);
   const mixed = stock.length > 0 && encargo.length > 0;
   const discount = m.discountMinor ?? 0;
-  const out: string[] = [head, `Referencia: ${m.reference}`, ""];
+  const out: string[] = [head, `Referencia: ${m.reference}`, ...(m.contactName ? [`Nombre y apellido: ${m.contactName}`] : []), ""];
   if (stock.length) {
     if (mixed) out.push("Para comprar (disponibles):");
-    out.push(stock.map((l) => `${titleOf(l)}\nUnitario: ${money(l.unitPriceMinor!)}${l.unitPriceUsdMinor ? ` (${formatUSD(l.unitPriceUsdMinor)})` : ""} · Subtotal: ${money(l.unitPriceMinor! * l.quantity)}`).join("\n\n"), "");
+    out.push(stock.map((l) => `${titleOf(l)}\nUnitario: ${money(l.unitPriceMinor!)}${l.unitPriceUsdMinor ? ` (${formatUSD(l.unitPriceUsdMinor)})` : ""} · Importe: ${money(l.unitPriceMinor! * l.quantity)}`).join("\n\n"), "");
   }
   if (encargo.length) out.push("Por encargo (disponibilidad y cotización a confirmar):", encargo.map(titleOf).join("\n"), "");
   if (stock.length) {
-    out.push(`Subtotal de productos: ${money(m.subtotalMinor)}${mixed ? " (sin los productos por encargo)" : ""}`);
-    if (discount > 0) out.push(`Descuento por transferencia: -${money(discount)}`, `Productos con descuento: ${money(m.subtotalMinor - discount)}`);
+    out.push(`${bold(`Subtotal: ${money(m.subtotalMinor)}`)}${mixed ? " (sin los productos por encargo)" : ""}`);
+    if (discount > 0) out.push(`Descuento por transferencia: -${money(discount)}`);
+    out.push(bold(`Total: ${money(m.subtotalMinor - discount)}`));
   }
   if (m.fx && stock.length) out.push(`Precios en pesos: ${m.fx.mode === "manual" ? "cotización fijada por la tienda" : "dólar blue (venta)"} ${formatRate(m.fx.rate10k).replace(/[  ]/g, " ")} por dólar, redondeado a múltiplos de $100.`);
-  out.push(`Entrega: ${describeDelivery(m.delivery)}`, "Envío: a coordinar", `Preferencia de pago: ${m.paymentLabel}`);
+  out.push(`Entrega: ${describeDelivery(m.delivery)}`, "Envío: a coordinar (no está incluido en el total)", `Método de pago: ${m.paymentLabel}`);
   if (encargo.length) out.push(`Encargo: sin cotización todavía. Si se confirman disponibilidad y cotización, la seña es del ${politicaEncargo.senaPercent}% de lo cotizado y el saldo del ${100 - politicaEncargo.senaPercent}%; el pago y la entrega se coordinan con la tienda.`);
   out.push("", encargo.length ? "¿Me confirmás disponibilidad y cotización de lo que pedí por encargo?" : "¿Me confirmás disponibilidad e importe final?");
   return out.join("\n");
@@ -70,10 +73,12 @@ export function summaryMessage(m: MessageData): string {
   return [
     "Hola, quiero consultar un pedido con muchos productos.",
     `Referencia: ${m.reference}`,
-    `${m.lines.length} productos distintos (${items} unidades)${m.lines.some((l) => l.unitPriceMinor !== null) ? ` · Subtotal de productos: ${money(m.subtotalMinor)}` : ""}${m.lines.some((l) => l.unitPriceMinor === null) ? " · incluye productos por encargo (sin cotizar)" : ""}`,
+    ...(m.contactName ? [`Nombre y apellido: ${m.contactName}`] : []),
+    `${m.lines.length} productos distintos (${items} unidades)${m.lines.some((l) => l.unitPriceMinor === null) ? " · incluye productos por encargo (sin cotizar)" : ""}`,
+    ...(m.lines.some((l) => l.unitPriceMinor !== null) ? [bold(`Subtotal: ${money(m.subtotalMinor)}`), ...((m.discountMinor ?? 0) > 0 ? [`Descuento por transferencia: -${money(m.discountMinor!)}`] : []), bold(`Total: ${money(m.subtotalMinor - (m.discountMinor ?? 0))}`)] : []),
     `Entrega: ${describeDelivery(m.delivery)}`,
-    "Envío: a coordinar",
-    `Preferencia de pago: ${m.paymentLabel}`,
+    "Envío: a coordinar (no está incluido en el total)",
+    `Método de pago: ${m.paymentLabel}`,
     "Te paso el detalle completo en el siguiente mensaje.",
   ].join("\n");
 }

@@ -133,7 +133,7 @@ describe("precio y stock pendientes", () => {
     expect(ev.lines[0].unitPriceMinor).toBeUndefined(); // nunca $0
     let info;
     try {
-      await createInquiry(db, { items: [{ productId: "storm-caja", quantity: 1, expectedPriceMinor: 1850000 }], delivery: { method: "retiro", pickupPoint: "haedo" }, payment: "coordinar", idempotencyKey: "pendiente-clave-0000001", acceptPriceChanges: true }, { sessionTokenHash: hashToken("s"), products });
+      await createInquiry(db, { items: [{ productId: "storm-caja", quantity: 1, expectedPriceMinor: 1850000 }], delivery: { method: "retiro" }, payment: "efectivo", contactName: "Ana Pérez", idempotencyKey: "pendiente-clave-0000001", acceptPriceChanges: true }, { sessionTokenHash: hashToken("s"), products });
     } catch (e) {
       info = (e as InquiryError).info;
     }

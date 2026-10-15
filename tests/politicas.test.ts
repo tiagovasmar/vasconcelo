@@ -34,7 +34,7 @@ describe("promociones minoristas: mínimo de una caja", () => {
       expect(paymentAllowed(id, true)).toBe(true);
       expect(paymentAllowed(id, false)).toBe(false);
     }
-    for (const id of ["coordinar", "efectivo"]) {
+    for (const id of ["efectivo"]) {
       expect(paymentAllowed(id, false)).toBe(true);
       expect(paymentAllowed(id, true)).toBe(true);
     }

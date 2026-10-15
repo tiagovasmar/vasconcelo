@@ -152,7 +152,7 @@ export default async function Home() {
               ))}
             </ul>
           )}
-          <p className="mt-4 text-xs leading-relaxed text-ink/70 sm:text-sm">Envíos a todo el país · Retiro en Ramos Mejía y Haedo</p>
+          <p className="mt-4 text-xs leading-relaxed text-ink/70 sm:text-sm">Envíos a todo el país · Retiro en Av. Rivadavia 14600 (horario por WhatsApp)</p>
         </div>
       </section>
 

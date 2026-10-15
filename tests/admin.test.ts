@@ -164,7 +164,7 @@ describe("valores del panel sobre el catálogo por código", () => {
     const { createInquiry, getInquiryFor, hashToken } = await import("@/features/inquiries/service");
     await saveProductChange(db, base, "storm-sobre", edit({ priceUsdMinor: 1000 }), actor, 500);
     const hash = hashToken("sesion-de-prueba-0123456789");
-    const body = { items: [{ productId: "storm-sobre", quantity: 2, expectedPriceMinor: 1_230_000 }], delivery: { method: "retiro", pickupPoint: "haedo" }, payment: "coordinar", idempotencyKey: "clave-de-prueba-0123456789" };
+    const body = { items: [{ productId: "storm-sobre", quantity: 2, expectedPriceMinor: 1_230_000 }], delivery: { method: "retiro" }, payment: "efectivo", contactName: "Ana Pérez", idempotencyKey: "clave-de-prueba-0123456789" };
     const { inquiry } = await createInquiry(db, body, { sessionTokenHash: hash, fx: FX, products: applyOverrides(base, await loadOverrides(db), FX) });
     expect(inquiry.subtotalMinor).toBe(2_460_000);
     expect(inquiry.fx).toMatchObject({ rate10k: 12_340_000, mode: "manual" });

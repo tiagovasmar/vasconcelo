@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 const steps = [
   { icon: <CartIcon />, title: "Armá tu carrito", text: "Sumá los productos sellados que quieras. No hace falta cuenta: podés comprar como invitado." },
-  { icon: <CubeIcon />, title: "Elegí entrega y pago", text: "Andreani, moto en CABA y AMBA o retiro en Ramos Mejía / Haedo. En compras que incluyan al menos una caja: tarjeta de crédito en 3 cuotas sin interés o 10% OFF por transferencia. El pago se coordina por WhatsApp." },
+  { icon: <CubeIcon />, title: "Elegí entrega y pago", text: "Andreani, moto en CABA y AMBA o retiro en Av. Rivadavia 14600. En compras que incluyan al menos una caja: tarjeta de crédito en 3 cuotas sin interés o 10% OFF por transferencia. El pago se coordina por WhatsApp." },
   { icon: <ChatIcon />, title: "Continuá por WhatsApp", text: "Se abre el chat con tu pedido ya escrito. Solo tenés que enviarlo (o copiarlo si preferís)." },
   { icon: <ArrowIcon />, title: "Confirmamos con vos", text: "La tienda confirma disponibilidad e importe final. Ahí se acuerdan el pago y la entrega." },
 ];
@@ -65,7 +65,7 @@ export default function ComoComprar() {
             <div className="mt-6 grid gap-4 md:grid-cols-3">
               <div className="border border-ink/25 bg-white/70 p-5"><h3 className="text-lg font-bold">Andreani</h3><p className="mt-2 text-sm leading-relaxed text-ink/80">Envío a todo el país. Te pedimos localidad, provincia y código postal. El costo y el plazo se coordinan por WhatsApp.</p></div>
               <div className="border border-ink/25 bg-white/70 p-5"><h3 className="text-lg font-bold">Moto en CABA y AMBA</h3><p className="mt-2 text-sm leading-relaxed text-ink/80">Te pedimos localidad y código postal. La cobertura de tu zona se confirma por WhatsApp: no todas las direcciones están cubiertas.</p></div>
-              <div className="border border-ink/25 bg-white/70 p-5"><h3 className="text-lg font-bold">Retiro en Ramos Mejía o Haedo</h3><p className="mt-2 text-sm leading-relaxed text-ink/80">Elegís el punto. La dirección exacta y el horario se acuerdan por WhatsApp.</p></div>
+              <div className="border border-ink/25 bg-white/70 p-5"><h3 className="text-lg font-bold">Retiro en Av. Rivadavia 14600</h3><p className="mt-2 text-sm leading-relaxed text-ink/80">Consultá por WhatsApp el horario para retirar y la dirección exacta antes de ir.</p></div>
             </div>
             <p className="mt-4 max-w-2xl text-sm text-ink/70">No pedimos DNI ni dirección completa para preparar la consulta.</p>
           </section>

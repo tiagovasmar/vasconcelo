@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { paymentMethods, pickupPoints } from "@/content/checkout-options";
+import { paymentMethods } from "@/content/checkout-options";
 
 /** Jurisdicciones argentinas para Andreani. */
 export const provinces = [
@@ -18,9 +18,27 @@ const postal = z.string({ error: "Código postal: obligatorio" }).trim().regex(p
 export const DeliverySchema = z.discriminatedUnion("method", [
   z.object({ method: z.literal("andreani"), locality: text("Localidad"), province: z.enum(provinces, { error: "Provincia: elegí una opción" }), postalCode: postal }),
   z.object({ method: z.literal("moto"), locality: text("Localidad"), postalCode: postal }),
-  z.object({ method: z.literal("retiro"), pickupPoint: z.enum(pickupPoints.map((p) => p.id) as [string, ...string[]], { error: "Punto de retiro: elegí Ramos Mejía o Haedo" }) }),
+  // Un único punto de retiro: no hay nada que elegir. Cualquier `pickupPoint` viejo que mande un carrito antiguo se ignora.
+  z.object({ method: z.literal("retiro") }),
 ]);
 export type Delivery = z.infer<typeof DeliverySchema>;
+
+/**
+ * «Nombre y apellido»: obligatorio en todos los pedidos (también el retiro). Se exigen al menos dos palabras y solo letras, espacios, apóstrofes, puntos y guiones.
+ * Es la única validación de verdad: la del navegador solo adelanta el mensaje.
+ */
+export const CONTACT_NAME_MESSAGE = "Escribí tu nombre y apellido.";
+export const normalizeName = (v: string) => v.replace(/\s+/g, " ").trim();
+export const isFullName = (v: string) => {
+  const n = normalizeName(v);
+  return n.length >= 3 && n.length <= 60 && n.split(" ").length >= 2 && /^[\p{L}\p{M}][\p{L}\p{M}'’.\- ]*$/u.test(n);
+};
+const ContactNameSchema = z
+  .string({ error: CONTACT_NAME_MESSAGE })
+  .transform(normalizeName)
+  .refine((v) => v.length > 0, CONTACT_NAME_MESSAGE)
+  .refine((v) => v.length <= 60, "Nombre y apellido: demasiado largo (máximo 60).")
+  .refine((v) => v.length === 0 || v.length > 60 || isFullName(v), "Escribí tu nombre y apellido (solo letras).");
 
 const paymentIds = paymentMethods.map((p) => p.id) as [string, ...string[]];
 
@@ -39,8 +57,8 @@ export const ValidateRequestSchema = z.object({ items: z.array(CartItemSchema).m
 export const CreateInquirySchema = z.object({
   items: z.array(CartItemSchema).min(1, "El carrito está vacío").max(30),
   delivery: DeliverySchema,
-  payment: z.enum(paymentIds, { error: "Preferencia de pago no habilitada" }),
-  contactName: z.string().trim().max(60, "Nombre: demasiado largo").optional().transform((v) => (v ? v : undefined)),
+  payment: z.enum(paymentIds, { error: "Elegí un método de pago disponible." }),
+  contactName: ContactNameSchema,
   idempotencyKey: z.string().min(16).max(64).regex(/^[A-Za-z0-9_-]+$/),
   acceptPriceChanges: z.boolean().optional(),
 });

@@ -1,4 +1,4 @@
-import { paymentMethods, pickupPoints } from "./checkout-options";
+import { paymentMethods, PICKUP_ADDRESS } from "./checkout-options";
 
 /** Configuración única de la tienda. Todo lo marcado como demo se reemplaza antes de vender. */
 export const store = {
@@ -17,9 +17,9 @@ export const store = {
   delivery: {
     andreani: "Andreani a todo el país",
     moto: "Moto en CABA y AMBA",
-    pickup: "Retiro en Ramos Mejía / Haedo",
+    pickup: `Retiro en ${PICKUP_ADDRESS}`,
   },
-  pickupPoints,
+  pickupAddress: PICKUP_ADDRESS,
   paymentMethods,
 } as const;
 

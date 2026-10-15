@@ -15,7 +15,7 @@ let db: TestDb;
 const now = new Date();
 const addUser = async (id: string) => await db.insert(user).values({ id, name: id, email: `${id}@example.com`, emailVerified: true, createdAt: now, updatedAt: now });
 const body = (n: number, over: Record<string, unknown> = {}) => ({
-  items: [{ productId: "storm-sobre", quantity: 1, expectedPriceMinor: 950000 }], delivery: { method: "retiro", pickupPoint: "haedo" }, payment: "coordinar", idempotencyKey: `clave-cuentas-${String(n).padStart(8, "0")}`, ...over,
+  items: [{ productId: "storm-sobre", quantity: 1, expectedPriceMinor: 950000 }], delivery: { method: "retiro" }, payment: "efectivo", contactName: "Ana Pérez", idempotencyKey: `clave-cuentas-${String(n).padStart(8, "0")}`, ...over,
 });
 const guest = (tag: string) => ({ sessionTokenHash: hashToken(tag) });
 
