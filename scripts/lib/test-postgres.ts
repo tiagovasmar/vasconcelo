@@ -40,7 +40,7 @@ export async function startTestPostgres(opts: { port?: number } = {}): Promise<T
   if (embedded) {
     const port = opts.port ?? (await freePort());
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "tienda-pg-"));
-    const pg = new EmbeddedPostgres({ databaseDir: path.join(dir, "data"), user: "postgres", password: "postgres", port, persistent: false, postgresFlags: ["-c", "max_connections=400", "-c", "fsync=off", "-c", "synchronous_commit=off", "-c", "full_page_writes=off"], onLog: () => undefined, onError: () => undefined });
+    const pg = new EmbeddedPostgres({ databaseDir: path.join(dir, "data"), user: "postgres", password: "postgres", port, persistent: false, initdbFlags: ["--encoding=UTF8", "--locale=C"], postgresFlags: ["-c", "max_connections=400", "-c", "fsync=off", "-c", "synchronous_commit=off", "-c", "full_page_writes=off"], onLog: () => undefined, onError: () => undefined });
     await pg.initialise();
     await pg.start();
     adminUrl = `postgres://postgres:postgres@127.0.0.1:${port}/postgres`;

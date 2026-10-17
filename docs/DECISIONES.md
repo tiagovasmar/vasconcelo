@@ -112,3 +112,12 @@
 - **Precio de venta en pesos enteros**, editable; no se aplican descuentos automáticos en ventas manuales (el dueño escribe lo cobrado).
 - **Nombre y apellido:** al menos dos palabras, solo letras, espacios, apóstrofes, puntos y guiones (una persona con un solo nombre tendría que agregar algo; decisión a revisar).
 - **Avatar de «Mi cuenta»:** dibujo original en SVG; no se usó arte de Pikachu por no haber un recurso con permiso en el proyecto.
+
+## Consultas conectadas con ventas y stock (17/10/2026)
+- **Se reutiliza el sistema de ventas existente** (`registerSale`, `voidSale`, candados `override:<producto>`, historial inmutable): no hay una segunda fuente de verdad del stock.
+- **El vínculo vive en `inquiry_sales`, no en `sales`:** una venta es un registro inmutable (disparador `venta_solo_se_anula`), así que vincular una venta existente no puede editarla. Una fila `active` = venta vigente de la consulta; al anular se cierra (`active=false`, queda como historia) y se puede reconvertir. Índice único parcial: una sola vinculación vigente por consulta; `sale_id` único: una venta pertenece a una sola consulta.
+- **Orden de candados:** clave de la operación → consulta (`inquiry:<id>`) → venta (`sale-void:<id>`) → productos (`override:<id>`, ordenados). `voidSale` mira el vínculo, toma el candado de la consulta y confirma que no cambió (reintenta si alguien vinculó en ese instante).
+- **`inquiries.crm_status` aparte de `inquiries.status`:** el estado de gestión no reemplaza al que ve el cliente en «Mis consultas».
+- **Productos por encargo fuera de la venta:** el sistema de ventas solo vende stock cargado y no admite stock negativo; las líneas por encargo se listan aparte y no tocan el stock.
+- **«Convertida» solo por venta:** crear o vincular una venta; se sale anulándola. Convertir confirma el contacto (la conversión sobre contactos nunca supera 100%).
+- **Pruebas en UTF-8:** el PostgreSQL embebido de pruebas se inicializa con `--encoding=UTF8 --locale=C` (heredaba WIN1252 en Windows).

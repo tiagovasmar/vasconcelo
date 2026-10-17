@@ -9,7 +9,7 @@ import { startTestPostgres, createDatabaseFromTemplate } from "./lib/test-postgr
  * por defecto 54399) cuando todo está preparado, para que Playwright espere.
  */
 async function main() {
-  const tags = (process.argv[2] || "demo,live,real,admin").split(",");
+  const tags = (process.argv[2] || "demo,live,real,admin,consultas").split(",");
   const readyPort = Number(process.env.PG_TEST_READY_PORT || 54399);
   const pg = await startTestPostgres({ port: Number(process.env.PG_TEST_PORT || 54398) });
   const names: Record<string, string> = {};

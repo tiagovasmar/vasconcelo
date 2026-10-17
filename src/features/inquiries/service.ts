@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import type { Db } from "@/db/client";
-import { inquiries, inquiryLines, rateLimits } from "@/db/schema";
+import { inquiries, inquiryEvents, inquiryLines, rateLimits } from "@/db/schema";
 import { listAllProducts } from "@/features/catalog/data";
 import type { EffectiveRate } from "@/features/fx/convert";
 import { currentRate } from "@/features/fx/service";
@@ -53,11 +53,11 @@ export function newReference(): string {
   return "TT-" + Array.from(bytes, (b) => alphabet[b % alphabet.length]).join("");
 }
 
-function contentHash(input: { items: Array<{ productId: string; quantity: number; mode?: string }>; delivery: Delivery; payment: string; contactName?: string }): string {
+function contentHash(input: { items: Array<{ productId: string; quantity: number; mode?: string }>; delivery: Delivery; payment: string; contactName?: string; contactPhone?: string }): string {
   const items = [...input.items].map((i) => ({ productId: i.productId, quantity: i.quantity, mode: i.mode === "encargo" ? "encargo" : "buy" })).sort((a, b) => a.productId.localeCompare(b.productId));
   const d = input.delivery;
   const delivery = d.method === "retiro" ? { m: d.method } : d.method === "moto" ? { m: d.method, l: d.locality.trim().toLowerCase(), c: d.postalCode.toUpperCase() } : { m: d.method, l: d.locality.trim().toLowerCase(), pr: d.province, c: d.postalCode.toUpperCase() };
-  return sha(JSON.stringify({ items, delivery, payment: input.payment, name: input.contactName ?? "" }));
+  return sha(JSON.stringify({ items, delivery, payment: input.payment, name: input.contactName ?? "", phone: input.contactPhone ?? "" }));
 }
 
 /**
@@ -206,8 +206,11 @@ export async function createInquiry(
         status: "consulta_preparada", currency: "ARS", subtotalMinor, discountMinor,
         ...(usesFx ? { fxRate10k: fx.rate10k, fxMode: fx.mode, fxSource: fx.source, fxAsOf: fx.asOf } : {}),
         deliveryMethod: input.delivery.method, deliveryJson: JSON.stringify(input.delivery),
-        paymentPreference: input.payment, contactName: input.contactName ?? null, message, createdAt,
+        paymentPreference: input.payment, contactName: input.contactName ?? null, contactPhone: input.contactPhone ?? null, message, createdAt,
+        source: "web", crmStatus: "pendiente",
       });
+      // Historial de gestión: la consulta quedó GENERADA (guardada antes de abrir WhatsApp). No implica que se haya enviado ningún mensaje.
+      await tx.insert(inquiryEvents).values({ inquiryId: reference, kind: "created", detail: "Consulta generada desde la tienda al confirmar el pedido.", actorEmail: null, createdAt });
       await tx.insert(inquiryLines).values(lines.map((l) => ({
         inquiryId: reference, productId: l.product.id, sku: l.product.sku, title: l.product.title, language: l.product.language,
         quantity: l.quantity, fulfillment: l.unit === null ? "encargo" : "stock", unitPriceUsdMinor: l.usd, unitPriceMinor: l.unit ?? 0, lineSubtotalMinor: l.unit === null ? 0 : l.unit * l.quantity,

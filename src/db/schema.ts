@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { bigint, boolean, check, index, integer, pgTable, text } from "drizzle-orm/pg-core";
+import { bigint, boolean, check, index, integer, pgTable, text, uniqueIndex } from "drizzle-orm/pg-core";
 import { user } from "./auth-schema";
 
 /**
@@ -41,10 +41,36 @@ export const inquiries = pgTable(
     deliveryJson: text("delivery_json").notNull(),
     paymentPreference: text("payment_preference").notNull(),
     contactName: text("contact_name"),
+    /** Teléfono opcional que dejó la persona en el carrito. */
+    contactPhone: text("contact_phone"),
     message: text("message").notNull(),
     createdAt: ms("created_at").notNull(),
+    /** web = generada al confirmar el pedido en la tienda · manual = cargada por el dueño desde /admin (llegó por otro medio). */
+    source: text("source").notNull().default("web"),
+    /** Gestión del dueño: pendiente | en_seguimiento | convertida | no_concretada. Independiente de `status` (lo que ve el cliente). */
+    crmStatus: text("crm_status").notNull().default("pendiente"),
+    /** Cuándo el dueño confirmó a mano que hubo contacto. null = «Consulta generada» (abrir WhatsApp no demuestra que se envió un mensaje). */
+    contactConfirmedAt: ms("contact_confirmed_at"),
+    /** Motivo opcional de «No concretada». */
+    lostReason: text("lost_reason"),
   },
-  (t) => [index("inquiries_session_idx").on(t.sessionTokenHash), index("inquiries_user_idx").on(t.userId)],
+  (t) => [index("inquiries_session_idx").on(t.sessionTokenHash), index("inquiries_user_idx").on(t.userId), index("inquiries_created_idx").on(t.createdAt), index("inquiries_crm_idx").on(t.crmStatus)],
+);
+
+/** Historial de gestión de una consulta (alta, contacto, estados, notas internas, ventas). No se edita ni se borra (también lo impide la base). */
+export const inquiryEvents = pgTable(
+  "inquiry_events",
+  {
+    id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
+    inquiryId: text("inquiry_id").notNull().references(() => inquiries.id),
+    /** created | contact_confirmed | contact_unconfirmed | status | note | sale_created | sale_linked | sale_voided */
+    kind: text("kind").notNull(),
+    detail: text("detail").notNull().default(""),
+    /** Correo del administrador; null = generado por el sistema (alta desde la tienda). */
+    actorEmail: text("actor_email"),
+    createdAt: ms("created_at").notNull(),
+  },
+  (t) => [index("inquiry_events_inquiry_idx").on(t.inquiryId, t.createdAt)],
 );
 
 export const inquiryLines = pgTable(
@@ -313,4 +339,26 @@ export const stockMovements = pgTable(
     index("stock_movements_created_idx").on(t.createdAt),
     check("stock_movements_after_check", sql`${t.stockAfter} >= 0`),
   ],
+);
+
+/**
+ * Vínculo entre una consulta y la venta que la convirtió. Las ventas son un registro inmutable (la base solo permite anularlas), por eso el vínculo NO vive en
+ * `sales`: es esta tabla. Una fila `active` = la venta vigente de la consulta; al anular la venta pasa a inactiva y la fila queda como historia
+ * (se puede volver a convertir con otra venta). Como máximo UNA fila activa por consulta (índice único parcial) y una venta se vincula a una sola consulta.
+ */
+export const inquirySales = pgTable(
+  "inquiry_sales",
+  {
+    id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
+    inquiryId: text("inquiry_id").notNull().references(() => inquiries.id),
+    saleId: text("sale_id").notNull().unique().references(() => sales.id),
+    /** convertida = la venta se registró desde la consulta (descontó stock) · vinculada = ya existía y se asoció (no tocó el stock). */
+    kind: text("kind").notNull(),
+    active: boolean("active").notNull().default(true),
+    createdAt: ms("created_at").notNull(),
+    createdByEmail: text("created_by_email").notNull(),
+    endedAt: ms("ended_at"),
+    endedReason: text("ended_reason"),
+  },
+  (t) => [uniqueIndex("inquiry_sales_one_active").on(t.inquiryId).where(sql`${t.active}`), index("inquiry_sales_inquiry_idx").on(t.inquiryId)],
 );

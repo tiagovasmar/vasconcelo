@@ -1,9 +1,11 @@
 import { createHash, randomBytes } from "node:crypto";
-import { desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { Db } from "@/db/client";
 import { lockKey } from "@/db/lock";
-import { productOverrides, saleLines, sales, stockMovements } from "@/db/schema";
+import { inquiries, inquirySales, productOverrides, saleLines, sales, stockMovements } from "@/db/schema";
+import { assertConvertible, attachSale, closeLinkOnVoid, lockInquiry } from "@/features/consultas/links";
+import { SaleError } from "./errors";
 import { catalog } from "@/content/catalog";
 import { paymentMethods } from "@/content/checkout-options";
 import type { Language, Product } from "@/content/schema";
@@ -27,12 +29,7 @@ import type { EffectiveRate } from "@/features/fx/convert";
 export const SALE_PAYMENT_IDS = paymentMethods.map((p) => p.id) as [string, ...string[]];
 export const paymentLabelOf = (id: string) => paymentMethods.find((p) => p.id === id)?.label ?? id;
 
-export type SaleErrorCode = "invalid_input" | "not_found" | "insufficient_stock" | "stock_pending" | "idempotency_conflict" | "already_voided" | "order_only" | "retired";
-export class SaleError extends Error {
-  constructor(public readonly status: number, public readonly code: SaleErrorCode, message: string, public readonly details?: unknown) {
-    super(message);
-  }
-}
+export { SaleError, type SaleErrorCode } from "./errors";
 
 const KEY = z.string().min(16, "Falta la clave de la operación.").max(64).regex(/^[A-Za-z0-9_-]+$/, "La clave de la operación no es válida.");
 
@@ -50,6 +47,8 @@ export const SaleInputSchema = z.object({
     .max(30, "Demasiados productos en una sola venta."),
   paymentMethod: z.enum(SALE_PAYMENT_IDS, { error: "Elegí un método de pago." }),
   note: z.string().trim().max(300, "La observación es demasiado larga (máximo 300).").optional().transform((v) => (v ? v : undefined)),
+  /** Si la venta convierte una consulta: la venta, el descuento de stock y el vínculo se guardan en la MISMA transacción. */
+  inquiryId: z.string().trim().min(1).max(40).optional(),
   idempotencyKey: KEY,
 });
 export type SaleInput = z.input<typeof SaleInputSchema>;
@@ -64,6 +63,8 @@ export type SalePreview = { lines: PreviewLine[]; totalMinor: number; ok: boolea
 export type SaleView = {
   id: string; status: string; paymentMethod: string; paymentLabel: string; note: string | null; totalMinor: number; createdAt: number; createdByEmail: string;
   voidedAt: number | null; voidedByEmail: string | null; voidReason: string | null;
+  /** Consulta de origen (y su persona), si la venta salió de una consulta o se vinculó a una. */
+  inquiry?: { id: string; name: string | null; kind: string; active: boolean } | null;
   lines: Array<{ productId: string; sku: string; title: string; language: Language; quantity: number; unitPriceMinor: number; catalogPriceMinor: number | null; catalogPriceUsdMinor: number | null; lineTotalMinor: number }>;
 };
 
@@ -74,7 +75,7 @@ export function newSaleId(): string {
 }
 
 type Parsed = z.output<typeof SaleInputSchema>;
-const hashOf = (i: Parsed) => sha(JSON.stringify({ items: [...i.items].map((x) => [x.productId, x.quantity, x.unitPriceMinor]).sort((a, b) => String(a[0]).localeCompare(String(b[0]))), p: i.paymentMethod, n: i.note ?? "" }));
+const hashOf = (i: Parsed) => sha(JSON.stringify({ items: [...i.items].map((x) => [x.productId, x.quantity, x.unitPriceMinor]).sort((a, b) => String(a[0]).localeCompare(String(b[0]))), p: i.paymentMethod, n: i.note ?? "", q: i.inquiryId ?? "" }));
 
 function parse(body: unknown): Parsed {
   const r = SaleInputSchema.safeParse(body);
@@ -94,6 +95,12 @@ const productOf = (id: string): Product => {
 /** Vista previa SIN escribir nada: qué stock hay ahora y cómo quedaría. El servidor es la autoridad; el navegador solo la muestra. */
 export async function previewSale(db: Db, body: unknown): Promise<SalePreview> {
   const input = parse(body);
+  if (input.inquiryId) {
+    const [inq] = await db.select({ id: inquiries.id }).from(inquiries).where(eq(inquiries.id, input.inquiryId));
+    if (!inq) throw new SaleError(404, "not_found", "La consulta no existe.");
+    const [active] = await db.select().from(inquirySales).where(and(eq(inquirySales.inquiryId, input.inquiryId), eq(inquirySales.active, true)));
+    if (active) throw new SaleError(409, "already_converted", `Esta consulta ya tiene una venta vigente (${active.saleId}).`, { saleId: active.saleId });
+  }
   const rows = new Map((await db.select().from(productOverrides).where(inArray(productOverrides.productId, input.items.map((i) => i.productId)))).map((r) => [r.productId, r]));
   const lines = input.items.map((it): PreviewLine => {
     const p = productOf(it.productId);
@@ -112,7 +119,17 @@ export async function previewSale(db: Db, body: unknown): Promise<SalePreview> {
 async function loadSale(db: Db, id: string): Promise<SaleView | null> {
   const [s] = await db.select().from(sales).where(eq(sales.id, id));
   if (!s) return null;
-  return toView(s, await db.select().from(saleLines).where(eq(saleLines.saleId, id)).orderBy(saleLines.id));
+  const [origin] = await originsOf(db, [id]);
+  return { ...toView(s, await db.select().from(saleLines).where(eq(saleLines.saleId, id)).orderBy(saleLines.id)), inquiry: origin?.inquiry ?? null };
+}
+
+/** Consulta de origen de cada venta (si la tiene), con el nombre de la persona. */
+async function originsOf(db: Db, saleIds: string[]): Promise<Array<{ saleId: string; inquiry: NonNullable<SaleView["inquiry"]> }>> {
+  if (!saleIds.length) return [];
+  const rows = await db
+    .select({ saleId: inquirySales.saleId, inquiryId: inquirySales.inquiryId, kind: inquirySales.kind, active: inquirySales.active, name: inquiries.contactName })
+    .from(inquirySales).innerJoin(inquiries, eq(inquiries.id, inquirySales.inquiryId)).where(inArray(inquirySales.saleId, saleIds));
+  return rows.map((r) => ({ saleId: r.saleId, inquiry: { id: r.inquiryId, name: r.name, kind: r.kind, active: r.active } }));
 }
 
 function toView(s: typeof sales.$inferSelect, lines: Array<typeof saleLines.$inferSelect>): SaleView {
@@ -146,6 +163,12 @@ export async function registerSale(db: Db, body: unknown, actor: Actor, ctx: { f
       await lockKey(tx, `sale:${input.idempotencyKey}`);
       const again = await tx.select({ id: sales.id }).from(sales).where(eq(sales.idempotencyKey, input.idempotencyKey));
       if (again.length) throw new Replayed();
+      // Orden de candados: clave → consulta → productos. La consulta se verifica bajo su candado: dos conversiones simultáneas no pueden pasar las dos.
+      let inquiry: Awaited<ReturnType<typeof assertConvertible>> | null = null;
+      if (input.inquiryId) {
+        await lockInquiry(tx, input.inquiryId);
+        inquiry = await assertConvertible(tx, input.inquiryId);
+      }
       for (const it of ordered) await lockKey(tx, `override:${it.productId}`);
       const rows = new Map((await tx.select().from(productOverrides).where(inArray(productOverrides.productId, ordered.map((i) => i.productId)))).map((r) => [r.productId, r]));
       const total = input.items.reduce((n, i) => n + i.unitPriceMinor * i.quantity, 0);
@@ -167,6 +190,7 @@ export async function registerSale(db: Db, body: unknown, actor: Actor, ctx: { f
         const live = current.get(p.id);
         await tx.insert(saleLines).values({ saleId: id, productId: p.id, sku: p.sku, title, language: p.language, quantity: it.quantity, unitPriceMinor: it.unitPriceMinor, catalogPriceMinor: live?.priceMinor ?? null, catalogPriceUsdMinor: live?.priceUsdMinor ?? null, lineTotalMinor: it.unitPriceMinor * it.quantity });
       }
+      if (inquiry) await attachSale(tx, { inquiry, saleId: id, kind: "convertida", totalMinor: total, actor, now });
     });
   } catch (e) {
     if (e instanceof Replayed) {
@@ -194,8 +218,29 @@ function replay(found: NonNullable<Awaited<ReturnType<typeof loadByKey>>>, hash:
 export async function voidSale(db: Db, saleId: string, reasonRaw: string, actor: Actor, now = Date.now()): Promise<SaleView> {
   const reason = (reasonRaw ?? "").trim();
   if (reason.length < 5 || reason.length > 200) throw new SaleError(400, "invalid_input", "Escribí el motivo de la anulación (entre 5 y 200 caracteres).");
+  // Orden de candados: consulta (si la venta está vinculada) → venta → productos. El vínculo se mira antes de bloquear y se confirma después; si cambió justo en
+  // ese instante (alguien vinculó la venta), se reintenta con el candado correcto en lugar de tocar la consulta sin su candado.
+  for (let attempt = 0; attempt < 4; attempt++) {
+    try {
+      await voidOnce(db, saleId, reason, actor, now);
+      return (await loadSale(db, saleId))!;
+    } catch (e) {
+      if (e instanceof LinkChanged && attempt < 3) continue;
+      throw e;
+    }
+  }
+  throw new SaleError(409, "not_found", "No se pudo anular la venta por un cambio simultáneo. Intentá de nuevo.");
+}
+
+class LinkChanged extends Error {}
+
+async function voidOnce(db: Db, saleId: string, reason: string, actor: Actor, now: number): Promise<void> {
   await db.transaction(async (tx) => {
+    const [peek] = await tx.select().from(inquirySales).where(and(eq(inquirySales.saleId, saleId), eq(inquirySales.active, true)));
+    if (peek) await lockInquiry(tx, peek.inquiryId);
     await lockKey(tx, `sale-void:${saleId}`);
+    const [link] = await tx.select().from(inquirySales).where(and(eq(inquirySales.saleId, saleId), eq(inquirySales.active, true)));
+    if ((link?.inquiryId ?? null) !== (peek?.inquiryId ?? null)) throw new LinkChanged();
     const [s] = await tx.select().from(sales).where(eq(sales.id, saleId));
     if (!s) throw new SaleError(404, "not_found", "La venta no existe.");
     if (s.status === "anulada") throw new SaleError(409, "already_voided", "Esa venta ya está anulada.");
@@ -212,8 +257,31 @@ export async function voidSale(db: Db, saleId: string, reasonRaw: string, actor:
       await tx.insert(stockMovements).values({ productId: p.id, sku: p.sku, title: l.title, kind: "anulacion", delta: l.quantity, stockBefore: stock, stockAfter: stock + l.quantity, reason: `Anulación de ${saleId}: ${reason}`, saleId, userId: actor.id, userEmail: actor.email, createdAt: w.version });
     }
     await tx.update(sales).set({ status: "anulada", voidedAt: now, voidedByEmail: actor.email, voidReason: reason }).where(eq(sales.id, saleId));
+    if (link) await closeLinkOnVoid(tx, link, { saleId, reason, stockReturned: lines.length > 0, actor, now });
   });
-  return (await loadSale(db, saleId))!;
+}
+
+/**
+ * Vincula una venta que YA estaba registrada (descontó su stock cuando se registró) a una consulta. No toca el stock ni la venta: solo agrega el vínculo y marca la
+ * consulta como convertida. Repetirlo con la misma consulta no hace nada; una venta anulada o ya vinculada a otra consulta se rechaza.
+ */
+export async function linkSaleToInquiry(db: Db, saleId: string, inquiryId: string, actor: Actor, now = Date.now()): Promise<{ sale: SaleView; replayed: boolean }> {
+  const replayed = await db.transaction(async (tx) => {
+    await lockInquiry(tx, inquiryId);
+    await lockKey(tx, `sale-void:${saleId}`);
+    const [s] = await tx.select().from(sales).where(eq(sales.id, saleId));
+    if (!s) throw new SaleError(404, "not_found", "La venta no existe.");
+    const [existing] = await tx.select().from(inquirySales).where(eq(inquirySales.saleId, saleId));
+    if (existing) {
+      if (existing.inquiryId === inquiryId && existing.active) return true; // reintento: ya estaba vinculada a esta consulta
+      throw new SaleError(409, "already_linked", existing.inquiryId === inquiryId ? "Esa venta ya estuvo vinculada a esta consulta y fue anulada." : `Esa venta ya está vinculada a la consulta ${existing.inquiryId}.`);
+    }
+    if (s.status !== "registrada") throw new SaleError(409, "voided", "Una venta anulada no se puede vincular a una consulta.");
+    const inquiry = await assertConvertible(tx, inquiryId);
+    await attachSale(tx, { inquiry, saleId, kind: "vinculada", totalMinor: s.totalMinor, actor, now });
+    return false;
+  });
+  return { sale: (await loadSale(db, saleId))!, replayed };
 }
 
 /* ---------- Entradas y ajustes de stock ---------- */
@@ -267,8 +335,9 @@ export async function moveStock(db: Db, body: unknown, actor: Actor, now = Date.
 export async function listSales(db: Db, limit = 50): Promise<SaleView[]> {
   const rows = await db.select().from(sales).orderBy(desc(sales.createdAt), desc(sales.id)).limit(Math.min(limit, 500));
   if (!rows.length) return [];
-  const lines = await db.select().from(saleLines).where(inArray(saleLines.saleId, rows.map((s) => s.id))).orderBy(saleLines.id);
-  return rows.map((s) => toView(s, lines.filter((l) => l.saleId === s.id)));
+  const ids = rows.map((s) => s.id);
+  const [lines, origins] = await Promise.all([db.select().from(saleLines).where(inArray(saleLines.saleId, ids)).orderBy(saleLines.id), originsOf(db, ids)]);
+  return rows.map((s) => ({ ...toView(s, lines.filter((l) => l.saleId === s.id)), inquiry: origins.find((o) => o.saleId === s.id)?.inquiry ?? null }));
 }
 
 export type MovementView = typeof stockMovements.$inferSelect;

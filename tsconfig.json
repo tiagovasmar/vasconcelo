@@ -45,7 +45,11 @@
     ".next-e2e-admin/types/**/*.ts",
     ".next-e2e-admin/dev/types/**/*.ts",
     ".next-build-check/types/**/*.ts",
-    ".next-build-check/dev/types/**/*.ts"
+    ".next-build-check/dev/types/**/*.ts",
+    ".next-e2e-consultas/types/**/*.ts",
+    ".next-e2e-consultas/dev/types/**/*.ts",
+    ".next-preview-consultas/types/**/*.ts",
+    ".next-preview-consultas/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

@@ -18,6 +18,8 @@ export type CartState = {
   /** Método de pago elegido; vacío = todavía no eligió uno vigente (también el caso de un carrito viejo con una opción que ya no existe). */
   payment: string;
   contactName: string;
+  /** Teléfono opcional para que la tienda pueda responder. */
+  contactPhone: string;
   /** Clave de idempotencia vigente y la huella del contenido al que pertenece. */
   idem: { sig: string; key: string } | null;
   /** Último producto agregado (para el aviso flotante). */
@@ -26,7 +28,7 @@ export type CartState = {
 
 const KEY = "tienda-carrito-v1";
 const emptyDelivery: DeliveryDraft = { method: "", locality: "", province: "", postalCode: "" };
-const empty: CartState = { items: [], delivery: emptyDelivery, payment: "", contactName: "", idem: null, lastAdded: null };
+const empty: CartState = { items: [], delivery: emptyDelivery, payment: "", contactName: "", contactPhone: "", idem: null, lastAdded: null };
 const validPayments: string[] = paymentMethods.map((p) => p.id);
 
 let state: CartState = empty;
@@ -62,6 +64,7 @@ function sanitize(raw: unknown): CartState {
     // Un método que ya no existe (p. ej. «coordinar» de un carrito viejo) no se conserva: hay que elegir uno vigente.
     payment: validPayments.includes(str(r.payment, 30)) ? str(r.payment, 30) : "",
     contactName: str(r.contactName, 60),
+    contactPhone: str(r.contactPhone, 20),
     idem: idem && typeof idem.sig === "string" && typeof idem.key === "string" ? { sig: idem.sig, key: idem.key } : null,
     lastAdded: null,
   };
@@ -191,6 +194,10 @@ export const cartActions = {
     load();
     commit({ ...state, contactName: contactName.slice(0, 60) });
   },
+  setContactPhone(contactPhone: string) {
+    load();
+    commit({ ...state, contactPhone: contactPhone.slice(0, 20) });
+  },
   setIdempotency(idem: { sig: string; key: string } | null) {
     load();
     commit({ ...state, idem });
@@ -198,11 +205,11 @@ export const cartActions = {
   /** Al cerrar sesión: se conservan los productos pero se borran el nombre y los datos de entrega del formulario. */
   clearPersonal() {
     load();
-    commit({ ...state, delivery: emptyDelivery, contactName: "", idem: null });
+    commit({ ...state, delivery: emptyDelivery, contactName: "", contactPhone: "", idem: null });
   },
   clear() {
     load();
-    commit({ ...empty, delivery: state.delivery, payment: state.payment, contactName: state.contactName });
+    commit({ ...empty, delivery: state.delivery, payment: state.payment, contactName: state.contactName, contactPhone: state.contactPhone });
   },
 };
 

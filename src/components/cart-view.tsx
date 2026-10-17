@@ -240,7 +240,7 @@ export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }
       return;
     }
     const itemsPayload = cart.items.map((i) => ({ productId: i.productId, quantity: i.quantity, mode: i.mode, ...(i.mode === "buy" ? { expectedPriceMinor: i.priceMinor } : {}) }));
-    const sig = JSON.stringify([[...itemsPayload].sort((a, b) => a.productId.localeCompare(b.productId)).map((i) => [i.productId, i.quantity, i.mode]), parsed.data, cart.payment, normalizeName(cart.contactName)]);
+    const sig = JSON.stringify([[...itemsPayload].sort((a, b) => a.productId.localeCompare(b.productId)).map((i) => [i.productId, i.quantity, i.mode]), parsed.data, cart.payment, normalizeName(cart.contactName), cart.contactPhone.trim()]);
     // Misma clave mientras el contenido no cambie; si cambia, clave nueva.
     const key = cart.idem?.sig === sig ? cart.idem.key : crypto.randomUUID().replace(/-/g, "");
     if (cart.idem?.sig !== sig) cartActions.setIdempotency({ sig, key });
@@ -248,7 +248,7 @@ export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }
     try {
       const res = await fetch("/api/inquiries", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items: itemsPayload, delivery: parsed.data, payment: cart.payment, contactName: normalizeName(cart.contactName), idempotencyKey: key }),
+        body: JSON.stringify({ items: itemsPayload, delivery: parsed.data, payment: cart.payment, contactName: normalizeName(cart.contactName), contactPhone: cart.contactPhone.trim() || undefined, idempotencyKey: key }),
       });
       const data = await res.json().catch(() => null);
       if (res.ok && data?.reference) {
@@ -339,6 +339,11 @@ export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }
             <label htmlFor="contactName" className={label}>Nombre y apellido <span className="text-vermilion" aria-hidden="true">*</span></label>
             <input id="contactName" name="contactName" required aria-required="true" autoComplete="name" maxLength={60} value={cart.contactName} onChange={(e) => { cartActions.setContactName(e.target.value); setServerFieldErrors(({ contactName: _drop, ...rest }) => { void _drop; return rest; }); }} onBlur={() => touch("contactName")} aria-invalid={Boolean(show("contactName"))} aria-describedby={show("contactName") ? "err-contactName" : "ayuda-contactName"} className={field} />
             {show("contactName") ? <p id="err-contactName" role="alert" className="mt-1 text-sm font-semibold text-vermilion">{errors.contactName}</p> : <p id="ayuda-contactName" className="mt-1 text-xs text-ink/65">Obligatorio, también si retirás. Lo usamos para identificar tu pedido.</p>}
+          </div>
+          <div className="mt-4 max-w-sm">
+            <label htmlFor="contactPhone" className={label}>Teléfono (opcional)</label>
+            <input id="contactPhone" name="contactPhone" type="tel" inputMode="tel" autoComplete="tel" maxLength={20} value={cart.contactPhone} onChange={(e) => { cartActions.setContactPhone(e.target.value); setServerFieldErrors(({ contactPhone: _drop, ...rest }) => { void _drop; return rest; }); }} aria-invalid={Boolean(errors.contactPhone)} aria-describedby={errors.contactPhone ? "err-contactPhone" : "ayuda-contactPhone"} className={field} />
+            {errors.contactPhone ? <p id="err-contactPhone" role="alert" className="mt-1 text-sm font-semibold text-vermilion">{errors.contactPhone}</p> : <p id="ayuda-contactPhone" className="mt-1 text-xs text-ink/65">Opcional. Solo para que podamos responderte.</p>}
           </div>
           <fieldset className="mt-5" aria-describedby={show("method") ? "err-method" : undefined}>
             <legend className="sr-only">Modalidad de entrega</legend>

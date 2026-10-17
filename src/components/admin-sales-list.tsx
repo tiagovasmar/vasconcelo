@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { formatARS } from "@/lib/format";
@@ -36,6 +37,7 @@ export function AdminSalesList({ sales }: { sales: SaleView[] }) {
             <p className="font-mono text-sm font-semibold">{s.id}{s.status === "anulada" && <span className="ml-2 rounded bg-vermilion px-2 py-0.5 font-sans text-xs font-bold text-white">ANULADA</span>}</p>
             <p className="text-sm text-ink/70">{when(s.createdAt)} · {s.createdByEmail}</p>
           </div>
+          {s.inquiry && <p className="mt-1 text-sm" data-testid="venta-origen">Cliente: <b>{s.inquiry.name ?? "Sin nombre"}</b> · consulta <Link href={`/admin/consultas/${s.inquiry.id}`} className="font-mono underline underline-offset-4">{s.inquiry.id}</Link>{s.inquiry.kind === "vinculada" ? " (vinculada)" : ""}</p>}
           <ul className="mt-2 text-sm">
             {s.lines.map((l) => <li key={l.productId} className="flex justify-between gap-3"><span>{l.quantity} × {l.title} <span className="font-mono text-xs text-ink/70">{l.sku}</span></span><span className="shrink-0">{formatARS(l.unitPriceMinor)} c/u</span></li>)}
           </ul>

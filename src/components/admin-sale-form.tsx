@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
 import { paymentMethods } from "@/content/checkout-options";
@@ -7,6 +8,8 @@ import { formatARS } from "@/lib/format";
 
 export type SaleProduct = { id: string; sku: string; title: string; language: string; stock: number | null; priceMinor: number | null; low: boolean; orderOnly: boolean };
 type Line = { productId: string; quantity: string; price: string };
+/** Consulta que se está convirtiendo en venta: la venta, el descuento de stock y el vínculo se guardan juntos. Las líneas vienen precargadas y se pueden editar. */
+export type InquiryPrefill = { id: string; name: string; payment: string; lines: Array<{ productId: string; quantity: number; unitPriceMinor: number }> };
 type Preview = { lines: Array<{ productId: string; sku: string; title: string; quantity: number; unitPriceMinor: number; lineTotalMinor: number; stockNow: number | null; stockAfter: number | null; problem: string | null }>; totalMinor: number; ok: boolean };
 
 const norm = (s: string) => s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
@@ -19,10 +22,10 @@ const pesos = (s: string) => (/^\d{1,9}$/.test(s.trim()) ? Number(s.trim()) : nu
  * Registro de una venta manual en tres pasos: armar → revisar el resumen y el stock resultante (lo calcula el servidor) → confirmar.
  * Confirmar usa una clave de operación fija para esa venta: un doble clic o un reintento tras un corte devuelven la misma venta en lugar de registrar otra.
  */
-export function AdminSaleForm({ products }: { products: SaleProduct[] }) {
+export function AdminSaleForm({ products, inquiry }: { products: SaleProduct[]; inquiry?: InquiryPrefill }) {
   const router = useRouter();
-  const [lines, setLines] = useState<Line[]>([]);
-  const [payment, setPayment] = useState<string>("");
+  const [lines, setLines] = useState<Line[]>(() => (inquiry?.lines ?? []).map((l) => ({ productId: l.productId, quantity: String(l.quantity), price: String(Math.round(l.unitPriceMinor / 100)) })));
+  const [payment, setPayment] = useState<string>(inquiry?.payment ?? "");
   const [note, setNote] = useState("");
   const [q, setQ] = useState("");
   const [step, setStep] = useState<"armar" | "revisar" | "hecho">("armar");
@@ -43,7 +46,7 @@ export function AdminSaleForm({ products }: { products: SaleProduct[] }) {
   const parsed = lines.map((l) => ({ ...l, qty: /^\d{1,3}$/.test(l.quantity.trim()) ? Number(l.quantity.trim()) : null, pesos: pesos(l.price) }));
   const total = parsed.reduce((n, l) => n + (l.qty && l.pesos ? l.qty * l.pesos * 100 : 0), 0);
   const formOk = parsed.length > 0 && parsed.every((l) => l.qty && l.qty >= 1 && l.pesos && l.pesos >= 1) && Boolean(payment);
-  const body = () => ({ items: parsed.map((l) => ({ productId: l.productId, quantity: l.qty, unitPriceMinor: (l.pesos ?? 0) * 100 })), paymentMethod: payment, note: note.trim() || undefined, idempotencyKey: key.current });
+  const body = () => ({ items: parsed.map((l) => ({ productId: l.productId, quantity: l.qty, unitPriceMinor: (l.pesos ?? 0) * 100 })), paymentMethod: payment, note: note.trim() || undefined, ...(inquiry ? { inquiryId: inquiry.id } : {}), idempotencyKey: key.current });
 
   // Cualquier cambio de contenido es una venta distinta: clave de operación nueva (así no se confunde con un reintento de la anterior).
   const change = (fn: () => void) => { fn(); setError(""); setPreview(null); setStep("armar"); key.current = newKey(); };
@@ -72,6 +75,8 @@ export function AdminSaleForm({ products }: { products: SaleProduct[] }) {
     try {
       const { res, data } = await call("/api/admin/ventas");
       if (!res.ok) { setError(data?.error?.message ?? "No se pudo registrar la venta."); if (res.status === 409) setStep("armar"); return; }
+      // Desde una consulta, el resultado se ve en la propia consulta (queda «Convertida en venta», con la venta vigente y el historial).
+      if (inquiry) { router.push(`/admin/consultas/${encodeURIComponent(inquiry.id)}?venta=${data.replayed ? "repetida" : "ok"}`); return; }
       setDone({ id: data.sale.id, replayed: Boolean(data.replayed), total: data.sale.totalMinor });
       setStep("hecho");
       router.refresh();
@@ -86,8 +91,12 @@ export function AdminSaleForm({ products }: { products: SaleProduct[] }) {
     return (
       <div className="rounded-xl border border-emerald/40 bg-emerald/10 p-5" role="status" data-testid="venta-registrada">
         <p className="text-lg font-semibold">{done.replayed ? "Esa venta ya estaba registrada" : "Venta registrada"}: {done.id}</p>
-        <p className="mt-1 text-sm">Total {formatARS(done.total)}. El stock ya se descontó{done.replayed ? " (una sola vez)" : ""} y quedó en el historial de movimientos.</p>
-        <button type="button" onClick={reset} className="mt-3 min-h-11 rounded-lg bg-ink px-5 text-sm font-semibold text-paper hover:bg-emerald" data-testid="nueva-venta">Registrar otra venta</button>
+        <p className="mt-1 text-sm">Total {formatARS(done.total)}. El stock ya se descontó{done.replayed ? " (una sola vez)" : ""} y quedó en el historial de movimientos.{inquiry ? " La consulta quedó como «Convertida en venta»." : ""}</p>
+        {inquiry ? (
+          <p className="mt-3"><Link href={`/admin/consultas/${inquiry.id}`} className="inline-flex min-h-11 items-center rounded-lg bg-ink px-5 text-sm font-semibold text-paper hover:bg-emerald" data-testid="volver-consulta">Volver a la consulta {inquiry.id}</Link></p>
+        ) : (
+          <button type="button" onClick={reset} className="mt-3 min-h-11 rounded-lg bg-ink px-5 text-sm font-semibold text-paper hover:bg-emerald" data-testid="nueva-venta">Registrar otra venta</button>
+        )}
       </div>
     );
   }

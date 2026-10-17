@@ -59,6 +59,9 @@ export const CreateInquirySchema = z.object({
   delivery: DeliverySchema,
   payment: z.enum(paymentIds, { error: "Elegí un método de pago disponible." }),
   contactName: ContactNameSchema,
+  /** Teléfono opcional para que la tienda pueda responder: dígitos, espacios, +, guiones y paréntesis (6 a 20 caracteres). */
+  contactPhone: z.string().trim().max(20, "Teléfono: demasiado largo").optional().transform((v) => (v ? v : undefined))
+    .refine((v) => v === undefined || (/^[0-9+()\-\s]+$/.test(v) && v.replace(/\D/g, "").length >= 6), "Teléfono: usá solo números, espacios, + y guiones (mínimo 6 dígitos)"),
   idempotencyKey: z.string().min(16).max(64).regex(/^[A-Za-z0-9_-]+$/),
   acceptPriceChanges: z.boolean().optional(),
 });

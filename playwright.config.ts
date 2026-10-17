@@ -19,7 +19,7 @@ if (!process.env.TEST_WORKER_INDEX) {
 // `fixture`: catálogo de PRUEBA ficticio (productos con precio y stock de ejemplo) para probar carrito y filtros.
 // Sin fixture, el servidor usa el catálogo REAL (16 productos con precio/stock pendientes).
 const PG_PORT = Number(process.env.PG_TEST_PORT || 54398);
-const pgServer = { command: "npx tsx scripts/pg-test-server.ts demo,live,real,admin", url: `http://127.0.0.1:${process.env.PG_TEST_READY_PORT || 54399}`, reuseExistingServer: false, timeout: 180_000, env: { PG_TEST_PORT: String(PG_PORT) } };
+const pgServer = { command: "npx tsx scripts/pg-test-server.ts demo,live,real,admin,consultas", url: `http://127.0.0.1:${process.env.PG_TEST_READY_PORT || 54399}`, reuseExistingServer: false, timeout: 180_000, env: { PG_TEST_PORT: String(PG_PORT) } };
 const server = (port: number, tag: string, whatsapp: string, fixture = true, adminEmail = "") => ({
   // Se prueba el BUILD DE PRODUCCIÓN (sin compilación bajo demanda: tiempos estables y es lo que se entrega).
   // E2E_SKIP_BUILD=1 reutiliza el build anterior (solo para iterar localmente; la entrega siempre se prueba con build nuevo).
@@ -56,13 +56,15 @@ export default defineConfig({
   globalTeardown: "./tests/e2e/global-teardown.ts",
   use: { reducedMotion: "reduce" },
   // E2E_SERVERS=real,admin levanta solo esos servidores (para iterar sobre un grupo de pruebas); sin definir, se levantan los cuatro.
-  webServer: [pgServer as never, server(3100, "demo", ""), server(3101, "live", "5491155550000"), server(3102, "real", "", false), server(3103, "admin", "", true, "dueno-e2e@example.com")].filter((w) => !process.env.E2E_SERVERS || !(w.env as Record<string, string>).NEXT_DIST_DIR || process.env.E2E_SERVERS.split(",").some((t) => (w.env as Record<string, string>).NEXT_DIST_DIR.endsWith(`-${t}`))),
+  webServer: [pgServer as never, server(3100, "demo", ""), server(3101, "live", "5491155550000"), server(3102, "real", "", false), server(3103, "admin", "", true, "dueno-e2e@example.com"), server(3104, "consultas", "", true, "dueno-e2e@example.com")].filter((w) => !process.env.E2E_SERVERS || !(w.env as Record<string, string>).NEXT_DIST_DIR || process.env.E2E_SERVERS.split(",").some((t) => (w.env as Record<string, string>).NEXT_DIST_DIR.endsWith(`-${t}`))),
   projects: [
     { name: "escritorio", testIgnore: /whatsapp|colecciones|admin/, use: { baseURL: "http://localhost:3100", viewport: { width: 1440, height: 900 } } },
     { name: "movil", testIgnore: /whatsapp|colecciones|admin/, use: { baseURL: "http://localhost:3100", viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true } },
     { name: "whatsapp", testMatch: /whatsapp/, use: { baseURL: "http://localhost:3101", viewport: { width: 1440, height: 900 } } },
     // Panel del dueño (catálogo de prueba, ADMIN_EMAIL configurado); su propia base y su propio correo local.
     { name: "admin", testMatch: /admin.spec/, use: { baseURL: "http://localhost:3103", viewport: { width: 1440, height: 900 } } },
+    // Consultas, ventas y stock del panel: servidor y base propios (mueven stock y precios de los productos de prueba y no deben alterar los conteos de admin.spec.ts).
+    { name: "consultas", testMatch: /admin-consultas.spec/, use: { baseURL: "http://localhost:3104", viewport: { width: 1440, height: 900 } } },
     // Catálogo real (8 colecciones, 16 fichas): escritorio y móvil.
     { name: "real-escritorio", testMatch: /colecciones/, use: { baseURL: "http://localhost:3102", viewport: { width: 1440, height: 900 } } },
     { name: "real-movil", testMatch: /colecciones/, use: { baseURL: "http://localhost:3102", viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true } },
