@@ -46,7 +46,7 @@ async function main() {
 
   // --- promoción de EJEMPLO (solo en esta base descartable; en la tienda real la selección la define el dueño) ---
   const { saveComboConfig } = await import("../src/features/promos/settings");
-  await saveComboConfig(db, { enabled: true, boxIds: ["storm-caja"], boosterIds: ["storm-sobre", "parcial-sobre"], expectedVersion: 0 }, { id: ownerId, email: OWNER_EMAIL });
+  await saveComboConfig(db, { enabled: true, boxIds: ["storm-caja"], boosterIds: ["storm-sobre", "parcial-sobre", ...Array.from({ length: Number(process.env.DEMO_EXTRA_BOOSTERS || 0) || 0 }, (_, i) => `extra-sobre-${String(i + 1).padStart(2, "0")}`)], expectedVersion: 0 }, { id: ownerId, email: OWNER_EMAIL });
   await db.$client.end({ timeout: 5 });
 
   // --- la tienda, con variables propias (anulan las de .env.local) ---
