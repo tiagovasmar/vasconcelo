@@ -9,7 +9,7 @@ const cards = (page: Page) => page.locator("section[aria-labelledby=archivo-titl
 test.describe("catálogo y destacados", () => {
   test("el catálogo muestra las 50 fichas reales publicadas (22 japonesas + 28 chinas), con «Precio a confirmar» y sin datos de demostración", async ({ page }) => {
     await go(page, "/sellados");
-    await expect(page.getByRole("status").filter({ hasText: "Mostrando 1–12 de 50 productos" })).toBeVisible();
+    await expect(page.getByRole("status").filter({ hasText: "Mostrando 1–12 de 52 productos" })).toBeVisible();
     await expect(cards(page)).toHaveCount(12);
     await expect(page.getByTestId("precio").first()).toHaveText("Precio a confirmar");
     await expect(page.getByTestId("disponibilidad").first()).toHaveText("Sin stock");
@@ -17,10 +17,10 @@ test.describe("catálogo y destacados", () => {
     expect(body).not.toMatch(/\$\s?0\b|de ejemplo|DEMO|Agotado/i); // ni $0, ni demo, ni «agotado» falso
     await page.getByRole("link", { name: "Siguiente →" }).click();
     await expect(cards(page)).toHaveCount(12);
-    await go(page, "/sellados?pagina=5"); // última página: 50 = 4 × 12 + 2
-    await expect(cards(page)).toHaveCount(2);
+    await go(page, "/sellados?pagina=5"); // última página: 52 = 4 × 12 + 4 (los 2 accesorios van al final del orden por defecto)
+    await expect(cards(page)).toHaveCount(4);
     // ningún botón de agregar está activo: cada tarjeta explica por qué
-    await expect(page.getByTestId("consultar-encargo")).toHaveCount(2); // sin precio ni stock: no se compra, se consulta por encargo
+    await expect(page.getByTestId("consultar-encargo")).toHaveCount(4); // sin precio ni stock (2 chinos) o sin stock (los 2 accesorios, que arrancan en 0 packs): no se compra, se consulta por encargo
     await expect(page.getByRole("button", { name: /^Agregar .* al carrito$/ })).toHaveCount(0);
   });
 
@@ -43,7 +43,7 @@ test.describe("catálogo y destacados", () => {
     await go(page, "/sellados?q=M6-JP");
     await expect(cards(page)).toHaveCount(2);
     // un rango de precio no deja pasar productos con precio pendiente
-    await go(page, "/sellados?pmin=1");
+    await go(page, "/sellados?pmin=5000"); // los accesorios cuestan menos que eso
     await expect(page.getByText("No encontramos productos con esos filtros.")).toBeVisible();
   });
 

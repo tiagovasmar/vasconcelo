@@ -6,7 +6,11 @@ import { languageLabel, type Language } from "@/content/schema";
 import type { Delivery } from "./schemas";
 
 /** `unitPriceMinor` es null en las líneas por encargo (sin precio ni cotización todavía). */
-export type MessageLine = { quantity: number; title: string; language: Language; sku: string; unitPriceMinor: number | null; /** Precio base en USD (centavos) si el producto lo tiene. */ unitPriceUsdMinor?: number | null };
+export type MessageLine = {
+  quantity: number; title: string; language: Language; sku: string; unitPriceMinor: number | null; /** Precio base en USD (centavos) si el producto lo tiene. */ unitPriceUsdMinor?: number | null;
+  /** Unidades por pack (accesorios: 5). Se aclara «pack de N» salvo que el título ya lo diga. */ packSize?: number | null;
+  /** Unidades de la línea con el descuento del combo caja + sobres y descuentos de la línea (centavos). */ comboUnits?: number; comboDiscountMinor?: number; transferDiscountMinor?: number;
+};
 export type MessageData = {
   reference: string;
   contactName?: string;
@@ -15,6 +19,8 @@ export type MessageData = {
   subtotalMinor: number;
   /** 10% OFF por transferencia (solo pedidos con una caja). 0/ausente = sin descuento. */
   discountMinor?: number;
+  /** Descuento del combo caja + sobres. 0/ausente = sin combo. */
+  comboDiscountMinor?: number;
   /** Cotización usada para convertir los precios USD (solo si algún producto tenía precio en USD). */
   fx?: { rate10k: number; mode: "auto" | "manual" } | null;
   delivery: Delivery;
@@ -35,7 +41,14 @@ const bold = (t: string) => `*${t.trim()}*`;
 /** Envío en el mensaje: con retiro no hay envío (se omite la línea; la entrega ya dice dónde y que el horario se confirma); con Andreani o moto sigue la aclaración. */
 export const shippingLines = (d: Delivery): string[] => (d.method === "retiro" ? [] : ["Envío: a coordinar (no está incluido en el total)"]);
 
-const titleOf = (l: MessageLine) => `${l.quantity} × ${l.title} [${languageLabel[l.language]}] — SKU ${l.sku}`;
+const packNote = (l: MessageLine) => (l.packSize && !/pack de/i.test(l.title) ? ` (pack de ${l.packSize})` : "");
+const titleOf = (l: MessageLine) => `${l.quantity} × ${l.title}${packNote(l)}${l.language === "na" ? "" : ` [${languageLabel[l.language]}]`} — SKU ${l.sku}`;
+const lineDiscountText = (l: MessageLine) => {
+  const parts: string[] = [];
+  if ((l.comboDiscountMinor ?? 0) > 0) parts.push(`combo caja + sobres: 10% OFF en ${l.comboUnits} ${l.comboUnits === 1 ? "sobre" : "sobres"} (-${money(l.comboDiscountMinor!)})`);
+  if ((l.transferDiscountMinor ?? 0) > 0) parts.push(`transferencia: -${money(l.transferDiscountMinor!)}`);
+  return parts.length ? `\nDescuento: ${parts.join(" · ")}` : "";
+};
 
 /** Mensaje completo, con el formato acordado. Importes siempre calculados por el servidor. Los productos por encargo van aparte y sin importe. */
 export function buildMessage(m: MessageData): string {
@@ -44,16 +57,18 @@ export function buildMessage(m: MessageData): string {
   const encargo = m.lines.filter((l) => l.unitPriceMinor === null);
   const mixed = stock.length > 0 && encargo.length > 0;
   const discount = m.discountMinor ?? 0;
+  const combo = m.comboDiscountMinor ?? 0;
   const out: string[] = [head, `Referencia: ${m.reference}`, ...(m.contactName ? [`Nombre y apellido: ${m.contactName}`] : []), ""];
   if (stock.length) {
     if (mixed) out.push("Para comprar (disponibles):");
-    out.push(stock.map((l) => `${titleOf(l)}\nUnitario: ${money(l.unitPriceMinor!)}${l.unitPriceUsdMinor ? ` (${formatUSD(l.unitPriceUsdMinor)})` : ""} · Importe: ${money(l.unitPriceMinor! * l.quantity)}`).join("\n\n"), "");
+    out.push(stock.map((l) => `${titleOf(l)}\nUnitario: ${money(l.unitPriceMinor!)}${l.unitPriceUsdMinor ? ` (${formatUSD(l.unitPriceUsdMinor)})` : ""} · Importe: ${money(l.unitPriceMinor! * l.quantity)}${lineDiscountText(l)}`).join("\n\n"), "");
   }
   if (encargo.length) out.push("Por encargo (disponibilidad y cotización a confirmar):", encargo.map(titleOf).join("\n"), "");
   if (stock.length) {
     out.push(`${bold(`Subtotal: ${money(m.subtotalMinor)}`)}${mixed ? " (sin los productos por encargo)" : ""}`);
+    if (combo > 0) out.push(`Descuento combo caja + sobres: -${money(combo)}`);
     if (discount > 0) out.push(`Descuento por transferencia: -${money(discount)}`);
-    out.push(bold(`Total: ${money(m.subtotalMinor - discount)}`));
+    out.push(bold(`Total: ${money(m.subtotalMinor - combo - discount)}`));
   }
   if (m.fx && stock.length) out.push(`Precios en pesos: ${m.fx.mode === "manual" ? "cotización fijada por la tienda" : "dólar blue (venta)"} ${formatRate(m.fx.rate10k).replace(/[  ]/g, " ")} por dólar, redondeado a múltiplos de $100.`);
   out.push(`Entrega: ${describeDelivery(m.delivery)}`, ...shippingLines(m.delivery), `Método de pago: ${m.paymentLabel}`);
@@ -78,7 +93,7 @@ export function summaryMessage(m: MessageData): string {
     `Referencia: ${m.reference}`,
     ...(m.contactName ? [`Nombre y apellido: ${m.contactName}`] : []),
     `${m.lines.length} productos distintos (${items} unidades)${m.lines.some((l) => l.unitPriceMinor === null) ? " · incluye productos por encargo (sin cotizar)" : ""}`,
-    ...(m.lines.some((l) => l.unitPriceMinor !== null) ? [bold(`Subtotal: ${money(m.subtotalMinor)}`), ...((m.discountMinor ?? 0) > 0 ? [`Descuento por transferencia: -${money(m.discountMinor!)}`] : []), bold(`Total: ${money(m.subtotalMinor - (m.discountMinor ?? 0))}`)] : []),
+    ...(m.lines.some((l) => l.unitPriceMinor !== null) ? [bold(`Subtotal: ${money(m.subtotalMinor)}`), ...((m.comboDiscountMinor ?? 0) > 0 ? [`Descuento combo caja + sobres: -${money(m.comboDiscountMinor!)}`] : []), ...((m.discountMinor ?? 0) > 0 ? [`Descuento por transferencia: -${money(m.discountMinor!)}`] : []), bold(`Total: ${money(m.subtotalMinor - (m.comboDiscountMinor ?? 0) - (m.discountMinor ?? 0))}`)] : []),
     `Entrega: ${describeDelivery(m.delivery)}`,
     ...shippingLines(m.delivery),
     `Método de pago: ${m.paymentLabel}`,

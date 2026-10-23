@@ -112,7 +112,7 @@ export default async function AdminConsultas({ searchParams }: { searchParams: P
                       <span className="rounded-full border border-ink/30 px-3 py-0.5 text-xs font-semibold" data-testid="consulta-contacto">{r.contactConfirmedAt ? "Contacto confirmado" : "Consulta generada"}</span>
                     </span>
                   </div>
-                  <p className="mt-1 text-ink/75"><span className="font-mono">{r.id}</span> · {when(r.createdAt)} · {r.source === "manual" ? "Cargada a mano" : "Desde la tienda"} · {r.units} {r.units === 1 ? "unidad" : "unidades"} en {r.lineCount} {r.lineCount === 1 ? "producto" : "productos"}{r.encargoLines ? ` (${r.encargoLines} por encargo)` : ""} · {formatARS(r.subtotalMinor - r.discountMinor)}{r.saleId ? ` · venta ${r.saleId}` : ""}</p>
+                  <p className="mt-1 text-ink/75"><span className="font-mono">{r.id}</span> · {when(r.createdAt)} · {r.source === "manual" ? "Cargada a mano" : "Desde la tienda"} · {r.units} {r.units === 1 ? "unidad" : "unidades"} en {r.lineCount} {r.lineCount === 1 ? "producto" : "productos"}{r.encargoLines ? ` (${r.encargoLines} por encargo)` : ""} · {formatARS(r.subtotalMinor - r.discountMinor - r.comboDiscountMinor)}{r.saleId ? ` · venta ${r.saleId}` : ""}</p>
                 </Link>
               </li>
             ))}

@@ -94,3 +94,8 @@ Se revisó qué había y **no se duplicó nada**: ya existían la búsqueda por 
 - **Edición múltiple**: selección de filas y acciones en masa (poner/sumar/restar stock; fijar USD o ajustar en %) que **solo preparan los borradores**; se confirman con «Guardar N cambios» (cada fila usa el mismo guardado con control de versión e historial).
 - **Subida de varias fotos** a la vez (también arrastrando), en el orden elegido, con rechazos informados uno por uno, límite de 12 y portada/orden antes de guardar.
 Guía corta: [GUIA-ADMIN.md](GUIA-ADMIN.md). Pruebas: `tests/admin-mejoras.test.ts` y los tests nuevos de `tests/e2e/admin.spec.ts`.
+
+## Promociones y accesorios (22/10/2026)
+- **`/admin/promociones`:** activar o desactivar «caja + sobres» y elegir qué cajas y sobres participan. No cambia precios ni stock; cada cambio queda en el historial. Por defecto está apagada y sin selección.
+- **Accesorios:** en `/admin` figuran con «Precio fijo (ARS)» (no hay campo USD) y «Packs disponibles» (cada pack trae 5 unidades). El stock inicial es 0. La edición masiva de precios en dólares los saltea. Ver [PROMOCION-COMBO-Y-ACCESORIOS.md](PROMOCION-COMBO-Y-ACCESORIOS.md).
+- **Ventas:** cada línea admite un descuento en pesos enteros (se precarga al convertir una consulta con combo o transferencia).

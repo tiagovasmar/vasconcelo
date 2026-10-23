@@ -11,7 +11,7 @@ import { formatUSD, parseUsdInput, usdInputText, usdToArsMinor } from "@/feature
 import { stateInfo, type RowState } from "./admin-product-table";
 import { useUnsavedGuard } from "./use-unsaved-guard";
 
-export type GalleryItem = { src: string; thumb: string; alt: string; width: number; height: number; source?: "store" | "supplier" | "manufacturer"; origin?: string; upload: boolean; /** El archivo no existe en el servidor (ilustración de reserva): no se puede mostrar la miniatura. */ missing?: boolean };
+export type GalleryItem = { src: string; thumb: string; alt: string; width: number; height: number; source?: "store" | "supplier" | "manufacturer" | "illustration"; origin?: string; upload: boolean; /** El archivo no existe en el servidor (ilustración de reserva): no se puede mostrar la miniatura. */ missing?: boolean };
 export type LibraryItem = { src: string; thumb: string; alt: string; from: string };
 
 export type EditorData = {
@@ -31,6 +31,10 @@ export type EditorData = {
   description: string;
   usdMinor: number | null;
   arsMinor: number | null;
+  /** Moneda del precio base: «ars» = precio fijo en pesos (accesorios, sin dólar). */
+  priceBase: "usd" | "ars";
+  /** Unidades por pack (accesorios): el stock se administra en PACKS. */
+  packSize: number | null;
   stock: number | null;
   maxPerOrder: number | null;
   visible: boolean;
@@ -61,6 +65,9 @@ export function AdminProductEditor({ data }: { data: EditorData }) {
   const [title, setTitle] = useState(data.title);
   const [description, setDescription] = useState(data.description);
   const [usd, setUsd] = useState(usdInputText(data.usdMinor));
+  const isArs = data.priceBase === "ars";
+  const arsText = (m: number | null) => (m === null ? "" : String(m / 100));
+  const [ars, setArs] = useState(arsText(data.arsMinor));
   const [mode, setMode] = useState<StockMode>(modeOf(data));
   const [stock, setStock] = useState(data.stock === null ? "" : String(data.stock));
   const [max, setMax] = useState(data.maxPerOrder === null ? "" : String(data.maxPerOrder));
@@ -72,13 +79,14 @@ export function AdminProductEditor({ data }: { data: EditorData }) {
   const [errs, setErrs] = useState<Record<string, string>>({});
 
   // Cuando el servidor devuelve valores nuevos (tras guardar y refrescar), el formulario se alinea con ellos.
-  const signature = [data.title, data.description, data.usdMinor, data.stock, data.maxPerOrder, data.visible, data.orderOnly, data.version].join("|");
+  const signature = [data.title, data.description, data.usdMinor, data.arsMinor, data.stock, data.maxPerOrder, data.visible, data.orderOnly, data.version].join("|");
   const [seen, setSeen] = useState(signature);
   if (seen !== signature) {
     setSeen(signature);
     setTitle(data.title);
     setDescription(data.description);
     setUsd(usdInputText(data.usdMinor));
+    setArs(arsText(data.arsMinor));
     setMode(modeOf(data));
     setStock(data.stock === null ? "" : String(data.stock));
     setMax(data.maxPerOrder === null ? "" : String(data.maxPerOrder));
@@ -87,11 +95,13 @@ export function AdminProductEditor({ data }: { data: EditorData }) {
     setAck(false);
   }
 
-  const parsedUsd = usd.trim() === "" ? null : parseUsdInput(usd);
-  const usdInvalid = usd.trim() !== "" && parsedUsd === null;
+  const parsedUsd = isArs || usd.trim() === "" ? null : parseUsdInput(usd);
+  const usdInvalid = !isArs && usd.trim() !== "" && parsedUsd === null;
+  const arsPesos = isArs && /^\d{1,8}$/.test(ars.trim()) && Number(ars.trim()) >= 1 ? Number(ars.trim()) : null;
+  const arsInvalid = isArs && arsPesos === null;
   const live = parsedUsd !== null && data.rate10k ? usdToArsMinor(parsedUsd, data.rate10k) : null;
   const dataDirty =
-    title.trim() !== data.title || description.trim() !== data.description || usd.trim() !== usdInputText(data.usdMinor).trim() ||
+    title.trim() !== data.title || description.trim() !== data.description || usd.trim() !== usdInputText(data.usdMinor).trim() || ars.trim() !== arsText(data.arsMinor).trim() ||
     mode !== modeOf(data) || (mode === "qty" && stock.trim() !== (data.stock === null ? "" : String(data.stock))) ||
     max.trim() !== (data.maxPerOrder === null ? "" : String(data.maxPerOrder)) || visible !== data.visible;
 
@@ -134,6 +144,7 @@ export function AdminProductEditor({ data }: { data: EditorData }) {
     setMsg(null);
     const local: Record<string, string> = {};
     if (usdInvalid) local.priceUsdMinor = "Escribí el precio en dólares, por ejemplo 10 o 10,50, o dejalo vacío si está pendiente.";
+    if (arsInvalid) local.priceArsMinor = "Escribí el precio fijo en pesos enteros, por ejemplo 1000.";
     let stockValue: number | null = null;
     if (mode === "qty") {
       const t = stock.trim().replace(/[\s.]/g, "");
@@ -157,7 +168,7 @@ export function AdminProductEditor({ data }: { data: EditorData }) {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          priceUsdMinor: parsedUsd, stock: mode === "unknown" ? null : stockValue, maxPerOrder: maxT === "" ? null : Number(maxT), visible, orderOnly: mode === "order",
+          ...(isArs ? { priceArsMinor: (arsPesos as number) * 100 } : { priceUsdMinor: parsedUsd }), stock: mode === "unknown" ? null : stockValue, maxPerOrder: maxT === "" ? null : Number(maxT), visible, orderOnly: mode === "order",
           title: title.trim(), description: description.trim(), acknowledgeDraft: ack, expectedVersion: version,
         }),
       });
@@ -348,6 +359,16 @@ export function AdminProductEditor({ data }: { data: EditorData }) {
         <section aria-labelledby="h-precio" className="space-y-4 border-t border-ink/10 pt-5">
           <h2 id="h-precio" className="text-lg font-semibold">Precio y disponibilidad</h2>
           <div className="grid gap-4 sm:grid-cols-2">
+            {isArs ? (
+              <div>
+                <label htmlFor="ed-ars" className={label}>Precio fijo (ARS)</label>
+                <div className="relative"><span className="pointer-events-none absolute left-3 top-1/2 mt-0.5 -translate-y-1/2 text-sm text-ink/60" aria-hidden="true">$</span>
+                  <input id="ed-ars" name="ars" inputMode="numeric" autoComplete="off" value={ars} onChange={(e) => setArs(e.target.value.replace(/\D/g, "").slice(0, 8))} disabled={locked} placeholder="en pesos" className={field + " pl-8"} aria-invalid={Boolean(errs.priceArsMinor) || arsInvalid} aria-describedby="ed-ars-ayuda" data-testid="editor-ars" />
+                </div>
+                {errs.priceArsMinor && <p className="mt-1 text-xs font-medium text-vermilion">{errs.priceArsMinor}</p>}
+                <p id="ed-ars-ayuda" className="mt-1 text-xs text-ink/65" data-testid="ars-previa" aria-live="polite">Precio FIJO en pesos por pack de {data.packSize} unidades: no cambia con el dólar ni con la cotización y no tiene valor en USD. {arsPesos !== null ? <>En la tienda se verá <b>{formatARS(arsPesos * 100)}</b>.</> : "Escribí un número entero de pesos."}</p>
+              </div>
+            ) : (
             <div>
               <label htmlFor="ed-usd" className={label}>Precio base (USD)</label>
               <div className="relative"><span className="pointer-events-none absolute left-3 top-1/2 mt-0.5 -translate-y-1/2 text-sm text-ink/60" aria-hidden="true">USD</span>
@@ -360,6 +381,7 @@ export function AdminProductEditor({ data }: { data: EditorData }) {
               <p className="mt-1 text-xs text-ink/65">{data.rateLabel}</p>
               {data.legacyPriceMinor !== null && <p className="mt-1 text-xs text-ink/65" data-testid="precio-anterior">Precio anterior en pesos cargado a mano: {formatARS(data.legacyPriceMinor)}. No rige ni se convierte; es solo un dato anterior.</p>}
             </div>
+            )}
             <div>
               <label htmlFor="ed-max" className={label}>Máximo por pedido</label>
               <input id="ed-max" name="max" inputMode="numeric" autoComplete="off" value={max} onChange={(e) => setMax(e.target.value)} disabled={locked} placeholder="sin tope" className={field} aria-invalid={Boolean(errs.maxPerOrder)} />
@@ -368,10 +390,10 @@ export function AdminProductEditor({ data }: { data: EditorData }) {
           </div>
 
           <fieldset className="space-y-2" disabled={locked}>
-            <legend className={label}>Stock (unidades del artículo que se vende)</legend>
+            <legend className={label}>{data.packSize ? `Packs disponibles (cada pack trae ${data.packSize} unidades)` : "Stock (unidades del artículo que se vende)"}</legend>
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-              <label className="flex min-h-11 items-center gap-2 text-sm"><input type="radio" name="mode" checked={mode === "qty"} onChange={() => setMode("qty")} className="h-5 w-5 accent-emerald" /> Cantidad en stock</label>
-              <input aria-label="Cantidad en stock" name="stock" inputMode="numeric" autoComplete="off" value={mode === "qty" ? stock : ""} onChange={(e) => setStock(e.target.value)} disabled={mode !== "qty"} placeholder="0 = sin stock" className={field + " !mt-0 max-w-40"} aria-invalid={Boolean(errs.stock)} />
+              <label className="flex min-h-11 items-center gap-2 text-sm"><input type="radio" name="mode" checked={mode === "qty"} onChange={() => setMode("qty")} className="h-5 w-5 accent-emerald" /> {data.packSize ? "Packs en stock" : "Cantidad en stock"}</label>
+              <input aria-label={data.packSize ? "Packs disponibles" : "Cantidad en stock"} name="stock" inputMode="numeric" autoComplete="off" value={mode === "qty" ? stock : ""} onChange={(e) => setStock(e.target.value)} disabled={mode !== "qty"} placeholder="0 = sin stock" className={field + " !mt-0 max-w-40"} aria-invalid={Boolean(errs.stock)} />
               <label className="flex min-h-11 items-center gap-2 text-sm"><input type="radio" name="mode" checked={mode === "unknown"} onChange={() => setMode("unknown")} className="h-5 w-5 accent-emerald" /> Cantidad desconocida (pendiente)</label>
               <label className="flex min-h-11 items-center gap-2 text-sm"><input type="radio" name="mode" checked={mode === "order"} onChange={() => setMode("order")} className="h-5 w-5 accent-emerald" /> Disponible por encargo</label>
             </div>
@@ -416,7 +438,7 @@ export function AdminProductEditor({ data }: { data: EditorData }) {
               <div className="min-w-0">
                 <label htmlFor={`alt-${i}`} className={label}>Texto alternativo</label>
                 <textarea id={`alt-${i}`} value={im.alt} onChange={(e) => setAlt(i, e.target.value)} rows={2} maxLength={250} className={field + " py-2 text-sm"} />
-                <p className="mt-1 text-xs text-ink/60">{im.width}×{im.height}px{im.upload ? ` · subida desde el panel (${im.source === "store" ? "mi stock real" : im.source === "supplier" ? "referencia de proveedor" : "referencia del fabricante"})` : im.source === "supplier" ? " · foto de proveedor (referencia)" : ""}</p>
+                <p className="mt-1 text-xs text-ink/60">{im.width}×{im.height}px{im.upload ? ` · subida desde el panel (${im.source === "store" ? "mi stock real" : im.source === "supplier" ? "referencia de proveedor" : "referencia del fabricante"})` : im.source === "supplier" ? " · foto de proveedor (referencia)" : im.source === "illustration" ? " · imagen ilustrativa generada: NO es una foto del stock real" : ""}</p>
               </div>
               <div className="col-span-2 flex flex-wrap gap-2 sm:col-span-1 sm:flex-col">
                 <button type="button" className={btn} onClick={() => move(i, i - 1)} disabled={i === 0} aria-label={`Subir la foto ${i + 1}`}>↑ Subir</button>

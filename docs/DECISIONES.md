@@ -121,3 +121,14 @@
 - **Productos por encargo fuera de la venta:** el sistema de ventas solo vende stock cargado y no admite stock negativo; las líneas por encargo se listan aparte y no tocan el stock.
 - **«Convertida» solo por venta:** crear o vincular una venta; se sale anulándola. Convertir confirma el contacto (la conversión sobre contactos nunca supera 100%).
 - **Pruebas en UTF-8:** el PostgreSQL embebido de pruebas se inicializa con `--encoding=UTF8 --locale=C` (heredaba WIN1252 en Windows).
+
+## Promoción caja + sobres, accesorios y recomendaciones (22/10/2026)
+- **Un solo motor de precios (`priceCart`)** para catálogo, panel lateral, carrito, mensaje, consulta guardada y venta: el cliente solo muestra números del servidor; `expectedTotalMinor` solo sirve para avisar de cambios (409 `price_changed`).
+- **Más favorable, nunca doble descuento:** sobre un mismo sobre se aplica el combo o el 10% por transferencia, el que dé más; en empate gana transferencia. Interpretación de trabajo a validar con el dueño.
+- **Accesorios fuera del 10% por transferencia** (la promoción de pago exige una caja y los accesorios no son cajas ni sobres). A validar con el dueño.
+- **Cupos al sobre más caro primero**, desempate por `productId`: regla estable e independiente del orden del carrito.
+- **Configuración de la promoción en `admin_settings`** con versión optimista y auditoría, sin tabla nueva ni selección precargada: apagada por defecto para no inventar qué participa.
+- **Accesorios con precio base en pesos** (`priceBase: "ars"`, `product_overrides.price_ars_minor`), sin USD ni conversión; unidad de venta y de stock = pack de 5. Idioma «No aplica» oculto. Las imágenes son ilustraciones generadas y se rotulan como tales.
+- **Ventas con descuento por línea:** `sale_lines.discount_minor` (pesos enteros); al convertir una consulta el descuento se precarga y no se recalcula. Las filas históricas quedan igual (columnas con valor por defecto).
+- **Sugerencias deterministas** (sin aleatoriedad ni reordenamientos mientras el usuario interactúa), máximo 3, ocultables por sesión.
+- **Migración 0003 solo preparada**: no se aplica a Supabase sin aprobación; las pruebas usan bases locales descartables.

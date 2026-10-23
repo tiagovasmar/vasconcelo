@@ -33,6 +33,8 @@ export function aleatoriedad(p: Pick<Product, "kind">): string {
       return "Los accesorios son fijos. Son aleatorias las cartas de los sobres y la que salga dentro de cada tipo indicado.";
     case "illustration-set":
       return "La carta de ilustración especial es una de varias posibles, al azar; el marco y el sobre son fijos y las cartas del sobre son aleatorias.";
+    case "accessory":
+      return "Son protectores para cartas: no incluyen cartas y no hay nada aleatorio.";
   }
 }
 

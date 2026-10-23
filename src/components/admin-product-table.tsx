@@ -29,6 +29,10 @@ export type AdminRow = {
   slug: string;
   /** Pocas unidades según el umbral del aviso (solo se ve en el panel). */
   lowStock?: boolean;
+  /** Moneda del precio base: «ars» = precio FIJO en pesos (accesorios: no depende del dólar). Sin dato = dólares. */
+  priceBase?: "usd" | "ars";
+  /** Unidades por pack (accesorios): el stock se administra en PACKS. */
+  packSize?: number | null;
 };
 
 export const stateInfo: Record<RowState, { label: string; cls: string; help: string }> = {
@@ -44,8 +48,8 @@ export const stateInfo: Record<RowState, { label: string; cls: string; help: str
 const field = "block min-h-11 w-full rounded-md border border-ink/40 bg-white px-3 text-base outline-none focus:border-emerald focus:ring-2 focus:ring-emerald/30 disabled:bg-paper disabled:text-ink/50";
 const cap = "block text-[.65rem] font-bold uppercase tracking-[.12em] text-ink/65 lg:hidden";
 
-type Draft = { usd: string; stock: string };
-const initial = (r: AdminRow): Draft => ({ usd: usdInputText(r.usdMinor), stock: r.stock === null ? "" : String(r.stock) });
+type Draft = { usd: string; stock: string; /** Precio fijo en pesos enteros (solo productos con precio base en pesos). */ ars: string };
+const initial = (r: AdminRow): Draft => ({ usd: usdInputText(r.usdMinor), stock: r.stock === null ? "" : String(r.stock), ars: r.priceBase === "ars" && r.arsMinor !== null ? String(r.arsMinor / 100) : "" });
 
 function parseStock(raw: string): number | null | undefined {
   const t = raw.trim().replace(/[\s.]/g, "");
@@ -83,7 +87,7 @@ export function AdminProductTable({ rows, rate10k, lowThreshold = 0 }: { rows: A
     const d = drafts[r.id];
     if (!d) return false;
     const i = initial(r);
-    return d.usd.trim() !== i.usd.trim() || d.stock.trim() !== i.stock.trim();
+    return d.usd.trim() !== i.usd.trim() || d.stock.trim() !== i.stock.trim() || d.ars.trim() !== i.ars.trim();
   };
   const dirtyIds = useMemo(() => rows.filter(dirtyOf).map((r) => r.id), [rows, drafts]); // eslint-disable-line react-hooks/exhaustive-deps
   useUnsavedGuard(dirtyIds.length > 0);
@@ -99,9 +103,15 @@ export function AdminProductTable({ rows, rate10k, lowThreshold = 0 }: { rows: A
 
   async function saveRow(r: AdminRow): Promise<boolean> {
     const d = draftOf(r);
-    const usd = d.usd.trim() === "" ? null : parseUsdInput(d.usd);
+    const isArs = r.priceBase === "ars";
+    const arsPesos = isArs ? (/^\d{1,8}$/.test(d.ars.trim()) && Number(d.ars.trim()) >= 1 ? Number(d.ars.trim()) : undefined) : null;
+    const usd = isArs || d.usd.trim() === "" ? null : parseUsdInput(d.usd);
     const stock = parseStock(d.stock);
-    if (usd === undefined || (d.usd.trim() !== "" && usd === null)) {
+    if (isArs && arsPesos === undefined) {
+      setMsgs((m) => ({ ...m, [r.id]: { ok: false, text: "El precio fijo debe ser un número entero de pesos, por ejemplo 1000." } }));
+      return false;
+    }
+    if (!isArs && (usd === undefined || (d.usd.trim() !== "" && usd === null))) {
       setMsgs((m) => ({ ...m, [r.id]: { ok: false, text: "Precio en dólares no válido: escribí por ejemplo 10 o 10,50 (o dejalo vacío si está pendiente)." } }));
       return false;
     }
@@ -114,7 +124,7 @@ export function AdminProductTable({ rows, rate10k, lowThreshold = 0 }: { rows: A
       const res = await fetch(`/api/admin/products/${encodeURIComponent(r.id)}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ priceUsdMinor: usd, stock, expectedVersion: versions[r.id] ?? r.version }),
+        body: JSON.stringify(isArs ? { priceArsMinor: (arsPesos as number) * 100, stock, expectedVersion: versions[r.id] ?? r.version } : { priceUsdMinor: usd, stock, expectedVersion: versions[r.id] ?? r.version }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -178,6 +188,7 @@ export function AdminProductTable({ rows, rate10k, lowThreshold = 0 }: { rows: A
     let done = 0;
     let skipped = 0;
     for (const r of chosen) {
+      if (r.priceBase === "ars") { skipped++; continue; } // los accesorios tienen precio fijo en pesos: no se ajustan con dólares ni porcentajes
       let next: number | null;
       if (fixed !== null) next = fixed;
       else {
@@ -243,7 +254,7 @@ export function AdminProductTable({ rows, rate10k, lowThreshold = 0 }: { rows: A
       </div>
 
       <div className="hidden grid-cols-[96px_minmax(0,2.4fr)_100px_minmax(0,1.1fr)_110px_100px_110px_88px] items-end gap-3 px-3 pb-1 text-[.65rem] font-bold uppercase tracking-[.12em] text-ink/65 lg:grid" aria-hidden="true">
-        <span /><span>Producto</span><span>Idioma</span><span>Precio base (USD)</span><span>En pesos</span><span>Stock</span><span>Estado</span><span />
+        <span /><span>Producto</span><span>Idioma</span><span>Precio base (USD) / fijo (ARS)</span><span>En pesos</span><span>Stock (packs en accesorios)</span><span>Estado</span><span />
       </div>
       <ul className="space-y-2" data-testid="admin-lista">
         {rows.map((r) => {
@@ -270,10 +281,18 @@ export function AdminProductTable({ rows, rate10k, lowThreshold = 0 }: { rows: A
                 </div>
                 <p className="col-span-2 hidden text-xs lg:col-span-1 lg:block">{r.language}</p>
 
+                {r.priceBase === "ars" ? (
+                  <div className="col-span-2 lg:col-span-1">
+                    <label htmlFor={`ars-${r.id}`} className={cap}>Precio fijo (ARS)</label>
+                    <input id={`ars-${r.id}`} aria-label={`Precio fijo en pesos (ARS): ${r.title}`} name="ars" inputMode="numeric" autoComplete="off" value={d.ars} disabled={locked} onChange={(e) => set(r, { ars: e.target.value.replace(/\D/g, "").slice(0, 8) })} placeholder="en pesos" className={field} data-testid="input-ars" />
+                    <span className="mt-1 block text-[.7rem] text-ink/65">Pesos fijos: no cambia con el dólar.</span>
+                  </div>
+                ) : (
                 <div className="col-span-2 lg:col-span-1">
                   <label htmlFor={`usd-${r.id}`} className={cap}>Precio base (USD)</label>
                   <input id={`usd-${r.id}`} aria-label={`Precio base en USD: ${r.title}`} name="usd" inputMode="decimal" autoComplete="off" value={d.usd} disabled={locked} onChange={(e) => set(r, { usd: e.target.value })} placeholder="pendiente" className={field} data-testid="input-usd" />
                 </div>
+                )}
                 <div className="col-span-2 lg:col-span-1">
                   <span className={cap}>En pesos (convertido)</span>
                   <p className="min-h-11 text-sm font-semibold leading-[2.75rem]" data-testid="ars" aria-live="polite">
@@ -281,8 +300,8 @@ export function AdminProductTable({ rows, rate10k, lowThreshold = 0 }: { rows: A
                   </p>
                 </div>
                 <div className="col-span-2 lg:col-span-1">
-                  <label htmlFor={`stock-${r.id}`} className={cap}>Stock</label>
-                  <input id={`stock-${r.id}`} aria-label={`Stock: ${r.title}`} name="stock" inputMode="numeric" autoComplete="off" value={r.orderOnly ? "" : d.stock} disabled={locked || r.orderOnly} onChange={(e) => set(r, { stock: e.target.value })} placeholder={r.orderOnly ? "por encargo" : "pendiente"} className={field} data-testid="input-stock" />
+                  <label htmlFor={`stock-${r.id}`} className={cap}>{r.packSize ? "Packs disponibles" : "Stock"}</label>
+                  <input id={`stock-${r.id}`} aria-label={`${r.packSize ? "Packs disponibles" : "Stock"}: ${r.title}`} name="stock" inputMode="numeric" autoComplete="off" value={r.orderOnly ? "" : d.stock} disabled={locked || r.orderOnly} onChange={(e) => set(r, { stock: e.target.value })} placeholder={r.orderOnly ? "por encargo" : "pendiente"} className={field} data-testid="input-stock" />
                   {r.lowStock && lowThreshold > 0 && !dirty && <span className="mt-1 inline-block rounded-full bg-gold/40 px-2 py-0.5 text-[.7rem] font-semibold text-ink ring-1 ring-gold" data-testid="stock-bajo">Stock bajo</span>}
                 </div>
                 <div className="col-span-2 lg:col-span-1">

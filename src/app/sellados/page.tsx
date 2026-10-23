@@ -33,7 +33,7 @@ export default async function Sellados({ searchParams }: { searchParams: Promise
   const expansions = await listExpansions();
   // Solo se ofrecen idiomas y expansiones que tienen productos activos en el catálogo actual.
   const activos = await listProducts();
-  const idiomas = Object.entries(languageLabel).filter(([k]) => activos.some((p) => p.language === k));
+  const idiomas = Object.entries(languageLabel).filter(([k]) => k !== "na" && activos.some((p) => p.language === k)); // «No aplica» (accesorios) no es un idioma que se filtre
   const conProductos = expansions.filter((e) => activos.some((p) => p.expansionIds.includes(e.id)));
   const result = paginate(filterProducts(activos, expansions, q), q.page);
   const active = hasActiveFilters(q);
@@ -87,6 +87,7 @@ export default async function Sellados({ searchParams }: { searchParams: Promise
                       <option value="kit">Kits de mazo</option>
                       <option value="especial">Cajas especiales</option>
                       <option value="ilustraciones">Sets de ilustraciones</option>
+                      <option value="accesorios">Accesorios</option>
                     </select>
                   </div>
                   <div>

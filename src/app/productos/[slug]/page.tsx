@@ -37,7 +37,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return { title: "Producto no encontrado" };
 }
 
-const theWord = { booster: "del sobre", pack: "del pack", box: "de la caja", bundle: "del bundle", kit: "del kit", "special-box": "de la caja especial", "illustration-set": "del set" } as const;
+const theWord = { booster: "del sobre", pack: "del pack", box: "de la caja", bundle: "del bundle", kit: "del kit", "special-box": "de la caja especial", "illustration-set": "del set", accessory: "del producto" } as const;
 const date = (iso: string) => new Intl.DateTimeFormat("es-AR", { dateStyle: "long", timeZone: "UTC" }).format(new Date(iso + "T00:00:00Z"));
 const detalles = "mt-3 border border-ink/25 bg-white/60";
 const resumenDetalles = "flex min-h-12 cursor-pointer items-center justify-between px-4 text-sm font-bold";
@@ -59,6 +59,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
 
   const expansions = product.expansionIds.map((id) => getExpansion(id)!).filter(Boolean);
   const state = commercialState(product);
+  const accessory = product.kind === "accessory";
   const guarantees = catalog.guarantees.filter((g) => product.guaranteeIds.includes(g.id));
   const rates = ratesForProduct(product, catalog.pullRates);
   const isDemo = product.isDemo || expansions.some((e) => e.isDemo);
@@ -87,6 +88,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
     ...(hasCards ? [["cartas", "Cartas ilustrativas"]] : []),
     ["probabilidades", "Probabilidades"],
   ];
+  const navAnchors = accessory ? [["descripcion", "Descripción"], ["incluye", "Qué incluye"]] : anchors;
 
   return (
     <>
@@ -113,15 +115,17 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
 
           <div className="lg:col-start-2 lg:row-start-2">
             <Price product={product} size="page" />
-            <FxNote className="mt-1" />
+            {accessory ? (
+              <p className="mt-1 text-sm font-semibold text-ink/80" data-testid="pack-info">Precio por pack de {product.packSize} unidades. Cada compra incluye {product.packSize} unidades. Precio fijo en pesos.</p>
+            ) : <FxNote className="mt-1" />}
             <PricePerBooster product={product} className="mt-3" />
             <StockBadge product={product} size="page" className="mt-1.5 sm:mt-2" />
             <PaymentBenefits kind={product.kind} />
-            <AddToCartPanel productId={product.id} title={product.title} imageSrc={product.images[0] && hasAsset(product.images[0].src) ? product.images[0].src : null} priceMinor={product.priceMinor ?? 0} max={maxFor(product)} state={state} stockKnown={isInStock(product)} orderOnly={Boolean(product.orderOnly)} />
+            <AddToCartPanel productId={product.id} title={product.title} imageSrc={product.images[0] && hasAsset(product.images[0].src) ? product.images[0].src : null} priceMinor={product.priceMinor ?? 0} max={maxFor(product)} state={state} stockKnown={isInStock(product)} orderOnly={Boolean(product.orderOnly)} packSize={product.packSize ?? null} />
             <FavoriteButton productId={product.id} title={product.title} withLabel className="mt-2 min-h-11 sm:mt-3 border border-ink/40 bg-white px-4 text-sm font-semibold hover:bg-gold" />
             <p className="mt-3 text-sm text-ink/80 sm:mt-4" data-testid="entrega"><b>Entrega:</b> Andreani · moto en CABA y AMBA · retiro en Av. Rivadavia 14600. Costo, horario y dirección exacta de retiro por WhatsApp.</p>
 
-            <GarantiasResumen product={product} guarantees={guarantees} rates={rates} sources={sources} />
+            {!accessory && <GarantiasResumen product={product} guarantees={guarantees} rates={rates} sources={sources} />}
             {product.language === "zh" && <p className="mt-3 text-xs text-ink/70">Edición en chino simplificado: no equivale a las ediciones japonesas ni a las internacionales.</p>}
             {isDemo && <p className="mt-3 text-xs text-ink/55">Ficha de demostración: precios, stock y algunos datos son de ejemplo.</p>}
           </div>
@@ -130,7 +134,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
 
       <div className="sticky top-0 z-30 border-y border-ink/20 bg-paper/95 backdrop-blur">
         <nav aria-label="Secciones de la ficha" className="mx-auto flex max-w-[1440px] gap-6 overflow-x-auto px-4 text-sm font-semibold sm:px-8">
-          {anchors.map(([id, text]) => (
+          {navAnchors.map(([id, text]) => (
             <a key={id} href={`#${id}`} className="shrink-0 border-b-2 border-transparent py-3.5 hover:border-ink">{text}</a>
           ))}
         </nav>
@@ -152,7 +156,9 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
             </section>
           )}
 
-          <section id="probabilidades" aria-labelledby="h-prob" className="scroll-mt-16 max-w-4xl">
+          {accessory && <AccesorioIncluye product={product} />}
+
+          {!accessory && (<section id="probabilidades" aria-labelledby="h-prob" className="scroll-mt-16 max-w-4xl">
             <h2 id="h-prob" className="display text-3xl normal-case sm:text-4xl">Probabilidades</h2>
             {/* Un solo desplegable: cerrado mientras no haya datos (el título ya dice «dato no disponible»), abierto si hay una tabla verificada. */}
             <details open={rates.length > 0} className={detalles} data-testid="probabilidades-detalle">
@@ -199,9 +205,9 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
                 </ul>
               </div>
             </details>
-          </section>
+          </section>)}
 
-          <section aria-labelledby="h-fuentes" className="max-w-4xl">
+          {!accessory && (<section aria-labelledby="h-fuentes" className="max-w-4xl">
             <h2 id="h-fuentes" className="display text-3xl normal-case sm:text-4xl">Fuentes</h2>
             <details className={detalles} data-testid="fuentes-detalle">
               <summary className={resumenDetalles}>{sources.length === 0 ? "Sin fuente cargada" : `Fuentes y fecha de revisión (${sources.length})`} <span aria-hidden="true">▾</span></summary>
@@ -225,7 +231,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
                 <p className="mt-2 text-xs text-ink/55">{store.name} no es una tienda oficial de Pokémon.</p>
               </div>
             </details>
-          </section>
+          </section>)}
 
           {related.length > 0 && (
             <section aria-labelledby="h-rel">
@@ -238,6 +244,23 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
         </div>
       </div>
     </>
+  );
+}
+
+/** Qué incluye la compra de un accesorio: pack de N unidades, sin cartas y sin datos inventados (marca, medidas, espesor, material). */
+function AccesorioIncluye({ product }: { product: Product }) {
+  const toploader = product.id.startsWith("top-loaders");
+  return (
+    <section id="incluye" aria-labelledby="h-incluye" className="scroll-mt-16 max-w-3xl" data-testid="accesorio-incluye">
+      <h2 id="h-incluye" className="display text-3xl normal-case sm:text-4xl">Qué incluye tu compra</h2>
+      <ul className="mt-3 list-disc space-y-1.5 pl-5 text-base leading-relaxed">
+        <li>Cada unidad que comprás es <b>un pack de {product.packSize} unidades</b>: si agregás 2 al carrito, son 2 packs ({(product.packSize ?? 0) * 2} unidades). El stock también se cuenta en packs.</li>
+        {toploader && <li>Los top loaders se usan <b>junto con una sleeve</b>: la carta va primero en la sleeve y después en el top loader.</li>}
+        <li>No incluye cartas.</li>
+        <li>No tenemos confirmados la marca, las medidas, el espesor ni el material específico: no los indicamos para no inventarlos.</li>
+        <li>La imagen es una <b>ilustración generada</b> para mostrar el tipo de protector; no es una foto del stock real.</li>
+      </ul>
+    </section>
   );
 }
 

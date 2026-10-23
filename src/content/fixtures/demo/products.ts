@@ -1,5 +1,6 @@
 import type { Product } from "../../schema";
 import { demoImage } from "./helpers";
+import { products as accesoriosReales } from "../../real/accesorios";
 
 /**
  * Productos DE DEMOSTRACIÓN (isDemo: true): precios, stock y existencia son ejemplos para revisar la tienda.
@@ -92,4 +93,6 @@ export const products: Product[] = [
     contents: [{ label: "Bundle sellado", quantity: 1, note: "Cantidad de sobres: dato no cargado." }],
     guaranteeIds: [],
   },
+  // Los dos accesorios reales (mismos ids, precio fijo en pesos y portadas), pero con packs de ejemplo en stock para probar carrito, recomendaciones y ventas.
+  ...accesoriosReales.map((a, i): Product => ({ ...a, isDemo: true, stockQuantity: i === 0 ? 20 : 12 })),
 ];

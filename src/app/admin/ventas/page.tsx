@@ -17,7 +17,7 @@ export default async function Ventas() {
   const [fx, low, sales] = await Promise.all([currentRate(db), getLowStock(db), listSales(db, 30)]);
   const products: SaleProduct[] = (await adminProducts(db, catalog.products, fx))
     .filter((a) => !catalog.products.find((x) => x.id === a.product.id)?.retired)
-    .map((a) => ({ id: a.product.id, sku: a.product.sku, title: a.product.title, language: a.product.language, stock: a.product.stockQuantity, priceMinor: a.product.priceMinor, low: isLowStock(a.product.stockQuantity, Boolean(a.product.orderOnly), low.threshold), orderOnly: Boolean(a.product.orderOnly) }));
+    .map((a) => ({ id: a.product.id, sku: a.product.sku, title: a.product.title, language: a.product.language, stock: a.product.stockQuantity, priceMinor: a.product.priceMinor, low: isLowStock(a.product.stockQuantity, Boolean(a.product.orderOnly), low.threshold), orderOnly: Boolean(a.product.orderOnly), packSize: a.product.packSize ?? null }));
 
   return (
     <div className="mx-auto max-w-[1240px] px-4 py-8 sm:px-8 sm:py-10">

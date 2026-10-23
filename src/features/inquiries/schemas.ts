@@ -64,5 +64,7 @@ export const CreateInquirySchema = z.object({
     .refine((v) => v === undefined || (/^[0-9+()\-\s]+$/.test(v) && v.replace(/\D/g, "").length >= 6), "Teléfono: usá solo números, espacios, + y guiones (mínimo 6 dígitos)"),
   idempotencyKey: z.string().min(16).max(64).regex(/^[A-Za-z0-9_-]+$/),
   acceptPriceChanges: z.boolean().optional(),
+  /** Total (centavos) que el cliente vio con su medio de pago. SOLO sirve para avisar si cambió un precio, un cupo del combo o el stock: nunca se usa para calcular. */
+  expectedTotalMinor: z.number().int().nonnegative().optional(),
 });
 export type CreateInquiryInput = z.infer<typeof CreateInquirySchema>;

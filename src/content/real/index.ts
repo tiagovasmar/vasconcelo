@@ -5,6 +5,7 @@ import { products as productsJa } from "./products";
 import { guarantees as guaranteesJa } from "./guarantees";
 import * as zh from "./china";
 import * as jaCajas from "./japon-cajas";
+import { products as accesorios } from "./accesorios";
 import { pullRates } from "./pull-rates";
 
 /**
@@ -16,7 +17,7 @@ export const realCatalog: Catalog = {
   featuredIds: ["storm-caja", "storm-sobre", "abyss-eye-caja", "30th-celebration-caja"],
   sources: [...sourcesJa, ...jaCajas.sources, ...zh.sources],
   expansions: [...expansionsJa, ...jaCajas.expansions, ...zh.expansions],
-  products: [...productsJa, ...jaCajas.products, ...zh.products],
+  products: [...productsJa, ...jaCajas.products, ...zh.products, ...accesorios],
   pullRates,
   guarantees: [...guaranteesJa, ...jaCajas.guarantees, ...zh.guarantees],
 };

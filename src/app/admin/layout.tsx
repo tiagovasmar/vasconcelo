@@ -11,6 +11,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <li><Link href="/admin" className="underline-offset-4 hover:underline">Productos</Link></li>
           <li><Link href="/admin/consultas" className="underline-offset-4 hover:underline">Consultas</Link></li>
           <li><Link href="/admin/ventas" className="underline-offset-4 hover:underline">Ventas</Link></li>
+          <li><Link href="/admin/promociones" className="underline-offset-4 hover:underline">Promociones</Link></li>
           <li><Link href="/admin/cotizacion" className="underline-offset-4 hover:underline">Cotización</Link></li>
           <li><Link href="/admin/mayoristas" className="underline-offset-4 hover:underline">Mayoristas</Link></li>
           <li><Link href="/admin/historial" className="underline-offset-4 hover:underline">Historial de cambios</Link></li>

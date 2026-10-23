@@ -3,7 +3,8 @@ import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { Db } from "@/db/client";
 import { lockKey } from "@/db/lock";
-import { inquiries, inquirySales, productOverrides, saleLines, sales, stockMovements } from "@/db/schema";
+import { inquiries, inquiryLines, inquirySales, productOverrides, saleLines, sales, stockMovements } from "@/db/schema";
+import { discountKindOf } from "@/features/promos/combo";
 import { assertConvertible, attachSale, closeLinkOnVoid, lockInquiry } from "@/features/consultas/links";
 import { SaleError } from "./errors";
 import { catalog } from "@/content/catalog";
@@ -41,6 +42,8 @@ export const SaleInputSchema = z.object({
         quantity: z.number({ error: "La cantidad debe ser un número." }).int("La cantidad debe ser un número entero.").min(1, "La cantidad mínima es 1.").max(999, "La cantidad es demasiado alta."),
         /** Precio unitario cobrado, en centavos de ARS; siempre en pesos enteros. */
         unitPriceMinor: z.number({ error: "Escribí el precio de venta." }).int("El precio debe ser un número entero.").min(100, "El precio de venta debe ser de al menos $1.").max(1_000_000_000, "El precio es demasiado alto.").multipleOf(100, "El precio debe estar en pesos enteros."),
+        /** Descuento TOTAL de la línea (combo caja + sobres y/o transferencia), en pesos enteros. Al convertir una consulta viene ya calculado: la venta NO vuelve a aplicar ninguna promoción. */
+        discountMinor: z.number({ error: "El descuento debe ser un número." }).int("El descuento debe ser un número entero.").min(0, "El descuento no puede ser negativo.").max(1_000_000_000, "El descuento es demasiado alto.").multipleOf(100, "El descuento debe estar en pesos enteros.").optional().default(0),
       }),
     )
     .min(1, "Elegí al menos un producto.")
@@ -54,7 +57,7 @@ export const SaleInputSchema = z.object({
 export type SaleInput = z.input<typeof SaleInputSchema>;
 
 export type PreviewLine = {
-  productId: string; sku: string; title: string; quantity: number; unitPriceMinor: number; lineTotalMinor: number;
+  productId: string; sku: string; title: string; quantity: number; unitPriceMinor: number; discountMinor: number; lineTotalMinor: number;
   /** Stock actual (null = pendiente) y cómo quedaría. */
   stockNow: number | null; stockAfter: number | null; problem: string | null;
 };
@@ -65,7 +68,7 @@ export type SaleView = {
   voidedAt: number | null; voidedByEmail: string | null; voidReason: string | null;
   /** Consulta de origen (y su persona), si la venta salió de una consulta o se vinculó a una. */
   inquiry?: { id: string; name: string | null; kind: string; active: boolean } | null;
-  lines: Array<{ productId: string; sku: string; title: string; language: Language; quantity: number; unitPriceMinor: number; catalogPriceMinor: number | null; catalogPriceUsdMinor: number | null; lineTotalMinor: number }>;
+  lines: Array<{ productId: string; sku: string; title: string; language: Language; quantity: number; unitPriceMinor: number; catalogPriceMinor: number | null; catalogPriceUsdMinor: number | null; lineTotalMinor: number; discountMinor: number; discountKind: string | null; baseCurrency: string | null; packSize: number | null }>;
 };
 
 const sha = (s: string) => createHash("sha256").update(s).digest("hex");
@@ -75,7 +78,7 @@ export function newSaleId(): string {
 }
 
 type Parsed = z.output<typeof SaleInputSchema>;
-const hashOf = (i: Parsed) => sha(JSON.stringify({ items: [...i.items].map((x) => [x.productId, x.quantity, x.unitPriceMinor]).sort((a, b) => String(a[0]).localeCompare(String(b[0]))), p: i.paymentMethod, n: i.note ?? "", q: i.inquiryId ?? "" }));
+const hashOf = (i: Parsed) => sha(JSON.stringify({ items: [...i.items].map((x) => [x.productId, x.quantity, x.unitPriceMinor, x.discountMinor]).sort((a, b) => String(a[0]).localeCompare(String(b[0]))), p: i.paymentMethod, n: i.note ?? "", q: i.inquiryId ?? "" }));
 
 function parse(body: unknown): Parsed {
   const r = SaleInputSchema.safeParse(body);
@@ -107,11 +110,12 @@ export async function previewSale(db: Db, body: unknown): Promise<SalePreview> {
     const row = rows.get(p.id);
     const stockNow = row ? row.stockQuantity : defaultStock(p);
     const orderOnly = row ? row.orderOnly : Boolean(p.orderOnly);
+    if (it.discountMinor > it.unitPriceMinor * it.quantity) throw new SaleError(400, "invalid_input", `El descuento de «${p.title}» no puede superar el importe de la línea.`);
     let problem: string | null = null;
     if (stockNow === null) problem = "El stock está pendiente: cargalo en Productos o con un ajuste antes de vender.";
     else if (orderOnly && stockNow === 0) problem = "Este producto es solo por encargo y no tiene stock cargado: registrá primero la entrada.";
     else if (it.quantity > stockNow) problem = `Stock insuficiente: hay ${stockNow} y querés vender ${it.quantity}.`;
-    return { productId: p.id, sku: p.sku, title: row?.title ?? p.title, quantity: it.quantity, unitPriceMinor: it.unitPriceMinor, lineTotalMinor: it.unitPriceMinor * it.quantity, stockNow, stockAfter: problem || stockNow === null ? null : stockNow - it.quantity, problem };
+    return { productId: p.id, sku: p.sku, title: row?.title ?? p.title, quantity: it.quantity, unitPriceMinor: it.unitPriceMinor, discountMinor: it.discountMinor, lineTotalMinor: it.unitPriceMinor * it.quantity - it.discountMinor, stockNow, stockAfter: problem || stockNow === null ? null : stockNow - it.quantity, problem };
   });
   return { lines, totalMinor: lines.reduce((n, l) => n + l.lineTotalMinor, 0), ok: lines.every((l) => !l.problem) };
 }
@@ -136,7 +140,7 @@ function toView(s: typeof sales.$inferSelect, lines: Array<typeof saleLines.$inf
   return {
     id: s.id, status: s.status, paymentMethod: s.paymentMethod, paymentLabel: paymentLabelOf(s.paymentMethod), note: s.note, totalMinor: s.totalMinor, createdAt: s.createdAt, createdByEmail: s.createdByEmail,
     voidedAt: s.voidedAt, voidedByEmail: s.voidedByEmail, voidReason: s.voidReason,
-    lines: lines.map((l) => ({ productId: l.productId, sku: l.sku, title: l.title, language: l.language as Language, quantity: l.quantity, unitPriceMinor: l.unitPriceMinor, catalogPriceMinor: l.catalogPriceMinor, catalogPriceUsdMinor: l.catalogPriceUsdMinor, lineTotalMinor: l.lineTotalMinor })),
+    lines: lines.map((l) => ({ productId: l.productId, sku: l.sku, title: l.title, language: l.language as Language, quantity: l.quantity, unitPriceMinor: l.unitPriceMinor, catalogPriceMinor: l.catalogPriceMinor, catalogPriceUsdMinor: l.catalogPriceUsdMinor, lineTotalMinor: l.lineTotalMinor, discountMinor: l.discountMinor, discountKind: l.discountKind, baseCurrency: l.baseCurrency, packSize: l.packSize })),
   };
 }
 
@@ -171,7 +175,11 @@ export async function registerSale(db: Db, body: unknown, actor: Actor, ctx: { f
       }
       for (const it of ordered) await lockKey(tx, `override:${it.productId}`);
       const rows = new Map((await tx.select().from(productOverrides).where(inArray(productOverrides.productId, ordered.map((i) => i.productId)))).map((r) => [r.productId, r]));
-      const total = input.items.reduce((n, i) => n + i.unitPriceMinor * i.quantity, 0);
+      for (const i of input.items) if (i.discountMinor > i.unitPriceMinor * i.quantity) throw new SaleError(400, "invalid_input", "El descuento de una línea no puede superar su importe.");
+      const total = input.items.reduce((n, i) => n + i.unitPriceMinor * i.quantity - i.discountMinor, 0);
+      // Si la venta convierte una consulta, el detalle del descuento sale de ESA consulta (no se recalcula nada): si coincide con lo que se cotizó, conserva su tipo.
+      const inquiryLinesByProduct = new Map<string, typeof inquiryLines.$inferSelect>();
+      if (inquiry) for (const l of await tx.select().from(inquiryLines).where(eq(inquiryLines.inquiryId, inquiry.id))) inquiryLinesByProduct.set(l.productId, l);
       await tx.insert(sales).values({
         id, idempotencyKey: input.idempotencyKey, contentHash: hash, paymentMethod: input.paymentMethod, note: input.note ?? null, totalMinor: total,
         fxRate10k: fx.rate10k ?? null, status: "registrada", createdAt: now, createdByUserId: actor.id, createdByEmail: actor.email,
@@ -188,7 +196,9 @@ export async function registerSale(db: Db, body: unknown, actor: Actor, ctx: { f
         const w = await writeStock(tx, p, row, stock - it.quantity, actor, `${actor.email} (venta ${id})`, now);
         await tx.insert(stockMovements).values({ productId: p.id, sku: p.sku, title, kind: "venta", delta: -it.quantity, stockBefore: stock, stockAfter: stock - it.quantity, reason: `Venta ${id}`, saleId: id, userId: actor.id, userEmail: actor.email, createdAt: w.version });
         const live = current.get(p.id);
-        await tx.insert(saleLines).values({ saleId: id, productId: p.id, sku: p.sku, title, language: p.language, quantity: it.quantity, unitPriceMinor: it.unitPriceMinor, catalogPriceMinor: live?.priceMinor ?? null, catalogPriceUsdMinor: live?.priceUsdMinor ?? null, lineTotalMinor: it.unitPriceMinor * it.quantity });
+        await tx.insert(saleLines).values({ saleId: id, productId: p.id, sku: p.sku, title, language: p.language, quantity: it.quantity, unitPriceMinor: it.unitPriceMinor, catalogPriceMinor: live?.priceMinor ?? null, catalogPriceUsdMinor: live?.priceUsdMinor ?? null, lineTotalMinor: it.unitPriceMinor * it.quantity - it.discountMinor,
+          discountMinor: it.discountMinor, baseCurrency: (live?.priceUsdMinor ?? null) !== null ? "USD" : "ARS", packSize: p.packSize ?? null,
+          discountKind: it.discountMinor === 0 ? null : (() => { const q = inquiryLinesByProduct.get(p.id); return q && q.comboDiscountMinor + q.transferDiscountMinor === it.discountMinor ? discountKindOf(q) : "manual"; })() });
       }
       if (inquiry) await attachSale(tx, { inquiry, saleId: id, kind: "convertida", totalMinor: total, actor, now });
     });

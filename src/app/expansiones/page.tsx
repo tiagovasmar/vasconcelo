@@ -21,7 +21,7 @@ export default async function Expansiones() {
   const [todas, activos] = await Promise.all([listExpansions(), listProducts()]);
   const productsForExpansion = (id: string) => activos.filter((p) => p.expansionIds.includes(id));
   // Un grupo por idioma de edición (en el orden de `languages`): ninguna colección queda fuera del listado.
-  const tituloGrupo: Record<Language, string> = { ja: "Ediciones japonesas", zh: "Ediciones chinas (chino simplificado)", en: "Ediciones en inglés", es: "Ediciones en español" };
+  const tituloGrupo: Record<Language, string> = { ja: "Ediciones japonesas", zh: "Ediciones chinas (chino simplificado)", en: "Ediciones en inglés", es: "Ediciones en español", na: "Sin idioma" };
   const Titulo = todas.some((e) => e.language !== todas[0].language) ? "h3" : "h2"; // con encabezados de grupo (h2) las colecciones son h3
   const grupos = languages.map((l) => ({ id: l, titulo: tituloGrupo[l], lista: todas.filter((e) => e.language === l) })).filter((g) => g.lista.length > 0);
   return (

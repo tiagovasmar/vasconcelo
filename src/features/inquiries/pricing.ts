@@ -1,6 +1,6 @@
 import type { Product } from "@/content/schema";
 import { commercialState } from "@/features/catalog/commercial";
-import { qualifiesForBoxPromo, transferDiscountMinor } from "@/features/politicas/promociones";
+import { COMBO_OFF, priceCart, type ComboConfig, type Pricing, type PricingInput } from "@/features/promos/combo";
 import type { CartItemInput } from "./schemas";
 
 /** `encargo` = consulta por encargo: no tiene precio ni se bloquea (la cotización y la disponibilidad se confirman con la tienda). */
@@ -25,8 +25,12 @@ export type Evaluation = {
   subtotalMinor: number;
   /** ¿El pedido califica para cuotas / 10% por transferencia? (al menos una caja disponible; los encargos no cuentan). */
   qualifiesForPromo: boolean;
-  /** 10% OFF por transferencia para el medio de pago indicado (0 si no corresponde). */
+  /** 10% OFF por transferencia para el medio de pago indicado (0 si no corresponde). Ya no suma el de las unidades cubiertas por el combo. */
   discountFor: (paymentId: string) => number;
+  /** Precios completos (lista, combo caja + sobres, transferencia y total) del pedido para un medio de pago. UNICA fuente de importes. */
+  pricing: (paymentId: string) => Pricing;
+  /** Lo que se puede comprar y entra en el cálculo (con precio y stock válidos). */
+  pricingInput: PricingInput[];
 };
 
 /** Tope de unidades por línea de encargo (no hay stock que limitar: la disponibilidad se consulta). */
@@ -43,7 +47,7 @@ export const maxFor = (p: Product) =>
  * el precio que mandó el cliente solo se usa para detectar que cambió. Un producto con precio o stock PENDIENTE de confirmar
  * nunca es comprable (estado `pending_commercial`), aunque el cliente mande un precio o una cantidad cualquiera.
  */
-export function evaluateCart(items: CartItemInput[], products: Product[]): Evaluation {
+export function evaluateCart(items: CartItemInput[], products: Product[], combo: ComboConfig = COMBO_OFF): Evaluation {
   const byId = new Map(products.map((p) => [p.id, p]));
   const lines: EvaluatedLine[] = items.map((it) => {
     const p = byId.get(it.productId);
@@ -67,8 +71,9 @@ export function evaluateCart(items: CartItemInput[], products: Product[]): Evalu
   const blocking = lines.filter((l) => l.status !== "ok" && l.status !== "encargo");
   // Subtotal de productos al precio vigente del catálogo (solo es definitivo si no hay líneas bloqueantes).
   const subtotalMinor = lines.reduce((n, l) => (l.unitPriceMinor !== undefined ? n + l.unitPriceMinor * l.requestedQuantity : n), 0);
-  const promoLines = lines
+  const pricingInput: PricingInput[] = lines
     .filter((l) => l.product && l.unitPriceMinor !== undefined && (l.status === "ok" || l.status === "price_changed"))
-    .map((l) => ({ kind: l.product!.kind, quantity: l.requestedQuantity, unitPriceMinor: l.unitPriceMinor! }));
-  return { lines, blocking, subtotalMinor, qualifiesForPromo: qualifiesForBoxPromo(promoLines), discountFor: (paymentId) => transferDiscountMinor(promoLines, paymentId) };
+    .map((l) => ({ productId: l.productId, kind: l.product!.kind, quantity: l.requestedQuantity, unitPriceMinor: l.unitPriceMinor! }));
+  const pricing = (paymentId: string) => priceCart(pricingInput, paymentId, combo);
+  return { lines, blocking, subtotalMinor, qualifiesForPromo: pricing("").qualifies, discountFor: (paymentId) => pricing(paymentId).transferDiscountMinor, pricing, pricingInput };
 }

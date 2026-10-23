@@ -2,13 +2,13 @@
 
 import { useRef, useState } from "react";
 
-export type Slide = { alt: string; node: React.ReactNode; /** Versión liviana para la miniatura (con `sizes` chicos): si falta, se usa `node`. */ thumb?: React.ReactNode; source: "manufacturer" | "store" | "supplier"; view?: string };
+export type Slide = { alt: string; node: React.ReactNode; /** Versión liviana para la miniatura (con `sizes` chicos): si falta, se usa `node`. */ thumb?: React.ReactNode; source: "manufacturer" | "store" | "supplier" | "illustration"; view?: string };
 
 const viewLabel: Record<string, string> = { front: "Frente", back: "Dorso", left: "Lateral izquierdo", right: "Lateral derecho", top: "Parte superior", bottom: "Base", detail: "Detalle", contents: "Contenido físico", closed: "Caja cerrada", "display-open": "Caja abierta de exhibición" };
 
 /** Qué es lo que se está viendo: foto del fabricante o del stock real, y si es una exhibición abierta. */
 function describe(s: Slide) {
-  const origin = s.source === "store" ? "Foto real del stock de la tienda" : s.source === "supplier" ? "Foto de referencia del proveedor" : "Foto de referencia del fabricante";
+  const origin = s.source === "store" ? "Foto real del stock de la tienda" : s.source === "supplier" ? "Foto de referencia del proveedor" : s.source === "illustration" ? "Imagen ilustrativa: no es una foto del stock real" : "Foto de referencia del fabricante";
   const open = s.view === "display-open";
   return { origin, view: s.view ? viewLabel[s.view] : undefined, open };
 }
@@ -48,7 +48,7 @@ export function ProductGallery({ slides, bgClass }: { slides: Slide[]; bgClass: 
         {/* Aclaraciones secundarias en un desplegable cerrado: el rótulo de arriba ya dice de quién es la foto. */}
         <details className="mt-1 text-ink/70" data-testid="galeria-aclaraciones">
           <summary className="cursor-pointer select-none py-1 font-medium underline-offset-2 hover:underline">Sobre estas fotos</summary>
-          {current.source !== "store" && <p className="mt-1 text-ink/65">{current.source === "supplier" ? "Foto de referencia del proveedor: no acredita el estado del artículo ni es del stock de la tienda." : "Foto de referencia del fabricante: no acredita el estado ni el sellado de cada artículo."}</p>}
+          {current.source !== "store" && <p className="mt-1 text-ink/65">{current.source === "supplier" ? "Foto de referencia del proveedor: no acredita el estado del artículo ni es del stock de la tienda." : current.source === "illustration" ? "Imagen ilustrativa generada para la tienda: no es una fotografía del producto que se vende ni de su stock, y no muestra marca ni medidas." : "Foto de referencia del fabricante: no acredita el estado ni el sellado de cada artículo."}</p>}
           {!hasStore && <p className="mt-1 text-ink/65" data-testid="galeria-sin-fotos-tienda">Todavía no hay fotos del stock real de este producto.</p>}
         </details>
       </div>

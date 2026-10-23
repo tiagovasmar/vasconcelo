@@ -179,7 +179,7 @@ describe("importación de precios y stock desde la tabla del dueño", () => {
   it("la tabla entregada está vacía: todo queda pendiente", async () => {
     const r = parseCommercialCsv(fs.readFileSync(path.resolve("datos/precios-y-stock.csv"), "utf8"), skus);
     expect(r.errors).toEqual([]);
-    expect(r.rows).toBe(realCatalog.products.filter((p) => !p.retired).length); // 22 japoneses + 28 chinos publicados, todos en blanco
+    expect(r.rows).toBe(realCatalog.products.filter((p) => !p.retired && p.kind !== "accessory").length); // 22 japoneses + 28 chinos publicados, todos en blanco (los accesorios tienen precio fijo en pesos y no van en esta planilla)
     expect(r.items).toEqual({});
   });
   it("interpreta precios argentinos y stock; vacío = pendiente (nunca cero)", async () => {

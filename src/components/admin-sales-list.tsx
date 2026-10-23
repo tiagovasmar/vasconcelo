@@ -39,7 +39,7 @@ export function AdminSalesList({ sales }: { sales: SaleView[] }) {
           </div>
           {s.inquiry && <p className="mt-1 text-sm" data-testid="venta-origen">Cliente: <b>{s.inquiry.name ?? "Sin nombre"}</b> · consulta <Link href={`/admin/consultas/${s.inquiry.id}`} className="font-mono underline underline-offset-4">{s.inquiry.id}</Link>{s.inquiry.kind === "vinculada" ? " (vinculada)" : ""}</p>}
           <ul className="mt-2 text-sm">
-            {s.lines.map((l) => <li key={l.productId} className="flex justify-between gap-3"><span>{l.quantity} × {l.title} <span className="font-mono text-xs text-ink/70">{l.sku}</span></span><span className="shrink-0">{formatARS(l.unitPriceMinor)} c/u</span></li>)}
+            {s.lines.map((l) => <li key={l.productId} className="flex justify-between gap-3"><span>{l.quantity} × {l.title}{l.packSize && !/pack de/i.test(l.title) ? ` (pack de ${l.packSize})` : ""} <span className="font-mono text-xs text-ink/70">{l.sku}</span></span><span className="shrink-0 text-right">{formatARS(l.unitPriceMinor)} {l.packSize ? "por pack" : "c/u"}{l.discountMinor > 0 && <span className="block text-xs font-semibold text-emerald" data-testid={`venta-desc-${l.productId}`}>−{formatARS(l.discountMinor)} ({l.discountKind === "combo" ? "combo caja + sobres" : l.discountKind === "transferencia" ? "transferencia" : l.discountKind === "mixto" ? "combo y transferencia" : "descuento"})</span>}</span></li>)}
           </ul>
           <p className="mt-2 flex flex-wrap items-baseline justify-between gap-2 border-t border-ink/10 pt-2 text-sm"><span>{s.paymentLabel}{s.note ? ` · ${s.note}` : ""}</span><b className="text-lg">{formatARS(s.totalMinor)}</b></p>
           {s.status === "anulada" ? (

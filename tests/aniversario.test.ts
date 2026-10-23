@@ -100,7 +100,7 @@ describe("ficha nueva de Bulbasaur (borrador sin confirmar)", () => {
   it("el catálogo público no la lista, pero el panel la puede publicar (con precio y stock cargados por el dueño)", () => {
     const publicas = applyOverrides(all, new Map()).filter((p) => p.active);
     expect(publicas.find((p) => p.id === bulba.id)).toBeUndefined();
-    const publicada = applyOverrides(all, new Map([[bulba.id, { productId: bulba.id, priceMinor: null, priceUsdMinor: 1000, title: null, description: null, orderOnly: false, stockQuantity: 5, maxPerOrder: null, visible: true, updatedAt: 1, updatedByEmail: "d@e.com" }]]), { status: "manual", mode: "manual", rate10k: 12_340_000, asOf: 1, providerUpdatedAt: null, source: "t", warn: false });
+    const publicada = applyOverrides(all, new Map([[bulba.id, { productId: bulba.id, priceMinor: null, priceUsdMinor: 1000, priceArsMinor: null, title: null, description: null, orderOnly: false, stockQuantity: 5, maxPerOrder: null, visible: true, updatedAt: 1, updatedByEmail: "d@e.com" }]]), { status: "manual", mode: "manual", rate10k: 12_340_000, asOf: 1, providerUpdatedAt: null, source: "t", warn: false });
     expect(publicada.find((p) => p.id === bulba.id)).toMatchObject({ active: true, priceMinor: 1_230_000 });
   });
   it("su foto de proveedor existe y viene de la publicación 1024232254134 (SKU de Taobao 6053279645670 sin variante seleccionable por Pokémon)", () => {

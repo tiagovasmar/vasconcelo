@@ -5,7 +5,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { cartActions, cartCount, cartDrawer, useCart, type CartItem } from "@/features/cart/store";
-import { useCartValidation, type ServerLine } from "@/features/cart/validation";
+import { pricingFor, useCartValidation, type ServerLine, type ServerPricedLine } from "@/features/cart/validation";
+import { CartSuggestions } from "./cart-suggestions";
 import { formatARS } from "@/lib/format";
 import { LanguageBadge } from "./language-badge";
 import { kindLabel } from "@/content/labels";
@@ -37,7 +38,7 @@ function Quantity({ item, name, max }: { item: CartItem; name: string; max: numb
   );
 }
 
-function Line({ item, line, onNavigate }: { item: CartItem; line?: ServerLine; onNavigate: () => void }) {
+function Line({ item, line, priced, onNavigate }: { item: CartItem; line?: ServerLine; priced?: ServerPricedLine; onNavigate: () => void }) {
   const p = line?.product;
   const name = p?.title ?? item.title ?? "Producto";
   const src = item.imageSrc ?? p?.imageSrc ?? null;
@@ -45,6 +46,9 @@ function Line({ item, line, onNavigate }: { item: CartItem; line?: ServerLine; o
   const unit = line?.unitPriceMinor ?? item.priceMinor;
   const pendiente = line?.status === "pending_commercial";
   const max = Math.max(1, line ? line.maxQuantity || 99 : 99);
+  const pack = p?.packSize ?? null;
+  const saving = priced ? priced.comboDiscountMinor + priced.transferDiscountMinor : 0;
+  const hasPrice = !porEncargo && !pendiente && (Boolean(line) || unit > 0);
   const aviso =
     line?.status === "price_changed" ? "Cambió el precio: confirmalo en el pedido." :
     line?.status === "retired" ? "Producto retirado de la tienda: quitalo para continuar." :
@@ -59,17 +63,26 @@ function Line({ item, line, onNavigate }: { item: CartItem; line?: ServerLine; o
         </div>
         <div className="min-w-0">
           {p ? <Link href={`/productos/${p.slug}`} onClick={onNavigate} className="block font-bold leading-tight hover:underline">{name}</Link> : <p className="font-bold leading-tight">{name}</p>}
-          {p && <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-ink/65"><LanguageBadge language={p.language} size="plain" /> · {kindLabel[p.kind]}</p>}
+          {p && (pack
+            ? <p className="mt-0.5 text-xs text-ink/65" data-testid={`drawer-pack-${item.productId}`}>{kindLabel[p.kind]} · pack de {pack} unidades (cada unidad del carrito es un pack)</p>
+            : <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-ink/65"><LanguageBadge language={p.language} size="plain" /> · {kindLabel[p.kind]}</p>)}
           <p className="mt-1 text-sm">
-            {porEncargo ? <b>Cotización a confirmar</b> : pendiente ? <b>Precio a confirmar</b> : unit > 0 || line ? <><b>{formatARS(unit)}</b> <span className="text-ink/60">c/u</span></> : <span className="text-ink/60">Verificando precio…</span>}
+            {porEncargo ? <b>Cotización a confirmar</b> : pendiente ? <b>Precio a confirmar</b> : unit > 0 || line ? <><b>{formatARS(unit)}</b> <span className="text-ink/60">{pack ? "por pack" : "c/u"}</span></> : <span className="text-ink/60">Verificando precio…</span>}
           </p>
         </div>
       </div>
       <div className="mt-2 flex items-center justify-between gap-3">
         <Quantity item={item} name={name} max={max} />
-        <p className="text-base font-extrabold" data-testid={`drawer-subtotal-${item.productId}`}>{porEncargo || pendiente || (!line && unit === 0) ? "—" : formatARS(unit * item.quantity)}</p>
+        <p className="text-right text-base font-extrabold" data-testid={`drawer-subtotal-${item.productId}`}>
+          {!hasPrice ? "—" : saving > 0 && priced ? <><s className="mr-1 text-sm font-semibold text-ink/75" data-testid={`drawer-original-${item.productId}`}>{formatARS(priced.listTotalMinor)}</s>{formatARS(priced.finalTotalMinor)}</> : formatARS(unit * item.quantity)}
+        </p>
         <button type="button" onClick={() => cartActions.remove(item.productId)} aria-label={`Quitar ${name} del carrito`} className="min-h-11 px-1 text-sm font-semibold underline hover:text-vermilion">Quitar</button>
       </div>
+      {saving > 0 && priced && (
+        <p className="mt-1 text-xs font-semibold text-emerald" data-testid={`drawer-ahorro-${item.productId}`}>
+          Ahorrás {formatARS(saving)}{priced.comboDiscountMinor > 0 ? ` · combo caja + sobres: 10% OFF en ${priced.comboUnits} ${priced.comboUnits === 1 ? "sobre" : "sobres"}` : " · 10% OFF por transferencia"}
+        </p>
+      )}
       {aviso && <p role="status" className="mt-2 border-l-4 border-vermilion bg-vermilion/10 p-2 text-xs">{aviso}</p>}
     </li>
   );
@@ -78,7 +91,7 @@ function Line({ item, line, onNavigate }: { item: CartItem; line?: ServerLine; o
 export default function CartDrawerPanel() {
   const cart = useCart();
   const pathname = usePathname();
-  const { data, error, retry, notices, clearNotices } = useCartValidation(true);
+  const { data, fresh, error, retry, notices, clearNotices } = useCartValidation(true);
   const panelRef = useRef<HTMLElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const skipRestore = useRef(false);
@@ -138,6 +151,13 @@ export default function CartDrawerPanel() {
     return l.status === "ok" || l.status === "price_changed" ? n + (l.unitPriceMinor ?? 0) * i.quantity : n;
   }, 0);
   const last = cart.lastAdded;
+  // Importes del servidor para el medio de pago elegido (lista, combo caja + sobres, transferencia y total); mientras llega la validación se usa la cuenta local.
+  // Solo se usan los importes del servidor cuando corresponden al contenido ACTUAL del carrito (así lista, descuentos y total nunca se mezclan de dos momentos distintos).
+  const sp = fresh ? pricingFor(data, cart.payment) : null;
+  const listSubtotal = sp?.subtotalMinor ?? subtotal;
+  const comboOff = sp?.comboDiscountMinor ?? 0;
+  const transferOff = sp?.transferDiscountMinor ?? 0;
+  const total = sp ? sp.totalMinor : subtotal;
 
   return (
     <div className="fixed inset-0 z-[120]" data-testid="cart-drawer-root">
@@ -174,12 +194,23 @@ export default function CartDrawerPanel() {
                 </div>
               )}
               <ul className="divide-y divide-ink/15">
-                {cart.items.map((item) => <Line key={item.productId} item={item} line={data?.lines[item.productId]} onNavigate={leave} />)}
+                {cart.items.map((item) => <Line key={item.productId} item={item} line={data?.lines[item.productId]} priced={sp?.lines.find((l) => l.productId === item.productId)} onNavigate={leave} />)}
               </ul>
+              {stockItems.length > 0 && <CartSuggestions suggestions={data?.suggestions ?? []} combo={data?.combo ?? null} />}
             </div>
             <footer className="border-t-2 border-ink bg-white/70 px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
               {stockItems.length > 0 ? (
-                <p className="flex items-end justify-between gap-3"><span className="text-sm font-bold">Subtotal de productos</span><b className="text-2xl font-extrabold" data-testid="drawer-subtotal">{!data && subtotal === 0 ? "…" : formatARS(subtotal)}</b></p>
+                <>
+                  {(comboOff > 0 || transferOff > 0) && (
+                    <dl className="mb-1 space-y-0.5 text-sm" data-testid="drawer-descuentos">
+                      <div className="flex justify-between gap-3"><dt>Productos (precio de lista)</dt><dd data-testid="drawer-lista">{formatARS(listSubtotal)}</dd></div>
+                      {comboOff > 0 && <div className="flex justify-between gap-3 font-semibold text-emerald"><dt>Combo caja + sobres</dt><dd data-testid="drawer-descuento-combo">−{formatARS(comboOff)}</dd></div>}
+                      {transferOff > 0 && <div className="flex justify-between gap-3 font-semibold text-emerald"><dt>10% OFF por transferencia</dt><dd data-testid="drawer-descuento-transferencia">−{formatARS(transferOff)}</dd></div>}
+                    </dl>
+                  )}
+                  <p className="flex items-end justify-between gap-3"><span className="text-sm font-bold">{comboOff > 0 || transferOff > 0 ? "Total de productos" : "Subtotal de productos"}</span><b className="text-2xl font-extrabold" data-testid="drawer-subtotal">{!data && subtotal === 0 ? "…" : formatARS(total)}</b></p>
+                  {data?.combo?.enabled && data.combo.boxes > 0 && <p className="mt-1 text-xs text-ink/75" data-testid="drawer-cupos">Combo caja + sobres: {data.combo.usedSlots} de {data.combo.slots} cupos usados{data.combo.freeSlots > 0 ? `; te quedan ${data.combo.freeSlots}` : ""}.</p>}
+                </>
               ) : (
                 <p className="text-sm font-bold">Consulta por encargo: sin importe todavía.</p>
               )}

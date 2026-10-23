@@ -6,11 +6,13 @@ export { kindLabel, languageLabel, wideKinds } from "./labels";
 
 /** Idiomas de edición. `zh` = chino simplificado (China continental); no se asigna a ediciones sin verificar. */
 export const languages = ["ja", "en", "es", "zh"] as const;
-export type Language = (typeof languages)[number];
+/** `na` = no aplica: solo para productos sin idioma de edición (accesorios). Nunca se ofrece como filtro de idioma. */
+export type Language = (typeof languages)[number] | "na";
 const LanguageSchema = z.enum(languages);
+const ProductLanguageSchema = z.enum([...languages, "na"]);
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "fecha AAAA-MM-DD");
-export const productKinds = ["booster", "pack", "box", "bundle", "kit", "special-box", "illustration-set"] as const;
+export const productKinds = ["booster", "pack", "box", "bundle", "kit", "special-box", "illustration-set", "accessory"] as const;
 export type ProductKind = (typeof productKinds)[number];
 const id = z.string().regex(/^[a-z0-9][a-z0-9-]*$/, "id en minúsculas, números y guiones");
 
@@ -36,8 +38,8 @@ export const ImageAssetSchema = z.object({
   /** Registro de origen/permiso (manifiesto de imágenes). */
   origin: z.string().min(1),
   license: z.string().min(1),
-  /** Quién sacó la foto: el fabricante (referencia), un proveedor/vendedor de origen (referencia, p. ej. publicaciones de Tmall o Taobao) o la tienda (stock real). Sin dato = fabricante. */
-  source: z.enum(["manufacturer", "store", "supplier"]).optional(),
+  /** Quién sacó la foto: el fabricante (referencia), un proveedor/vendedor de origen (referencia, p. ej. publicaciones de Tmall o Taobao), la tienda (stock real) o una ilustración generada (no es una foto de ningún artículo real). Sin dato = fabricante. */
+  source: z.enum(["manufacturer", "store", "supplier", "illustration"]).optional(),
   /** Qué muestra: frente, dorso, laterales, detalle, contenido físico, caja cerrada o caja abierta de exhibición. */
   view: z.enum(["front", "back", "left", "right", "top", "bottom", "detail", "contents", "closed", "display-open"]).optional(),
 });
@@ -91,11 +93,20 @@ export const ProductSchema = z.object({
   originalTitle: z.string().min(1).optional(),
   /** Términos de búsqueda adicionales (p. ej. romanización del nombre chino); no se muestran. */
   aliases: z.array(z.string().min(1)).optional(),
-  language: LanguageSchema,
+  language: ProductLanguageSchema,
   region: z.string().min(1),
   /** Colecciones del producto. Vacío = no pertenece a una sola colección (kits y cajas especiales). */
   expansionIds: z.array(id),
   currency: z.literal("ARS"),
+  /**
+   * Moneda del precio BASE. Sin dato = `usd` (todos los productos anteriores: el dueño carga dólares y el sitio muestra pesos convertidos).
+   * `ars` = precio fijo en pesos (accesorios): no depende del dólar ni de la cotización; no tiene precio USD.
+   */
+  priceBase: z.enum(["usd", "ars"]).optional(),
+  /** Precio fijo inicial en centavos de ARS (solo `priceBase: "ars"`). El dueño lo puede cambiar desde /admin; sin cambios propios rige este. */
+  fixedPriceMinor: z.number().int().positive().optional(),
+  /** Unidades que trae UNA unidad de venta (p. ej. 5 en «Pack de 5 unidades»). El stock se administra en packs: comprar uno descuenta uno. */
+  packSize: z.number().int().min(2).optional(),
   /** Precio base en centavos de USD (USD 10,00 = 1000). `null` = pendiente. Casi nunca viene del código: lo carga el dueño desde /admin. */
   priceUsdMinor: z.number().int().positive().nullable().optional(),
   /** Disponible solo por encargo (se consulta y se cotiza; no se vende de stock). Lo define el panel. */
@@ -221,5 +232,5 @@ export type Catalog = {
 };
 
 /** Valor del filtro `formato` en la URL para cada formato. */
-export const kindSlug = { booster: "sobre", pack: "pack", box: "caja", bundle: "bundle", kit: "kit", "special-box": "especial", "illustration-set": "ilustraciones" } as const satisfies Record<ProductKind, string>;
+export const kindSlug = { booster: "sobre", pack: "pack", box: "caja", bundle: "bundle", kit: "kit", "special-box": "especial", "illustration-set": "ilustraciones", accessory: "accesorios" } as const satisfies Record<ProductKind, string>;
 export type RarityReview = z.infer<typeof RarityReviewSchema>;

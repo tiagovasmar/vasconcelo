@@ -6,11 +6,11 @@ import { useMemo, useRef, useState } from "react";
 import { paymentMethods } from "@/content/checkout-options";
 import { formatARS } from "@/lib/format";
 
-export type SaleProduct = { id: string; sku: string; title: string; language: string; stock: number | null; priceMinor: number | null; low: boolean; orderOnly: boolean };
-type Line = { productId: string; quantity: string; price: string };
+export type SaleProduct = { id: string; sku: string; title: string; language: string; stock: number | null; priceMinor: number | null; low: boolean; orderOnly: boolean; /** Unidades por pack (accesorios): el stock se cuenta en packs. */ packSize?: number | null };
+type Line = { productId: string; quantity: string; price: string; /** Descuento TOTAL de la línea en pesos (de la consulta: ya calculado; la venta no vuelve a aplicar promociones). */ discount: string; /** Descuento y cantidad de origen (consulta) para ajustar el descuento en proporción si se cambia la cantidad. */ origin?: { discount: number; quantity: number }; touched?: boolean };
 /** Consulta que se está convirtiendo en venta: la venta, el descuento de stock y el vínculo se guardan juntos. Las líneas vienen precargadas y se pueden editar. */
-export type InquiryPrefill = { id: string; name: string; payment: string; lines: Array<{ productId: string; quantity: number; unitPriceMinor: number }> };
-type Preview = { lines: Array<{ productId: string; sku: string; title: string; quantity: number; unitPriceMinor: number; lineTotalMinor: number; stockNow: number | null; stockAfter: number | null; problem: string | null }>; totalMinor: number; ok: boolean };
+export type InquiryPrefill = { id: string; name: string; payment: string; lines: Array<{ productId: string; quantity: number; unitPriceMinor: number; discountMinor?: number }> };
+type Preview = { lines: Array<{ productId: string; sku: string; title: string; quantity: number; unitPriceMinor: number; discountMinor: number; lineTotalMinor: number; stockNow: number | null; stockAfter: number | null; problem: string | null }>; totalMinor: number; ok: boolean };
 
 const norm = (s: string) => s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
 const newKey = () => crypto.randomUUID().replace(/-/g, "");
@@ -24,7 +24,7 @@ const pesos = (s: string) => (/^\d{1,9}$/.test(s.trim()) ? Number(s.trim()) : nu
  */
 export function AdminSaleForm({ products, inquiry }: { products: SaleProduct[]; inquiry?: InquiryPrefill }) {
   const router = useRouter();
-  const [lines, setLines] = useState<Line[]>(() => (inquiry?.lines ?? []).map((l) => ({ productId: l.productId, quantity: String(l.quantity), price: String(Math.round(l.unitPriceMinor / 100)) })));
+  const [lines, setLines] = useState<Line[]>(() => (inquiry?.lines ?? []).map((l) => ({ productId: l.productId, quantity: String(l.quantity), price: String(Math.round(l.unitPriceMinor / 100)), discount: String(Math.round((l.discountMinor ?? 0) / 100)), origin: { discount: l.discountMinor ?? 0, quantity: l.quantity } })));
   const [payment, setPayment] = useState<string>(inquiry?.payment ?? "");
   const [note, setNote] = useState("");
   const [q, setQ] = useState("");
@@ -43,14 +43,15 @@ export function AdminSaleForm({ products, inquiry }: { products: SaleProduct[]; 
     return products.filter((p) => !lines.some((l) => l.productId === p.id) && terms.every((t) => norm(`${p.title} ${p.sku} ${p.id}`).includes(t))).slice(0, 8);
   }, [q, products, lines]);
 
-  const parsed = lines.map((l) => ({ ...l, qty: /^\d{1,3}$/.test(l.quantity.trim()) ? Number(l.quantity.trim()) : null, pesos: pesos(l.price) }));
-  const total = parsed.reduce((n, l) => n + (l.qty && l.pesos ? l.qty * l.pesos * 100 : 0), 0);
-  const formOk = parsed.length > 0 && parsed.every((l) => l.qty && l.qty >= 1 && l.pesos && l.pesos >= 1) && Boolean(payment);
-  const body = () => ({ items: parsed.map((l) => ({ productId: l.productId, quantity: l.qty, unitPriceMinor: (l.pesos ?? 0) * 100 })), paymentMethod: payment, note: note.trim() || undefined, ...(inquiry ? { inquiryId: inquiry.id } : {}), idempotencyKey: key.current });
+  const parsed = lines.map((l) => ({ ...l, qty: /^\d{1,3}$/.test(l.quantity.trim()) ? Number(l.quantity.trim()) : null, pesos: pesos(l.price), off: pesos(l.discount === "" ? "0" : l.discount) }));
+  const total = parsed.reduce((n, l) => n + (l.qty && l.pesos && l.off !== null ? l.qty * l.pesos * 100 - l.off * 100 : 0), 0);
+  const discountOk = (l: (typeof parsed)[number]) => l.off !== null && (!l.qty || !l.pesos || l.off <= l.qty * l.pesos);
+  const formOk = parsed.length > 0 && parsed.every((l) => l.qty && l.qty >= 1 && l.pesos && l.pesos >= 1 && discountOk(l)) && Boolean(payment);
+  const body = () => ({ items: parsed.map((l) => ({ productId: l.productId, quantity: l.qty, unitPriceMinor: (l.pesos ?? 0) * 100, discountMinor: (l.off ?? 0) * 100 })), paymentMethod: payment, note: note.trim() || undefined, ...(inquiry ? { inquiryId: inquiry.id } : {}), idempotencyKey: key.current });
 
   // Cualquier cambio de contenido es una venta distinta: clave de operación nueva (así no se confunde con un reintento de la anterior).
   const change = (fn: () => void) => { fn(); setError(""); setPreview(null); setStep("armar"); key.current = newKey(); };
-  const add = (p: SaleProduct) => change(() => { setLines((ls) => [...ls, { productId: p.id, quantity: "1", price: p.priceMinor ? String(p.priceMinor / 100) : "" }]); setQ(""); });
+  const add = (p: SaleProduct) => change(() => { setLines((ls) => [...ls, { productId: p.id, quantity: "1", price: p.priceMinor ? String(p.priceMinor / 100) : "", discount: "0" }]); setQ(""); });
 
   async function call(url: string) {
     const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body()) });
@@ -115,7 +116,7 @@ export function AdminSaleForm({ products, inquiry }: { products: SaleProduct[]; 
                   <li key={p.id}>
                     <button type="button" onClick={() => add(p)} className="flex min-h-11 w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-gold/30" data-testid={`agregar-venta-${p.id}`}>
                       <span className="min-w-0"><b className="block truncate">{p.title}</b><span className="font-mono text-xs text-ink/60">{p.sku}</span></span>
-                      <span className="shrink-0 text-xs text-ink/70">{p.stock === null ? "stock pendiente" : `stock ${p.stock}`}{p.low ? " · bajo" : ""}</span>
+                      <span className="shrink-0 text-xs text-ink/70">{p.stock === null ? "stock pendiente" : `${p.packSize ? "packs" : "stock"} ${p.stock}`}{p.low ? " · bajo" : ""}</span>
                     </button>
                   </li>
                 ))}
@@ -134,20 +135,33 @@ export function AdminSaleForm({ products, inquiry }: { products: SaleProduct[]; 
                 return (
                   <li key={l.productId} className="rounded-lg border border-ink/15 bg-white p-3" data-testid={`venta-linea-${l.productId}`}>
                     <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0"><p className="font-semibold leading-tight">{p.title}</p><p className="text-xs text-ink/65"><span className="font-mono">{p.sku}</span> · {p.stock === null ? "stock pendiente" : `stock actual ${p.stock}`}{p.low ? " · stock bajo" : ""}</p></div>
+                      <div className="min-w-0"><p className="font-semibold leading-tight">{p.title}</p><p className="text-xs text-ink/65"><span className="font-mono">{p.sku}</span> · {p.stock === null ? "stock pendiente" : `${p.packSize ? "packs disponibles" : "stock actual"} ${p.stock}`}{p.low ? " · stock bajo" : ""}{p.packSize ? ` · pack de ${p.packSize}` : ""}</p></div>
                       <button type="button" onClick={() => change(() => setLines((ls) => ls.filter((x) => x.productId !== l.productId)))} className="min-h-11 shrink-0 px-2 text-sm font-semibold underline hover:text-vermilion" aria-label={`Quitar ${p.title} de la venta`}>Quitar</button>
                     </div>
                     <div className="mt-2 grid grid-cols-2 gap-3 sm:max-w-md">
                       <div>
                         <label htmlFor={`cant-${l.productId}`} className={labelCls}>Cantidad</label>
-                        <input id={`cant-${l.productId}`} inputMode="numeric" autoComplete="off" value={l.quantity} onChange={(e) => change(() => setLines((ls) => ls.map((x) => (x.productId === l.productId ? { ...x, quantity: e.target.value.replace(/\D/g, "").slice(0, 3) } : x))))} aria-invalid={pr.qty === null || over} className={`${inputCls} mt-1`} data-testid={`venta-cantidad-${l.productId}`} />
+                        <input id={`cant-${l.productId}`} inputMode="numeric" autoComplete="off" value={l.quantity} onChange={(e) => change(() => setLines((ls) => ls.map((x) => {
+                          if (x.productId !== l.productId) return x;
+                          const quantity = e.target.value.replace(/\D/g, "").slice(0, 3);
+                          // Una línea que viene de una consulta ajusta su descuento en proporción a la cantidad (hasta que se edite a mano): se revisa en el resumen.
+                          const n = Number(quantity);
+                          const scaled = x.origin && x.origin.discount > 0 && !x.touched && n >= 1 ? String(Math.min(Math.round((x.origin.discount * n) / x.origin.quantity / 100), (pesos(x.price) ?? 0) * n)) : x.discount;
+                          return { ...x, quantity, discount: scaled };
+                        })))} aria-invalid={pr.qty === null || over} className={`${inputCls} mt-1`} data-testid={`venta-cantidad-${l.productId}`} />
                       </div>
                       <div>
                         <label htmlFor={`precio-${l.productId}`} className={labelCls}>Precio de venta c/u ($)</label>
                         <input id={`precio-${l.productId}`} inputMode="numeric" autoComplete="off" value={l.price} onChange={(e) => change(() => setLines((ls) => ls.map((x) => (x.productId === l.productId ? { ...x, price: e.target.value.replace(/\D/g, "").slice(0, 9) } : x))))} aria-invalid={!pr.pesos} placeholder={p.priceMinor ? undefined : "Sin precio de lista"} className={`${inputCls} mt-1`} data-testid={`venta-precio-${l.productId}`} />
                       </div>
                     </div>
-                    <p className="mt-1 text-xs text-ink/65">{p.priceMinor ? `Precio de lista hoy: ${formatARS(p.priceMinor)}. ` : "Este producto no tiene precio de lista: escribí el precio cobrado. "}Pesos enteros; se guarda el precio que escribas.</p>
+                    <div className="mt-2 sm:max-w-md">
+                      <label htmlFor={`desc-${l.productId}`} className={labelCls}>Descuento de la línea ($, total)</label>
+                      <input id={`desc-${l.productId}`} inputMode="numeric" autoComplete="off" value={l.discount} onChange={(e) => change(() => setLines((ls) => ls.map((x) => (x.productId === l.productId ? { ...x, discount: e.target.value.replace(/\D/g, "").slice(0, 9), touched: true } : x))))} aria-invalid={!discountOk(pr)} className={`${inputCls} mt-1`} data-testid={`venta-descuento-${l.productId}`} />
+                      {l.origin && l.origin.discount > 0 && <p className="mt-1 text-xs text-ink/65">Viene de la consulta (combo caja + sobres y/o transferencia): no se vuelve a calcular.</p>}
+                      {!discountOk(pr) && <p role="alert" className="mt-1 text-sm font-semibold text-vermilion">El descuento no puede superar el importe de la línea.</p>}
+                    </div>
+                    <p className="mt-1 text-xs text-ink/65">{p.priceMinor ? `Precio de lista hoy: ${formatARS(p.priceMinor)}. ` : "Este producto no tiene precio de lista: escribí el precio cobrado. "}Pesos enteros; se guarda el precio que escribas.{p.packSize ? ` Cada unidad es un pack de ${p.packSize}: el stock se descuenta en packs.` : ""}</p>
                     {over && <p role="alert" className="mt-1 text-sm font-semibold text-vermilion">Stock insuficiente: hay {p.stock}.</p>}
                   </li>
                 );
@@ -179,13 +193,14 @@ export function AdminSaleForm({ products, inquiry }: { products: SaleProduct[]; 
           <h3 className="text-lg font-semibold">Resumen: revisá antes de confirmar</h3>
           <div className="mt-3 overflow-x-auto">
             <table className="w-full min-w-[560px] text-left text-sm">
-              <thead className="text-xs uppercase tracking-wide text-ink/70"><tr><th scope="col" className="py-1 pr-3">Producto</th><th scope="col" className="py-1 pr-3">Cant.</th><th scope="col" className="py-1 pr-3">Precio c/u</th><th scope="col" className="py-1 pr-3">Subtotal</th><th scope="col" className="py-1">Stock</th></tr></thead>
+              <thead className="text-xs uppercase tracking-wide text-ink/70"><tr><th scope="col" className="py-1 pr-3">Producto</th><th scope="col" className="py-1 pr-3">Cant.</th><th scope="col" className="py-1 pr-3">Precio c/u</th><th scope="col" className="py-1 pr-3">Descuento</th><th scope="col" className="py-1 pr-3">Subtotal</th><th scope="col" className="py-1">Stock</th></tr></thead>
               <tbody className="divide-y divide-ink/10">
                 {preview.lines.map((l) => (
                   <tr key={l.productId} data-testid={`resumen-venta-${l.productId}`}>
                     <td className="py-2 pr-3"><b>{l.title}</b><span className="block font-mono text-xs text-ink/60">{l.sku}</span></td>
                     <td className="py-2 pr-3">{l.quantity}</td>
                     <td className="py-2 pr-3">{formatARS(l.unitPriceMinor)}</td>
+                    <td className="py-2 pr-3" data-testid={`resumen-descuento-${l.productId}`}>{l.discountMinor > 0 ? `−${formatARS(l.discountMinor)}` : "—"}</td>
                     <td className="py-2 pr-3">{formatARS(l.lineTotalMinor)}</td>
                     <td className="py-2">{l.problem ? <span className="font-semibold text-vermilion">{l.problem}</span> : <span data-testid={`stock-resultante-${l.productId}`}>{l.stockNow} → <b>{l.stockAfter}</b></span>}</td>
                   </tr>

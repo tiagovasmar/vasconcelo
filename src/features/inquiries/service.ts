@@ -5,6 +5,8 @@ import { inquiries, inquiryEvents, inquiryLines, rateLimits } from "@/db/schema"
 import { listAllProducts } from "@/features/catalog/data";
 import type { EffectiveRate } from "@/features/fx/convert";
 import { currentRate } from "@/features/fx/service";
+import { getComboConfig } from "@/features/promos/settings";
+import type { ComboConfig } from "@/features/promos/combo";
 import type { Language, Product } from "@/content/schema";
 import { legacyPaymentLabels, paymentMethods } from "@/content/checkout-options";
 import { isPromoPayment } from "@/features/politicas/promociones";
@@ -32,13 +34,15 @@ export type InquiryView = {
   subtotalMinor: number;
   /** 10% OFF por transferencia (solo con al menos una caja). 0 = sin descuento. */
   discountMinor: number;
+  /** Descuento del combo caja + sobres (0 = sin combo). El total es subtotal − combo − transferencia. */
+  comboDiscountMinor: number;
   /** Cotización usada al preparar la consulta (instantánea: no cambia aunque el dólar se actualice). null si ningún producto tenía precio en USD. */
   fx: { rate10k: number; mode: "auto" | "manual"; source: string; asOf: number | null } | null;
   delivery: Delivery;
   paymentLabel: string;
   contactName?: string;
   /** Líneas por encargo: `fulfillment: "encargo"`, sin precio ni cotización (importes null). */
-  lines: Array<{ productId: string; sku: string; title: string; language: Language; quantity: number; fulfillment: "stock" | "encargo"; unitPriceMinor: number | null; unitPriceUsdMinor: number | null; lineSubtotalMinor: number | null }>;
+  lines: Array<{ productId: string; sku: string; title: string; language: Language; quantity: number; fulfillment: "stock" | "encargo"; unitPriceMinor: number | null; unitPriceUsdMinor: number | null; lineSubtotalMinor: number | null; baseCurrency: "USD" | "ARS" | null; packSize: number | null; comboUnits: number; comboDiscountMinor: number; transferDiscountMinor: number }>;
   message: string;
 };
 
@@ -93,13 +97,14 @@ function toView(row: typeof inquiries.$inferSelect, lines: Array<typeof inquiryL
     createdAt: row.createdAt,
     subtotalMinor: row.subtotalMinor,
     discountMinor: row.discountMinor,
+    comboDiscountMinor: row.comboDiscountMinor,
     fx: row.fxRate10k ? { rate10k: row.fxRate10k, mode: row.fxMode === "manual" ? "manual" : "auto", source: row.fxSource ?? "", asOf: row.fxAsOf } : null,
     delivery: JSON.parse(row.deliveryJson) as Delivery,
     paymentLabel: paymentLabel(row.paymentPreference),
     contactName: row.contactName ?? undefined,
     lines: lines.map((l) => {
       const encargo = l.fulfillment === "encargo";
-      return { productId: l.productId, sku: l.sku, title: l.title, language: l.language as Language, quantity: l.quantity, fulfillment: encargo ? ("encargo" as const) : ("stock" as const), unitPriceMinor: encargo ? null : l.unitPriceMinor, unitPriceUsdMinor: encargo ? null : l.unitPriceUsdMinor, lineSubtotalMinor: encargo ? null : l.lineSubtotalMinor };
+      return { productId: l.productId, sku: l.sku, title: l.title, language: l.language as Language, quantity: l.quantity, fulfillment: encargo ? ("encargo" as const) : ("stock" as const), unitPriceMinor: encargo ? null : l.unitPriceMinor, unitPriceUsdMinor: encargo ? null : l.unitPriceUsdMinor, lineSubtotalMinor: encargo ? null : l.lineSubtotalMinor, baseCurrency: l.baseCurrency === "ARS" ? ("ARS" as const) : l.baseCurrency === "USD" ? ("USD" as const) : null, packSize: l.packSize, comboUnits: l.comboUnits, comboDiscountMinor: l.comboDiscountMinor, transferDiscountMinor: l.transferDiscountMinor };
     }),
     message: row.message,
   };
@@ -117,7 +122,7 @@ async function loadByKey(db: Db, key: string) {
 }
 
 export function messageDataOf(v: InquiryView): MessageData {
-  return { reference: v.reference, contactName: v.contactName, lines: v.lines.map((l) => ({ quantity: l.quantity, title: l.title, language: l.language, sku: l.sku, unitPriceMinor: l.unitPriceMinor, unitPriceUsdMinor: l.unitPriceUsdMinor })), subtotalMinor: v.subtotalMinor, discountMinor: v.discountMinor, fx: v.fx ? { rate10k: v.fx.rate10k, mode: v.fx.mode } : null, delivery: v.delivery, paymentLabel: v.paymentLabel };
+  return { reference: v.reference, contactName: v.contactName, lines: v.lines.map((l) => ({ quantity: l.quantity, title: l.title, language: l.language, sku: l.sku, unitPriceMinor: l.unitPriceMinor, unitPriceUsdMinor: l.unitPriceUsdMinor, packSize: l.packSize, comboUnits: l.comboUnits, comboDiscountMinor: l.comboDiscountMinor, transferDiscountMinor: l.transferDiscountMinor })), subtotalMinor: v.subtotalMinor, discountMinor: v.discountMinor, comboDiscountMinor: v.comboDiscountMinor, fx: v.fx ? { rate10k: v.fx.rate10k, mode: v.fx.mode } : null, delivery: v.delivery, paymentLabel: v.paymentLabel };
 }
 
 export function launchFor(v: InquiryView, number: string | null): Launch {
@@ -134,7 +139,7 @@ const describeIssue = (l: EvaluatedLine) => ({ productId: l.productId, status: l
 export async function createInquiry(
   db: Db,
   body: unknown,
-  ctx: { sessionTokenHash: string; userId?: string | null; products?: Product[]; fx?: EffectiveRate; now?: number },
+  ctx: { sessionTokenHash: string; userId?: string | null; products?: Product[]; fx?: EffectiveRate; now?: number; combo?: ComboConfig },
 ): Promise<{ inquiry: InquiryView; replayed: boolean }> {
   const parsed = CreateInquirySchema.safeParse(body);
   if (!parsed.success) {
@@ -158,7 +163,9 @@ export async function createInquiry(
   // Una sola lectura de la cotización: la misma que convierte los precios es la que se guarda en la consulta.
   const fx = ctx.fx ?? (await currentRate(db));
   const products = ctx.products ?? (await listAllProducts(fx, db));
-  const ev = evaluateCart(input.items, products);
+  // Configuración del combo caja + sobres (la del panel; las pruebas pueden pasar otra). Todo el cálculo de importes es del servidor.
+  const comboCfg = ctx.combo ?? (await getComboConfig(db)).config;
+  const ev = evaluateCart(input.items, products, comboCfg);
   const retired = ev.lines.filter((l) => l.status === "retired");
   if (retired.length) throw new InquiryError({ status: 409, code: "unavailable", message: "Algunos productos fueron retirados de la tienda y no se pueden comprar ni encargar. Sacalos del carrito.", details: retired.map(describeIssue) });
   const gone = ev.lines.filter((l) => l.status === "unavailable");
@@ -179,17 +186,32 @@ export async function createInquiry(
   if (isPromoPayment(input.payment) && !ev.qualifiesForPromo) {
     throw new InquiryError({ status: 409, code: "promo_not_eligible", message: "Las cuotas sin interés y el 10% OFF por transferencia valen para compras que incluyan al menos una caja. Elegí otra preferencia de pago o sumá una caja.", details: [{ path: "payment", message: "El pedido no incluye una caja" }] });
   }
-  const lines = ev.lines.map((l) => ({ product: l.product!, quantity: l.requestedQuantity, unit: l.status === "encargo" ? null : l.unitPriceMinor!, usd: l.status === "encargo" ? null : l.product!.priceUsdMinor ?? null }));
+  const pr = ev.pricing(input.payment);
+  const lines = ev.lines.map((l) => {
+    const priced = pr.lines.find((x) => x.productId === l.productId);
+    return {
+      product: l.product!, quantity: l.requestedQuantity, unit: l.status === "encargo" ? null : l.unitPriceMinor!, usd: l.status === "encargo" ? null : l.product!.priceUsdMinor ?? null,
+      // Moneda base: dólares (convertidos con la cotización de la consulta) o pesos fijos (accesorios).
+      currency: l.status === "encargo" ? null : l.product!.priceUsdMinor != null ? ("USD" as const) : ("ARS" as const),
+      combo: priced?.comboUnits ?? 0, comboMinor: priced?.comboDiscountMinor ?? 0, transferMinor: priced?.transferDiscountMinor ?? 0,
+    };
+  });
   const usesFx = lines.some((l) => l.usd !== null) && fx.rate10k !== null;
-  const subtotalMinor = lines.reduce((n, l) => (l.unit === null ? n : n + l.unit * l.quantity), 0);
-  const discountMinor = ev.discountFor(input.payment);
+  const subtotalMinor = pr.subtotalMinor;
+  const discountMinor = pr.transferDiscountMinor;
+  const comboDiscountMinor = pr.comboDiscountMinor;
+  // Si cambió algo desde que la persona vio su total (un precio, un cupo del combo, el stock o la elegibilidad), se informa en vez de guardar otro importe.
+  if (input.expectedTotalMinor !== undefined && !input.acceptPriceChanges && input.expectedTotalMinor !== pr.totalMinor) {
+    throw new InquiryError({ status: 409, code: "price_changed", message: "Cambió un precio, un descuento o la disponibilidad desde que armaste el pedido. Revisá el nuevo total antes de continuar.", details: [{ path: "total", expectedTotalMinor: input.expectedTotalMinor, totalMinor: pr.totalMinor }] });
+  }
   const reference = newReference();
   const data: MessageData = {
     reference,
     contactName: input.contactName,
-    lines: lines.map((l) => ({ quantity: l.quantity, title: l.product.title, language: l.product.language, sku: l.product.sku, unitPriceMinor: l.unit, unitPriceUsdMinor: l.usd })),
+    lines: lines.map((l) => ({ quantity: l.quantity, title: l.product.title, language: l.product.language, sku: l.product.sku, unitPriceMinor: l.unit, unitPriceUsdMinor: l.usd, packSize: l.product.packSize ?? null, comboUnits: l.combo, comboDiscountMinor: l.comboMinor, transferDiscountMinor: l.transferMinor })),
     subtotalMinor,
     discountMinor,
+    comboDiscountMinor,
     fx: usesFx ? { rate10k: fx.rate10k!, mode: fx.mode } : null,
     delivery: input.delivery,
     paymentLabel: paymentLabel(input.payment),
@@ -203,7 +225,7 @@ export async function createInquiry(
         id: reference, idempotencyKey: input.idempotencyKey, contentHash: hash,
         // Si hay cuenta, la consulta pertenece SOLO a la cuenta: el token de invitado no sirve para leerla.
         sessionTokenHash: ctx.userId ? hashToken(newSessionToken()) : ctx.sessionTokenHash, userId: ctx.userId ?? null,
-        status: "consulta_preparada", currency: "ARS", subtotalMinor, discountMinor,
+        status: "consulta_preparada", currency: "ARS", subtotalMinor, discountMinor, comboDiscountMinor,
         ...(usesFx ? { fxRate10k: fx.rate10k, fxMode: fx.mode, fxSource: fx.source, fxAsOf: fx.asOf } : {}),
         deliveryMethod: input.delivery.method, deliveryJson: JSON.stringify(input.delivery),
         paymentPreference: input.payment, contactName: input.contactName ?? null, contactPhone: input.contactPhone ?? null, message, createdAt,
@@ -214,6 +236,7 @@ export async function createInquiry(
       await tx.insert(inquiryLines).values(lines.map((l) => ({
         inquiryId: reference, productId: l.product.id, sku: l.product.sku, title: l.product.title, language: l.product.language,
         quantity: l.quantity, fulfillment: l.unit === null ? "encargo" : "stock", unitPriceUsdMinor: l.usd, unitPriceMinor: l.unit ?? 0, lineSubtotalMinor: l.unit === null ? 0 : l.unit * l.quantity,
+        baseCurrency: l.currency, comboUnits: l.combo, comboDiscountMinor: l.comboMinor, transferDiscountMinor: l.transferMinor, packSize: l.product.packSize ?? null,
       })));
     });
   } catch (e) {

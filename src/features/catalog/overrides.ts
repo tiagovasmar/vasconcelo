@@ -52,8 +52,12 @@ export function applyOverrides(base: Product[], rows: Map<string, OverrideRow>, 
   return base.map((p) => {
     const o = rows.get(p.id);
     const gallery = parseGallery(galleries.get(p.id));
-    const usd = o ? o.priceUsdMinor : p.priceUsdMinor ?? null;
-    const ars = usd !== null && usd !== undefined ? (fx?.rate10k ? usdToArsMinor(usd, fx.rate10k) : null) : o || !p.isDemo ? null : p.priceMinor;
+    // Precio base en PESOS (accesorios): fijo, sin dólar ni cotización. Rige el valor cargado en el panel y, si no hay, el inicial del código.
+    const fixedArs = p.priceBase === "ars";
+    const usd = fixedArs ? null : o ? o.priceUsdMinor : p.priceUsdMinor ?? null;
+    const ars = fixedArs
+      ? o?.priceArsMinor ?? p.fixedPriceMinor ?? null
+      : usd !== null && usd !== undefined ? (fx?.rate10k ? usdToArsMinor(usd, fx.rate10k) : null) : o || !p.isDemo ? null : p.priceMinor;
     // Sin valores propios en el panel: el stock inicial del catálogo real es 0 («Sin stock»), nunca «pendiente».
     if (!o) return { ...p, priceUsdMinor: usd ?? null, priceMinor: ars, stockQuantity: defaultStock(p), ...(gallery ? { images: gallery } : {}) };
     const { maxPerOrder: _unused, ...rest } = p;
@@ -79,6 +83,8 @@ export function applyOverrides(base: Product[], rows: Map<string, OverrideRow>, 
  * envía conserva su valor actual (así la edición rápida de la lista, que solo manda precio y stock, no pisa título, descripción ni fotos).
  */
 export const ProductEditSchema = z.object({
+  /** Precio fijo en pesos (centavos, siempre en pesos enteros): SOLO para productos con precio base en pesos (accesorios). `null` = volver al precio inicial. */
+  priceArsMinor: z.number().int("El precio en pesos debe ser un número entero.").min(100, "El precio debe ser de al menos $1.").max(100_000_000, "El precio es demasiado alto.").multipleOf(100, "El precio debe estar en pesos enteros.").nullable().optional(),
   priceUsdMinor: z.number().int("El precio en dólares debe tener a lo sumo dos decimales.").min(1, "El precio debe ser de al menos USD 0,01 (dejalo vacío si todavía está pendiente).").max(100_000_000, "El precio es demasiado alto.").nullable().optional(),
   stock: z.number().int("El stock debe ser un número entero.").min(0, "El stock no puede ser negativo.").max(1_000_000, "El stock es demasiado alto.").nullable().optional(),
   maxPerOrder: z.number().int("El máximo por pedido debe ser un número entero.").min(1, "El máximo por pedido debe ser al menos 1 (dejalo vacío si no hay tope).").max(99, "El máximo por pedido no puede superar 99.").nullable().optional(),
@@ -105,14 +111,14 @@ export class AdminError extends Error {
   }
 }
 
-type Values = { priceUsdMinor: number | null; stockQuantity: number | null; maxPerOrder: number | null; visible: boolean; orderOnly: boolean; title: string | null; description: string | null };
-const FIELD_OF: Record<keyof Values, string> = { priceUsdMinor: "price_usd_minor", stockQuantity: "stock_quantity", maxPerOrder: "max_per_order", visible: "visible", orderOnly: "order_only", title: "title", description: "description" };
+type Values = { priceUsdMinor: number | null; priceArsMinor: number | null; stockQuantity: number | null; maxPerOrder: number | null; visible: boolean; orderOnly: boolean; title: string | null; description: string | null };
+const FIELD_OF: Record<keyof Values, string> = { priceUsdMinor: "price_usd_minor", priceArsMinor: "price_ars_minor", stockQuantity: "stock_quantity", maxPerOrder: "max_per_order", visible: "visible", orderOnly: "order_only", title: "title", description: "description" };
 
 function baseValues(p: Product): Values {
-  return { priceUsdMinor: p.priceUsdMinor ?? null, stockQuantity: defaultStock(p), maxPerOrder: p.maxPerOrder ?? null, visible: p.active, orderOnly: p.orderOnly ?? false, title: null, description: null };
+  return { priceUsdMinor: p.priceUsdMinor ?? null, priceArsMinor: null, stockQuantity: defaultStock(p), maxPerOrder: p.maxPerOrder ?? null, visible: p.active, orderOnly: p.orderOnly ?? false, title: null, description: null };
 }
 function rowValues(o: OverrideRow): Values {
-  return { priceUsdMinor: o.priceUsdMinor, stockQuantity: o.stockQuantity, maxPerOrder: o.maxPerOrder, visible: o.visible, orderOnly: o.orderOnly, title: o.title, description: o.description };
+  return { priceUsdMinor: o.priceUsdMinor, priceArsMinor: o.priceArsMinor, stockQuantity: o.stockQuantity, maxPerOrder: o.maxPerOrder, visible: o.visible, orderOnly: o.orderOnly, title: o.title, description: o.description };
 }
 
 export type AdminProduct = {
@@ -143,7 +149,7 @@ export async function adminProducts(db: Db, base: Product[], fx: EffectiveRate |
       version: o?.updatedAt ?? 0,
       updatedAt: o?.updatedAt ?? null,
       updatedByEmail: o?.updatedByEmail ?? null,
-      legacyPriceMinor: o?.priceMinor ?? (p.isDemo ? null : p.priceMinor),
+      legacyPriceMinor: p.priceBase === "ars" ? null : o?.priceMinor ?? (p.isDemo ? null : p.priceMinor),
       codeTitle: p.title,
       codeDescription: p.description,
       gallery: { custom: Boolean(parseGallery(g)), version: g?.updatedAt ?? 0 },
@@ -167,11 +173,15 @@ export async function saveProductChange(db: Db, base: Product[], productId: stri
     if (edit.expectedVersion !== version) {
       throw new AdminError(409, "stale", "Este producto se modificó mientras lo editabas. Recargá la página para ver los valores actuales y volvé a intentarlo.");
     }
+    // El precio base de cada producto es de UNA sola moneda: un producto en dólares no admite un precio fijo en pesos y al revés (cada uno se edita en su moneda).
+    if (p.priceBase === "ars" && edit.priceUsdMinor !== undefined && edit.priceUsdMinor !== null) throw new AdminError(400, "invalid_input", "Este producto tiene un precio fijo en pesos: no se carga en dólares.");
+    if (p.priceBase !== "ars" && edit.priceArsMinor !== undefined && edit.priceArsMinor !== null) throw new AdminError(400, "invalid_input", "Este producto tiene su precio base en dólares: no se carga un precio fijo en pesos.");
     const before = current ? rowValues(current) : baseValues(p);
     // Un título o descripción igual al del código no se guarda como reemplazo (así el catálogo sigue mandando mientras no se edite de verdad).
     const keep = <T,>(sent: T | undefined, current: T): T => (sent === undefined ? current : sent);
     const after: Values = {
-      priceUsdMinor: keep(edit.priceUsdMinor, before.priceUsdMinor),
+      priceUsdMinor: p.priceBase === "ars" ? null : keep(edit.priceUsdMinor, before.priceUsdMinor),
+      priceArsMinor: p.priceBase === "ars" ? keep(edit.priceArsMinor, before.priceArsMinor) : null,
       stockQuantity: keep(edit.stock, before.stockQuantity),
       maxPerOrder: keep(edit.maxPerOrder, before.maxPerOrder),
       visible: keep(edit.visible, before.visible),
@@ -189,7 +199,7 @@ export async function saveProductChange(db: Db, base: Product[], productId: stri
     }
     const nextVersion = Math.max(now, version + 1);
     // `price_minor` (legado en ARS) no se toca: queda como dato anterior.
-    const values = { priceUsdMinor: after.priceUsdMinor, stockQuantity: after.stockQuantity, maxPerOrder: after.maxPerOrder, visible: after.visible, orderOnly: after.orderOnly, title: after.title, description: after.description, updatedAt: nextVersion, updatedByEmail: actor.email };
+    const values = { priceUsdMinor: after.priceUsdMinor, priceArsMinor: after.priceArsMinor, stockQuantity: after.stockQuantity, maxPerOrder: after.maxPerOrder, visible: after.visible, orderOnly: after.orderOnly, title: after.title, description: after.description, updatedAt: nextVersion, updatedByEmail: actor.email };
     await tx.insert(productOverrides).values({ productId, ...values }).onConflictDoUpdate({ target: productOverrides.productId, set: values });
     await tx.insert(productAudit).values(changedKeys.map((k) => ({
       productId, sku: p.sku, field: FIELD_OF[k], oldValue: JSON.stringify(before[k]), newValue: JSON.stringify(after[k]), userId: actor.id, userEmail: actor.email, createdAt: nextVersion,

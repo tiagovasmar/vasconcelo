@@ -17,8 +17,8 @@ afterAll(() => { fs.rmSync(dir, { recursive: true, force: true }); });
 
 const NUEVAS = ["sales", "sale_lines", "stock_movements", "inquiry_events", "inquiry_sales"];
 // Columnas e índices que la consulta del dueño (migración 0002) agregó a `inquiries`: no existen en el SQLite original.
-const COLUMNAS_NUEVAS: Record<string, string[]> = { inquiries: ["contact_phone", "source", "crm_status", "contact_confirmed_at", "lost_reason"] };
-const NOT_NULL_NUEVAS: Record<string, string[]> = { inquiries: ["source", "crm_status"] };
+const COLUMNAS_NUEVAS: Record<string, string[]> = { inquiries: ["contact_phone", "source", "crm_status", "contact_confirmed_at", "lost_reason", "combo_discount_minor"], inquiry_lines: ["base_currency", "combo_units", "combo_discount_minor", "transfer_discount_minor", "pack_size"], product_overrides: ["price_ars_minor"] };
+const NOT_NULL_NUEVAS: Record<string, string[]> = { inquiries: ["source", "crm_status", "combo_discount_minor"], inquiry_lines: ["combo_units", "combo_discount_minor", "transfer_discount_minor"] };
 const INDICES_NUEVOS: Record<string, string[]> = { inquiries: ["created_at", "crm_status"] };
 const sin = (todo: string[], quitar: string[] = []) => todo.filter((x) => !quitar.includes(x));
 

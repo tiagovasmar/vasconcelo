@@ -60,15 +60,19 @@ export function ConsultaDetail({ inquiry, autoOpen, links }: { inquiry: InquiryV
           <ul className="mt-3 divide-y divide-ink/10 text-sm">
             {inquiry.lines.map((l) => (
               <li key={l.productId} className="flex justify-between gap-4 py-2">
-                <span>{l.quantity} × {l.title} <span className="text-ink/60">[{languageLabel[l.language]}] · SKU {l.sku}</span></span>
+                <span>{l.quantity} × {l.title}{l.packSize && !/pack de/i.test(l.title) ? ` (pack de ${l.packSize})` : ""} <span className="text-ink/60">{l.language === "na" ? "" : `[${languageLabel[l.language]}] · `}SKU {l.sku}</span>
+                  {l.comboDiscountMinor > 0 && <span className="block text-xs font-semibold text-emerald">Combo caja + sobres: 10% OFF en {l.comboUnits} {l.comboUnits === 1 ? "sobre" : "sobres"} (−{formatARS(l.comboDiscountMinor)})</span>}
+                  {l.transferDiscountMinor > 0 && <span className="block text-xs font-semibold text-emerald">Transferencia: −{formatARS(l.transferDiscountMinor)}</span>}
+                </span>
                 <span className="shrink-0 font-semibold">{l.lineSubtotalMinor === null ? "Por encargo · sin cotizar" : formatARS(l.lineSubtotalMinor)}{l.unitPriceUsdMinor ? <span className="block text-xs font-normal text-ink/60">{formatUSD(l.unitPriceUsdMinor)} c/u</span> : null}</span>
               </li>
             ))}
           </ul>
           <dl className="mt-3 space-y-1 border-t border-ink/15 pt-3 text-sm">
             {hasStock && <div className="flex justify-between"><dt>Subtotal de productos{hasEncargo ? " (sin los por encargo)" : ""}</dt><dd className="font-extrabold">{formatARS(inquiry.subtotalMinor)}</dd></div>}
+            {inquiry.comboDiscountMinor > 0 && <div className="flex justify-between"><dt>Descuento combo caja + sobres</dt><dd className="font-semibold" data-testid="detalle-descuento-combo">−{formatARS(inquiry.comboDiscountMinor)}</dd></div>}
             {inquiry.discountMinor > 0 && <div className="flex justify-between"><dt>Descuento por transferencia</dt><dd className="font-semibold">−{formatARS(inquiry.discountMinor)}</dd></div>}
-            {inquiry.discountMinor > 0 && <div className="flex justify-between"><dt>Productos con descuento</dt><dd className="font-extrabold">{formatARS(inquiry.subtotalMinor - inquiry.discountMinor)}</dd></div>}
+            {(inquiry.discountMinor > 0 || inquiry.comboDiscountMinor > 0) && <div className="flex justify-between"><dt>Productos con descuento</dt><dd className="font-extrabold">{formatARS(inquiry.subtotalMinor - inquiry.discountMinor - inquiry.comboDiscountMinor)}</dd></div>}
             <div className="flex justify-between"><dt>Envío</dt><dd className="font-semibold" data-testid="detalle-envio">{inquiry.delivery.method === "retiro" ? "No aplica: retiro" : "A coordinar"}</dd></div>
             <div className="flex justify-between gap-4"><dt>Entrega</dt><dd className="text-right">{describeDelivery(inquiry.delivery)}</dd></div>
             <div className="flex justify-between"><dt>Preferencia de pago</dt><dd>{inquiry.paymentLabel}</dd></div>

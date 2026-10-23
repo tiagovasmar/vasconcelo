@@ -28,7 +28,7 @@ export default async function ConvertirConsulta({ params }: { params: Promise<{ 
   const [fx, low] = await Promise.all([currentRate(db), getLowStock(db)]);
   const products: SaleProduct[] = (await adminProducts(db, catalog.products, fx))
     .filter((a) => !catalog.products.find((x) => x.id === a.product.id)?.retired)
-    .map((a) => ({ id: a.product.id, sku: a.product.sku, title: a.product.title, language: a.product.language, stock: a.product.stockQuantity, priceMinor: a.product.priceMinor, low: isLowStock(a.product.stockQuantity, Boolean(a.product.orderOnly), low.threshold), orderOnly: Boolean(a.product.orderOnly) }));
+    .map((a) => ({ id: a.product.id, sku: a.product.sku, title: a.product.title, language: a.product.language, stock: a.product.stockQuantity, priceMinor: a.product.priceMinor, low: isLowStock(a.product.stockQuantity, Boolean(a.product.orderOnly), low.threshold), orderOnly: Boolean(a.product.orderOnly), packSize: a.product.packSize ?? null }));
   const known = new Set(products.map((p) => p.id));
   const stockLines = lines.filter((l) => l.fulfillment !== "encargo" && known.has(l.productId));
   const encargos = lines.filter((l) => l.fulfillment === "encargo");
@@ -43,7 +43,8 @@ export default async function ConvertirConsulta({ params }: { params: Promise<{ 
       <p className="mt-2 max-w-2xl text-sm text-ink/75">
         Precargamos los productos, las cantidades y los precios de la consulta. Editá lo que haga falta (por ejemplo, si vendiste menos unidades o a otro precio) y revisá el resumen con el total y cómo queda el stock. Al confirmar se guarda la venta, se descuenta <b>solo lo que confirmes</b> y se vincula a la consulta, todo junto. La consulta original no cambia.
       </p>
-      {i.discountMinor > 0 && <p className="mt-2 max-w-2xl rounded-lg bg-gold/20 p-3 text-sm" data-testid="aviso-descuento">La consulta incluía un descuento de {formatARS(i.discountMinor)} (transferencia). Las ventas guardan el precio realmente cobrado: ajustá los precios unitarios si lo aplicás.</p>}
+      {i.discountMinor + i.comboDiscountMinor > 0 && stockLines.some((l) => l.comboDiscountMinor + l.transferDiscountMinor > 0) && <p className="mt-2 max-w-2xl rounded-lg bg-gold/20 p-3 text-sm" data-testid="aviso-descuento">La consulta incluía descuentos ({i.comboDiscountMinor > 0 ? `combo caja + sobres ${formatARS(i.comboDiscountMinor)}` : ""}{i.comboDiscountMinor > 0 && i.discountMinor > 0 ? " y " : ""}{i.discountMinor > 0 ? `transferencia ${formatARS(i.discountMinor)}` : ""}). Quedan precargados por línea: la venta <b>no vuelve a calcular ninguna promoción</b>; podés ajustarlos si cambió algo.</p>}
+      {i.discountMinor > 0 && !stockLines.some((l) => l.comboDiscountMinor + l.transferDiscountMinor > 0) && <p className="mt-2 max-w-2xl rounded-lg bg-gold/20 p-3 text-sm" data-testid="aviso-descuento">La consulta incluía un descuento de {formatARS(i.discountMinor)} (transferencia) guardado antes de que se registraran los descuentos por línea. Cargalo en el campo «Descuento» de cada línea si lo aplicás.</p>}
       {encargos.length > 0 && (
         <div className="mt-3 max-w-2xl rounded-lg border border-ink/20 bg-white p-3 text-sm" data-testid="aviso-encargos">
           <b>Por encargo (no entran en esta venta):</b> {encargos.map((l) => `${l.quantity} × ${l.title}`).join(", ")}. Se piden al proveedor y no salen de tu stock; si más adelante los tenés, registrá otra venta.
@@ -53,7 +54,7 @@ export default async function ConvertirConsulta({ params }: { params: Promise<{ 
       <div className="mt-6">
         <AdminSaleForm
           products={products}
-          inquiry={{ id: i.id, name, payment: salePaymentOf(i.paymentPreference), lines: stockLines.map((l) => ({ productId: l.productId, quantity: l.quantity, unitPriceMinor: l.unitPriceMinor })) }}
+          inquiry={{ id: i.id, name, payment: salePaymentOf(i.paymentPreference), lines: stockLines.map((l) => ({ productId: l.productId, quantity: l.quantity, unitPriceMinor: l.unitPriceMinor, discountMinor: l.comboDiscountMinor + l.transferDiscountMinor })) }}
         />
       </div>
     </div>

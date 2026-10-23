@@ -30,6 +30,8 @@ export const inquiries = pgTable(
     subtotalMinor: ms("subtotal_minor").notNull(),
     /** Descuento por transferencia (10%, solo con al menos una caja), en centavos. 0 = sin descuento. */
     discountMinor: ms("discount_minor").notNull().default(0),
+    /** Descuento del combo caja + sobres (22/10/2026), en centavos. 0 = sin combo. Se suma al de transferencia solo en unidades distintas: nunca se descuenta dos veces la misma unidad. */
+    comboDiscountMinor: ms("combo_discount_minor").notNull().default(0),
     /** Cotización con la que se convirtieron los precios USD de esta consulta (instantánea; una actualización del dólar NO la reescribe). */
     fxRate10k: ms("fx_rate_10k"),
     /** auto | manual */
@@ -91,6 +93,14 @@ export const inquiryLines = pgTable(
     unitPriceUsdMinor: integer("unit_price_usd_minor"),
     unitPriceMinor: ms("unit_price_minor").notNull(),
     lineSubtotalMinor: ms("line_subtotal_minor").notNull(),
+    /** Moneda del precio BASE del producto: USD (convertido con la cotización de la consulta) o ARS (precio fijo en pesos). null en encargos. */
+    baseCurrency: text("base_currency"),
+    /** Unidades de esta línea que recibieron el descuento del combo caja + sobres y cuánto se descontó por eso / por transferencia (centavos). */
+    comboUnits: integer("combo_units").notNull().default(0),
+    comboDiscountMinor: ms("combo_discount_minor").notNull().default(0),
+    transferDiscountMinor: ms("transfer_discount_minor").notNull().default(0),
+    /** Unidades que trae cada unidad de venta (p. ej. 5 en un «Pack de 5 unidades»); null si no es un pack. */
+    packSize: integer("pack_size"),
   },
   (t) => [index("inquiry_lines_inquiry_idx").on(t.inquiryId)],
 );
@@ -115,6 +125,11 @@ export const productOverrides = pgTable("product_overrides", {
   priceMinor: ms("price_minor"),
   /** Precio base en centavos de USD (USD 10,00 = 1000). NULL = precio pendiente (no es USD 0). */
   priceUsdMinor: integer("price_usd_minor"),
+  /**
+   * Precio FIJO en pesos (centavos de ARS) de los productos con `priceBase: "ars"` (accesorios). NULL = rige el precio inicial del código. No se usa en
+   * los productos con precio base en dólares y no depende de la cotización.
+   */
+  priceArsMinor: ms("price_ars_minor"),
   /** Título editado (NULL = el del catálogo por código). */
   title: text("title"),
   /** Descripción breve editada (NULL = la del catálogo por código). */
@@ -300,12 +315,20 @@ export const saleLines = pgTable(
     title: text("title").notNull(),
     language: text("language").notNull(),
     quantity: integer("quantity").notNull(),
-    /** Precio unitario REALMENTE cobrado (centavos de ARS). */
+    /** Precio unitario cobrado ANTES del descuento de la línea (centavos de ARS). El descuento va aparte en `discountMinor`. */
     unitPriceMinor: ms("unit_price_minor").notNull(),
     /** Precio de catálogo (ARS) y precio base en USD vigentes en ese momento, solo como referencia (null si estaban pendientes). */
     catalogPriceMinor: ms("catalog_price_minor"),
     catalogPriceUsdMinor: integer("catalog_price_usd_minor"),
+    /** Total de la línea = precio unitario × cantidad − `discountMinor`. */
     lineTotalMinor: ms("line_total_minor").notNull(),
+    /** Descuento de la línea (combo caja + sobres y/o transferencia), en centavos; 0 = ninguno. Viene de la consulta: al convertir NO se vuelve a calcular. */
+    discountMinor: ms("discount_minor").notNull().default(0),
+    /** combo | transferencia | mixto (las dos en unidades distintas) | null. */
+    discountKind: text("discount_kind"),
+    /** Moneda del precio base del producto (USD | ARS) y tamaño del pack (5 en los accesorios), solo como constancia. */
+    baseCurrency: text("base_currency"),
+    packSize: integer("pack_size"),
   },
   (t) => [index("sale_lines_sale_idx").on(t.saleId), check("sale_lines_qty_check", sql`${t.quantity} > 0`)],
 );

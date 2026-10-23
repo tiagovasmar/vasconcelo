@@ -20,6 +20,7 @@ export function Flag({ language, className = "h-3 w-[18px]" }: { language: Langu
 
 /** Idioma de una edición: bandera + texto. Un solo lugar para el mapeo, así no hay etiquetas contradictorias. */
 export function LanguageBadge({ language, size = "sm", className = "" }: { language: Language; size?: "sm" | "lg" | "plain"; className?: string }) {
+  if (language === "na") return null; // los accesorios no tienen idioma de edición
   const box = size === "lg" ? "min-h-8 px-3 text-sm" : size === "sm" ? "min-h-6 px-2 text-[.72rem] sm:text-xs" : "";
   const frame = size === "plain" ? "" : "rounded-full border border-ink/20 bg-white";
   return (

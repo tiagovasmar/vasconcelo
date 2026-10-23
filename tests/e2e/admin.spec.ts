@@ -133,8 +133,8 @@ test.describe("el dueño administra precios, stock, fotos y cotización", () => 
   test("ve la lista con idioma, USD, pesos, stock y estado; busca y filtra", async () => {
     await go(owner, "/admin");
     await expect(owner.getByRole("heading", { level: 1 })).toHaveText("Precios y stock");
-    await expect(owner.getByTestId("admin-cantidad")).toHaveText("8 productos");
-    await expect(owner.getByTestId("cuenta-available")).toHaveText("7");
+    await expect(owner.getByTestId("admin-cantidad")).toHaveText("10 productos");
+    await expect(owner.getByTestId("cuenta-available")).toHaveText("9");
     await expect(owner.getByTestId("cuenta-soldout")).toHaveText("1"); // bundle con stock 0
     await expect(owner.getByTestId("admin-fx-resumen")).toContainText("No hay una cotización utilizable"); // sin red y sin valor manual todavía
     await expect(row(owner, "parcial-bundle").getByTestId("estado")).toHaveText("Sin stock");
@@ -143,14 +143,14 @@ test.describe("el dueño administra precios, stock, fotos y cotización", () => 
     await expect(row(owner, "storm-sobre").getByTestId("ars")).toContainText("$");
     await owner.getByLabel("Buscar por nombre, colección o SKU").fill("pack MIXTO");
     await owner.getByRole("button", { name: "Buscar" }).click();
-    await expect(owner.getByTestId("admin-cantidad")).toHaveText("1 de 8 productos");
+    await expect(owner.getByTestId("admin-cantidad")).toHaveText("1 de 10 productos");
     await expect(row(owner, "ejemplo-pack-mixto")).toBeVisible();
     await go(owner, "/admin?q=DEMO-STORM-CAJA");
-    await expect(owner.getByTestId("admin-cantidad")).toHaveText("1 de 8 productos");
+    await expect(owner.getByTestId("admin-cantidad")).toHaveText("1 de 10 productos");
     await go(owner, "/admin?q=storm");
-    await expect(owner.getByTestId("admin-cantidad")).toHaveText("3 de 8 productos");
+    await expect(owner.getByTestId("admin-cantidad")).toHaveText("3 de 10 productos");
     await go(owner, "/admin?estado=soldout");
-    await expect(owner.getByTestId("admin-cantidad")).toHaveText("1 de 8 productos");
+    await expect(owner.getByTestId("admin-cantidad")).toHaveText("1 de 10 productos");
     await go(owner, "/admin?idioma=zh");
     await expect(owner.getByText("Ningún producto coincide")).toBeVisible();
     await go(owner, "/admin?q=zzzz");

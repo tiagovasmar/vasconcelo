@@ -38,7 +38,7 @@ export function CartLink() {
   );
 }
 
-type AddProps = { productId: string; title: string; /** Foto de portada (solo para mostrar el producto en el panel lateral). */ imageSrc?: string | null; priceMinor: number; max: number; state: "available" | "soldout" | "pending"; /** Producto «solo por encargo» (no se vende de stock). */ orderOnly?: boolean; /** Hay unidades en stock confirmadas (solo falta el precio). */ stockKnown?: boolean };
+type AddProps = { productId: string; title: string; /** Foto de portada (solo para mostrar el producto en el panel lateral). */ imageSrc?: string | null; priceMinor: number; max: number; state: "available" | "soldout" | "pending"; /** Producto «solo por encargo» (no se vende de stock). */ orderOnly?: boolean; /** Hay unidades en stock confirmadas (solo falta el precio). */ stockKnown?: boolean; /** Unidades por pack (accesorios): la cantidad del carrito se cuenta en PACKS. */ packSize?: number | null };
 
 /** Botón «agregar» de las tarjetas (sin cantidad: suma 1). */
 export function AddToCartIcon({ productId, title, imageSrc, priceMinor, max, state }: AddProps) {
@@ -105,7 +105,7 @@ function BottomBar({ show, children }: { show: boolean; children: React.ReactNod
 }
 
 /** Compra desde la ficha: cantidad + agregar. */
-export function AddToCartPanel({ productId, title, imageSrc, priceMinor, max, state, stockKnown = false, orderOnly = false }: AddProps) {
+export function AddToCartPanel({ productId, title, imageSrc, priceMinor, max, state, stockKnown = false, orderOnly = false, packSize = null }: AddProps) {
   const inCart = useCartSelect((s) => s.items.find((i) => i.productId === productId)?.quantity ?? 0);
   const room = Math.max(0, max - inCart);
   const [qty, setQty] = useState(1);
@@ -114,7 +114,8 @@ export function AddToCartPanel({ productId, title, imageSrc, priceMinor, max, st
   const [panelRef, out] = useOutOfView<HTMLDivElement>();
   const add = () => {
     const r = cartActions.add(productId, title, q, priceMinor, max, "buy", imageSrc);
-    setMsg(`Agregaste ${q} ${q === 1 ? "unidad" : "unidades"}. Tenés ${r.quantity} en el carrito.${r.clamped ? " Llegaste al máximo por pedido." : ""}`);
+    const unit = packSize ? (q === 1 ? `pack de ${packSize} unidades` : "packs") : q === 1 ? "unidad" : "unidades";
+    setMsg(`Agregaste ${q} ${unit}. Tenés ${r.quantity} en el carrito.${r.clamped ? " Llegaste al máximo por pedido." : ""}`);
     setQty(1);
   };
 
@@ -151,7 +152,7 @@ export function AddToCartPanel({ productId, title, imageSrc, priceMinor, max, st
           {room === 0 ? "Máximo en el carrito" : "Agregar al carrito"}
         </button>
       </div>
-      <p className="mt-2 text-xs text-ink/65">Máximo {max} por pedido. {inCart > 0 && <>Ya tenés {inCart} en el carrito. </>}</p>
+      <p className="mt-2 text-xs text-ink/65">Máximo {max} {packSize ? "packs" : ""} por pedido. {inCart > 0 && <>Ya tenés {inCart} {packSize ? "packs " : ""}en el carrito. </>}{packSize ? <>Cada pack trae {packSize} unidades.</> : null}</p>
       <p role="status" aria-live="polite" className="mt-1 min-h-5 text-sm font-semibold text-emerald">
         {msg} {msg && <Link href="/carrito" className="underline">Ver carrito</Link>}
       </p>

@@ -67,7 +67,7 @@ function filterWhere(f: InquiryFilters) {
 
 export type InquiryListRow = {
   id: string; createdAt: number; source: string; crmStatus: CrmStatus; contactConfirmedAt: number | null;
-  name: string | null; accountEmail: string | null; phone: string | null; units: number; lineCount: number; encargoLines: number; subtotalMinor: number; discountMinor: number;
+  name: string | null; accountEmail: string | null; phone: string | null; units: number; lineCount: number; encargoLines: number; subtotalMinor: number; discountMinor: number; comboDiscountMinor: number;
   saleId: string | null;
 };
 
@@ -90,7 +90,7 @@ export async function listInquiries(db: Db, f: InquiryFilters = {}): Promise<{ r
         id: i.id, createdAt: i.createdAt, source: i.source, crmStatus: i.crmStatus as CrmStatus, contactConfirmedAt: i.contactConfirmedAt,
         name: i.contactName ?? accountName ?? null, accountEmail: accountEmail ?? null, phone: i.contactPhone,
         units: ls.reduce((s, l) => s + l.quantity, 0), lineCount: ls.length, encargoLines: ls.filter((l) => l.fulfillment === "encargo").length,
-        subtotalMinor: i.subtotalMinor, discountMinor: i.discountMinor, saleId: active.find((a) => a.inquiryId === i.id)?.saleId ?? null,
+        subtotalMinor: i.subtotalMinor, discountMinor: i.discountMinor, comboDiscountMinor: i.comboDiscountMinor, saleId: active.find((a) => a.inquiryId === i.id)?.saleId ?? null,
       };
     }),
   };

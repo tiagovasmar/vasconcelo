@@ -18,10 +18,18 @@ export type ServerLine = {
   unitPriceMinor: number | null;
   unitPriceUsdMinor?: number | null;
   previousPriceMinor: number | null;
-  product?: { slug: string; title: string; sku: string; language: Language; kind: keyof typeof kindLabel; fallbackTone: keyof typeof toneBg; imageSrc: string | null; imageAlt: string };
+  product?: { slug: string; title: string; sku: string; language: Language; kind: keyof typeof kindLabel; fallbackTone: keyof typeof toneBg; packSize?: number | null; imageSrc: string | null; imageAlt: string };
 };
 export type Fx = { rate10k: number; mode: "auto" | "manual"; warn: boolean };
-export type Validation = { key: string; lines: Record<string, ServerLine>; qualifies: boolean; fx: Fx | null };
+/** Importes de una línea calculados por el SERVIDOR (lista, combo caja + sobres, transferencia y total a pagar). */
+export type ServerPricedLine = { productId: string; quantity: number; listUnitMinor: number; listTotalMinor: number; comboUnits: number; comboDiscountMinor: number; transferDiscountMinor: number; finalTotalMinor: number };
+export type ServerPricing = { lines: ServerPricedLine[]; subtotalMinor: number; comboDiscountMinor: number; transferDiscountMinor: number; totalMinor: number; qualifies: boolean };
+export type ComboInfo = { headline: string; percent: number; perBox: number; enabled: boolean; boxes: number; slots: number; usedSlots: number; freeSlots: number };
+export type ServerSuggestion = { productId: string; slug: string; title: string; presentation: string; kind: keyof typeof kindLabel; reason: string; priceMinor: number; comboPriceMinor: number | null; imageSrc: string | null; imageAlt: string; maxQuantity: number; packSize: number | null };
+export type Validation = { key: string; lines: Record<string, ServerLine>; qualifies: boolean; fx: Fx | null; pricing: { base: ServerPricing; transferencia: ServerPricing } | null; combo: ComboInfo | null; suggestions: ServerSuggestion[] };
+
+/** Importes que corresponden al medio de pago elegido (la transferencia solo cuenta si el pedido califica). */
+export const pricingFor = (v: Validation | null | undefined, payment: string): ServerPricing | null => (v?.pricing ? (payment === "transferencia" && v.qualifies ? v.pricing.transferencia : v.pricing.base) : null);
 
 export const itemsKeyOf = (items: CartItem[]) => items.map((i) => `${i.productId}:${i.quantity}:${i.priceMinor}:${i.mode}`).join("|");
 
@@ -48,7 +56,7 @@ async function run(key: string, items: CartItem[]) {
       body: JSON.stringify({ items: items.map((i) => ({ productId: i.productId, quantity: i.quantity, mode: i.mode, ...(i.mode === "buy" ? { expectedPriceMinor: i.priceMinor } : {}) })) }),
     });
     if (!res.ok) throw new Error(String(res.status));
-    const body = (await res.json()) as { lines: ServerLine[]; qualifiesForPromo: boolean; fx?: Fx | null };
+    const body = (await res.json()) as { lines: ServerLine[]; qualifiesForPromo: boolean; fx?: Fx | null; pricing?: { base: ServerPricing; transferencia: ServerPricing }; combo?: ComboInfo; suggestions?: ServerSuggestion[] };
     if (ctl.signal.aborted) return;
     const added: string[] = [];
     // Cantidades por encima de lo disponible: se ajustan y se avisa (la nueva cantidad dispara una nueva validación).
@@ -58,7 +66,7 @@ async function run(key: string, items: CartItem[]) {
         added.push(`Ajustamos la cantidad de «${l.product?.title ?? "un producto"}» a ${l.maxQuantity}: es lo máximo disponible por pedido.`);
       }
     }
-    set({ data: { key, lines: Object.fromEntries(body.lines.map((l) => [l.productId, l])), qualifies: Boolean(body.qualifiesForPromo), fx: body.fx ?? null }, error: "", pendingKey: null, notices: added.length ? [...snap.notices, ...added] : snap.notices });
+    set({ data: { key, lines: Object.fromEntries(body.lines.map((l) => [l.productId, l])), qualifies: Boolean(body.qualifiesForPromo), fx: body.fx ?? null, pricing: body.pricing ?? null, combo: body.combo ?? null, suggestions: body.suggestions ?? [] }, error: "", pendingKey: null, notices: added.length ? [...snap.notices, ...added] : snap.notices });
   } catch (e) {
     if ((e as Error).name === "AbortError") return;
     requestedKey = null;

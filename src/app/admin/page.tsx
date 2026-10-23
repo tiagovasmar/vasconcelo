@@ -48,7 +48,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<Re
     return {
       id: p.id, sku: p.sku, title: p.title, expansion: exps.map((e) => e.name).join(", ") || "—", kind: kindLabel[p.kind], language: languageLabel[p.language], lang: p.language, state,
       lowStock: state !== "retired" && state !== "hidden" && state !== "draft" && isLowStock(p.stockQuantity, Boolean(p.orderOnly), low.threshold), kindId: p.kind, expIds: p.expansionIds,
-      usdMinor: p.priceUsdMinor ?? null, arsMinor: p.priceMinor, stock: p.stockQuantity, orderOnly: Boolean(p.orderOnly), version: a.version, overridden: a.overridden,
+      usdMinor: p.priceUsdMinor ?? null, arsMinor: p.priceMinor, priceBase: base.priceBase ?? "usd", packSize: p.packSize ?? null, stock: p.stockQuantity, orderOnly: Boolean(p.orderOnly), version: a.version, overridden: a.overridden,
       thumb: p.images[0] && hasAsset(p.images[0].src) ? thumbOf(p.images[0].src) : null, slug: p.slug,
       search: norm(`${p.title} ${p.originalTitle ?? ""} ${p.sku} ${p.id} ${exps.map((e) => `${e.name} ${e.code ?? ""}`).join(" ")}`),
     };
@@ -66,6 +66,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<Re
   const colecciones = catalog.expansions.filter((e) => catalog.products.some((p) => p.expansionIds.includes(e.id) && !p.retired)).sort((a, b) => a.name.localeCompare(b.name));
   const hayFiltros = Boolean(q || idioma || formato || coleccion || estado !== "todos");
   const priced = all.filter((r) => r.usdMinor !== null).length;
+  const usdProducts = all.filter((r) => r.state !== "retired" && r.priceBase !== "ars").length; // los accesorios tienen precio fijo en pesos: no cuentan acá
 
   return (
     <div className="mx-auto max-w-[1240px] px-4 py-8 sm:px-8 sm:py-10">
@@ -85,7 +86,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<Re
           <div key={k} className="rounded-lg border border-ink/15 bg-white px-4 py-3"><dt className="text-xs text-ink/70">{l}</dt><dd className="text-2xl font-semibold" data-testid={`cuenta-${k}`}>{counts[k]}</dd></div>
         ))}
       </dl>
-      <p className="mt-2 text-xs text-ink/65">{priced} de {all.filter((r) => r.state !== "retired").length} productos activos tienen precio en USD cargado.</p>
+      <p className="mt-2 text-xs text-ink/65">{priced} de {usdProducts} productos con precio en USD tienen el precio cargado. Los accesorios tienen precio fijo en pesos (no usan el dólar) y su stock se cuenta en packs.</p>
 
       <AdminLowStockSettings threshold={low.threshold} custom={low.custom} updatedAt={low.updatedAt} updatedBy={low.updatedByEmail} lowCount={counts.low} />
 

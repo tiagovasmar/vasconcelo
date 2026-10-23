@@ -1,6 +1,6 @@
 export type SaleErrorCode =
   | "invalid_input" | "not_found" | "insufficient_stock" | "stock_pending" | "idempotency_conflict" | "already_voided" | "order_only" | "retired"
-  | "already_converted" | "already_linked" | "voided" | "converted";
+  | "already_converted" | "already_linked" | "voided" | "converted" | "stale";
 
 /** Error de negocio de ventas, stock y consultas: lleva el estado HTTP, un código estable y un mensaje en español para el panel. */
 export class SaleError extends Error {

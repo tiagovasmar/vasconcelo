@@ -13,7 +13,7 @@ import { AdminError, parseGallery, type Actor } from "./overrides";
  * catálogo (biblioteca) y las subidas desde el panel y registradas en `media_assets`. Nunca una URL ni una ruta arbitraria.
  */
 export const MAX_GALLERY = 12;
-const sources = ["store", "supplier", "manufacturer"] as const;
+const sources = ["store", "supplier", "manufacturer", "illustration"] as const;
 const views = ["front", "back", "left", "right", "top", "bottom", "detail", "contents", "closed", "display-open"] as const;
 
 export const GalleryEditSchema = z.object({

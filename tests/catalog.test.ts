@@ -32,8 +32,11 @@ describe("búsqueda y filtros", () => {
   it("ordena por precio y por novedades", () => {
     const asc = run({ orden: "precio-asc" }).map((p) => p.priceMinor as number);
     expect(asc).toEqual([...asc].sort((a, b) => a - b));
-    const novedades = run({}).map((p) => p.createdAt);
+    const todos = run({});
+    const resto = todos.filter((p) => p.kind !== "accessory");
+    const novedades = resto.map((p) => p.createdAt);
     expect(novedades).toEqual([...novedades].sort().reverse());
+    expect(todos.slice(resto.length).every((p) => p.kind === "accessory")).toBe(true); // los accesorios van al final del orden por defecto
   });
   it("ignora parámetros inválidos sin romper", () => {
     const q = parseQuery({ formato: "xx", idioma: "fr", orden: "raro", pagina: "-3", pmin: "abc", pmax: "-1" });

@@ -49,7 +49,9 @@
     ".next-e2e-consultas/types/**/*.ts",
     ".next-e2e-consultas/dev/types/**/*.ts",
     ".next-preview-consultas/types/**/*.ts",
-    ".next-preview-consultas/dev/types/**/*.ts"
+    ".next-preview-consultas/dev/types/**/*.ts",
+    ".next-preview-combo/types/**/*.ts",
+    ".next-preview-combo/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

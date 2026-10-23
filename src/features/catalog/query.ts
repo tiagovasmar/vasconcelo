@@ -24,7 +24,7 @@ const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v
 const kinds = productKinds;
 const langs = languages;
 /** Alias legibles en la URL (los enlaces del inicio usan sobre/pack/caja). */
-const kindAlias: Record<string, Product["kind"]> = { sobre: "booster", pack: "pack", caja: "box", bundle: "bundle", kit: "kit", especial: "special-box", ilustraciones: "illustration-set", booster: "booster", box: "box", "special-box": "special-box", "illustration-set": "illustration-set" };
+const kindAlias: Record<string, Product["kind"]> = { sobre: "booster", pack: "pack", caja: "box", bundle: "bundle", kit: "kit", especial: "special-box", ilustraciones: "illustration-set", accesorios: "accessory", accesorio: "accessory", accessory: "accessory", booster: "booster", box: "box", "special-box": "special-box", "illustration-set": "illustration-set" };
 
 function money(v: string): number | null {
   if (!/^\d{1,9}$/.test(v)) return null;
@@ -103,7 +103,8 @@ export function filterProducts(all: Product[], expansions: Expansion[], q: Catal
   };
   if (q.sort === "precio-asc") sorted.sort(byPrice(1));
   else if (q.sort === "precio-desc") sorted.sort(byPrice(-1));
-  else sorted.sort((a, b) => b.createdAt.localeCompare(a.createdAt) || a.id.localeCompare(b.id));
+  // Los accesorios van al final del orden por defecto: el catálogo se abre con los productos sellados y los accesorios se encuentran con el formato «Accesorios».
+  else sorted.sort((a, b) => Number(a.kind === "accessory") - Number(b.kind === "accessory") || b.createdAt.localeCompare(a.createdAt) || a.id.localeCompare(b.id));
   return sorted;
 }
 

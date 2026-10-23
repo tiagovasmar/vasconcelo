@@ -34,7 +34,7 @@ describe("catálogo chino: cobertura de las 16 fuentes y formatos", () => {
     expect(zh.filter((p) => p.retired).every((p) => !p.active)).toBe(true);
     expect(zhExp.every((e) => e.region === "CN" && !e.isDemo && e.cards.length === 0 && e.cardListStatus === "unavailable")).toBe(true);
     for (const k of ["id", "sku", "slug"] as const) expect(new Set(all.map((p) => p[k])).size, k).toBe(all.length);
-    expect(new Set(all.map((p) => p.sku)).size).toBe(59);
+    expect(new Set(all.map((p) => p.sku)).size).toBe(61);
   });
 
   it("las 16 fuentes del dueño están representadas por al menos una ficha y cada ficha cita su fuente", () => {
@@ -202,8 +202,8 @@ describe("catálogo chino: búsqueda y filtros", () => {
     expect(f({ q: "ogerpon" })).toHaveLength(2);
     expect(f({ q: "storm" })).toHaveLength(2); // sigue encontrando las japonesas
   });
-  it("paginación: 50 fichas públicas en 5 páginas de 12", () => {
-    expect(f({})).toHaveLength(50);
+  it("paginación: 52 fichas públicas (50 sellados + 2 accesorios) en 5 páginas de 12", () => {
+    expect(f({})).toHaveLength(52);
     expect(Math.ceil(f({}).length / 12)).toBe(5);
   });
 });
@@ -304,7 +304,7 @@ describe("catálogo chino: sobres individuales de 20 cartas retirados", () => {
   });
   it("el panel del dueño no puede volver a mostrarlos", () => {
     const p = retirados[0];
-    const con = applyOverrides([p], new Map([[p.id, { productId: p.id, priceMinor: 100, priceUsdMinor: 1000, title: null, description: null, orderOnly: false, stockQuantity: 3, maxPerOrder: null, visible: true, updatedAt: 1, updatedByEmail: "d@e.com" }]]));
+    const con = applyOverrides([p], new Map([[p.id, { productId: p.id, priceMinor: 100, priceUsdMinor: 1000, priceArsMinor: null, title: null, description: null, orderOnly: false, stockQuantity: 3, maxPerOrder: null, visible: true, updatedAt: 1, updatedByEmail: "d@e.com" }]]));
     expect(con[0].active).toBe(false);
   });
   it("las colecciones que se quedaron sin productos publicados dejan de listarse; las demás siguen", () => {

@@ -49,6 +49,7 @@ const server = (port: number, tag: string, whatsapp: string, fixture = true, adm
 });
 
 export default defineConfig({
+  workers: 1,
   testDir: "tests/e2e",
   timeout: 45_000,
   reporter: "list",
@@ -58,13 +59,13 @@ export default defineConfig({
   // E2E_SERVERS=real,admin levanta solo esos servidores (para iterar sobre un grupo de pruebas); sin definir, se levantan los cuatro.
   webServer: [pgServer as never, server(3100, "demo", ""), server(3101, "live", "5491155550000"), server(3102, "real", "", false), server(3103, "admin", "", true, "dueno-e2e@example.com"), server(3104, "consultas", "", true, "dueno-e2e@example.com")].filter((w) => !process.env.E2E_SERVERS || !(w.env as Record<string, string>).NEXT_DIST_DIR || process.env.E2E_SERVERS.split(",").some((t) => (w.env as Record<string, string>).NEXT_DIST_DIR.endsWith(`-${t}`))),
   projects: [
-    { name: "escritorio", testIgnore: /whatsapp|colecciones|admin/, use: { baseURL: "http://localhost:3100", viewport: { width: 1440, height: 900 } } },
-    { name: "movil", testIgnore: /whatsapp|colecciones|admin/, use: { baseURL: "http://localhost:3100", viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true } },
+    { name: "escritorio", testIgnore: /whatsapp|colecciones|admin|promo-accesorios/, use: { baseURL: "http://localhost:3100", viewport: { width: 1440, height: 900 } } },
+    { name: "movil", testIgnore: /whatsapp|colecciones|admin|promo-accesorios/, use: { baseURL: "http://localhost:3100", viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true } },
     { name: "whatsapp", testMatch: /whatsapp/, use: { baseURL: "http://localhost:3101", viewport: { width: 1440, height: 900 } } },
     // Panel del dueño (catálogo de prueba, ADMIN_EMAIL configurado); su propia base y su propio correo local.
     { name: "admin", testMatch: /admin.spec/, use: { baseURL: "http://localhost:3103", viewport: { width: 1440, height: 900 } } },
     // Consultas, ventas y stock del panel: servidor y base propios (mueven stock y precios de los productos de prueba y no deben alterar los conteos de admin.spec.ts).
-    { name: "consultas", testMatch: /admin-consultas.spec/, use: { baseURL: "http://localhost:3104", viewport: { width: 1440, height: 900 } } },
+    { name: "consultas", testMatch: /admin-consultas.spec|promo-accesorios.spec/, use: { baseURL: "http://localhost:3104", viewport: { width: 1440, height: 900 } } },
     // Catálogo real (8 colecciones, 16 fichas): escritorio y móvil.
     { name: "real-escritorio", testMatch: /colecciones/, use: { baseURL: "http://localhost:3102", viewport: { width: 1440, height: 900 } } },
     { name: "real-movil", testMatch: /colecciones/, use: { baseURL: "http://localhost:3102", viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true } },

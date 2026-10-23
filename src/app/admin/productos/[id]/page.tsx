@@ -40,7 +40,7 @@ export default async function EditarProducto({ params }: { params: Promise<{ id:
     id: p.id, sku: p.sku, slug: p.slug, kind: kindLabel[p.kind], language: languageLabel[p.language], expansion: exps.join(", ") || "—", state,
     version: a.version, overridden: a.overridden, updatedLabel: a.updatedAt ? when(a.updatedAt, a.updatedByEmail) : null,
     codeTitle: a.codeTitle, codeDescription: a.codeDescription, title: p.title, description: p.description,
-    usdMinor: p.priceUsdMinor ?? null, arsMinor: p.priceMinor, stock: p.stockQuantity, maxPerOrder: p.maxPerOrder ?? null, visible: p.active, orderOnly: Boolean(p.orderOnly),
+    usdMinor: p.priceUsdMinor ?? null, arsMinor: p.priceMinor, priceBase: base.priceBase ?? "usd", packSize: p.packSize ?? null, stock: p.stockQuantity, maxPerOrder: p.maxPerOrder ?? null, visible: p.active, orderOnly: Boolean(p.orderOnly),
     draftNote: base.draftNote ?? null, retired: Boolean(base.retired), legacyPriceMinor: a.legacyPriceMinor, rate10k: fx.rate10k, rateLabel,
     gallery: { items: (customGallery ?? base.images).map((i) => toItem(i, uploaded)), custom: Boolean(customGallery), version: a.gallery.version, codeItems: base.images.map((i) => toItem(i, uploaded)) },
     library: (await libraryImages(db, catalog.products)).filter((l) => hasAsset(l.src)).map((l) => ({ src: l.src, thumb: thumbOf(l.src), alt: l.alt, from: l.from })),

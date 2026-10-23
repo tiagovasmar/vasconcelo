@@ -8,7 +8,7 @@ import { requireAdmin } from "@/server/admin";
 
 export const dynamic = "force-dynamic";
 
-const FIELDS: Record<string, string> = { price_usd_minor: "Precio base (USD)", order_only: "Por encargo", title: "Título", description: "Descripción", gallery: "Fotos", gallery_reset: "Fotos restablecidas al código", price_minor: "Precio (ARS, anterior)", stock_quantity: "Stock", max_per_order: "Máx. por pedido", visible: "Visibilidad", reset: "Restablecido al código" };
+const FIELDS: Record<string, string> = { price_ars_minor: "Precio fijo (ARS)", promo_combo: "Promoción caja + sobres", price_usd_minor: "Precio base (USD)", order_only: "Por encargo", title: "Título", description: "Descripción", gallery: "Fotos", gallery_reset: "Fotos restablecidas al código", price_minor: "Precio (ARS, anterior)", stock_quantity: "Stock", max_per_order: "Máx. por pedido", visible: "Visibilidad", reset: "Restablecido al código" };
 const when = (ms: number) => new Intl.DateTimeFormat("es-AR", { dateStyle: "medium", timeStyle: "medium", timeZone: "America/Argentina/Buenos_Aires" }).format(new Date(ms));
 
 function value(field: string, raw: string): string {
@@ -24,6 +24,11 @@ function value(field: string, raw: string): string {
     return `precio ${usd}, stock ${o.stockQuantity ?? "pendiente"}, máx. ${o.maxPerOrder ?? "sin tope"}, ${o.visible ? "visible" : "oculto"}`;
   }
   if (field === "price_usd_minor") return v === null ? "pendiente" : formatUSD(v as number);
+  if (field === "price_ars_minor") return v === null ? "el inicial del catálogo" : formatARS(v as number);
+  if (field === "promo_combo") {
+    const c = v as { enabled?: boolean; boxIds?: string[]; boosterIds?: string[] };
+    return `${c.enabled ? "activada" : "desactivada"} · ${c.boxIds?.length ?? 0} cajas · ${c.boosterIds?.length ?? 0} sobres`;
+  }
   if (field === "order_only") return v ? "sí" : "no";
   if (field === "title" || field === "description") return v === null ? "(el del catálogo)" : String(v).slice(0, 140);
   if (field === "gallery" || field === "gallery_reset") return Array.isArray(v) ? `${v.length} foto${v.length === 1 ? "" : "s"}: ${(v as Array<{ src: string }>).map((x) => x.src.split("/").pop()).join(", ")}`.slice(0, 220) : String(v);
@@ -40,7 +45,7 @@ export default async function Historial({ searchParams }: { searchParams: Promis
   const productId = typeof sp.producto === "string" ? sp.producto.slice(0, 80) : undefined;
   const product = productId ? catalog.products.find((p) => p.id === productId) : undefined;
   const rows = await listAudit(getDb(), { productId: product?.id, limit: 300 });
-  const title = new Map(catalog.products.map((p) => [p.id, p.title]));
+  const title = new Map<string, string>([...catalog.products.map((p): [string, string] => [p.id, p.title]), ["promo-combo", "Promoción caja + sobres"]]);
   return (
     <div className="mx-auto max-w-[1240px] px-4 py-8 sm:px-8 sm:py-10">
       <p className="eyebrow text-emerald">Panel del dueño</p>

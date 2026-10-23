@@ -12,6 +12,11 @@ import { isBoxKind, PROMO_CONDITION } from "@/features/politicas/promociones";
 export function PaymentBenefits({ kind, compact = false }: { kind?: ProductKind; compact?: boolean }) {
   // En las tarjetas: una línea de resumen y las condiciones completas en un desplegable (sin párrafos repetidos en cada producto).
   const resumen = "cursor-pointer select-none py-1.5 font-semibold text-ink underline-offset-2 hover:underline";
+  // Accesorios: no cuentan como caja ni tienen descuentos de pago propios (los de las cajas y los sobres siguen igual).
+  if (kind === "accessory") {
+    if (compact) return null;
+    return <p className="mt-3 text-sm leading-relaxed text-ink/75" data-testid="promo-condicion">Los accesorios no cuentan como caja y no tienen descuentos propios. Las promociones de las cajas siguen valiendo en el resto de tu pedido.</p>;
+  }
   if (kind && !isBoxKind(kind)) {
     const sumable = kind === "booster" || kind === "pack";
     if (compact && !sumable) return null; // en las tarjetas, los kits y sets no repiten una aclaración que ya está en su ficha

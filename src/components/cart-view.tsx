@@ -5,13 +5,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { cartActions, useCart, type DeliveryDraft } from "@/features/cart/store";
-import { useCartValidation, type ServerLine } from "@/features/cart/validation";
+import { pricingFor, useCartValidation, type ServerLine } from "@/features/cart/validation";
 import { CONTACT_NAME_MESSAGE, DeliverySchema, isFullName, normalizeName, provinces } from "@/features/inquiries/schemas";
 import { buildMessage } from "@/features/inquiries/message";
 import { paymentMethods, PICKUP_ADDRESS, PICKUP_NOTICE } from "@/content/checkout-options";
 import { encargo as politicaEncargo, promo } from "@/content/politicas";
 import { ENCARGO_EXPLICACION } from "@/features/politicas/encargos";
-import { isPromoPayment, PROMO_CONDITION, transferDiscountMinor } from "@/features/politicas/promociones";
+import { isPromoPayment, PROMO_CONDITION } from "@/features/politicas/promociones";
 import { LanguageBadge } from "./language-badge";
 import { kindLabel, wideKinds } from "@/content/labels";
 import { formatARS } from "@/lib/format";
@@ -110,11 +110,14 @@ export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }
   const subtotal = stockView.reduce((n, v) => n + (v.line?.status === "unavailable" || v.line?.status === "retired" || v.line?.status === "out_of_stock" || v.line?.status === "pending_commercial" ? 0 : unitOf(v) * v.item.quantity), 0);
   const units = stockView.reduce((n, v) => n + v.item.quantity, 0);
   const encargoUnits = encargoView.reduce((n, v) => n + v.item.quantity, 0);
-  // Promoción: se evalúa con lo que se compra; el servidor la vuelve a validar al preparar la consulta.
-  const promoLines = stockView
-    .filter((v) => v.line?.product && v.line.unitPriceMinor !== null && (v.line.status === "ok" || v.line.status === "price_changed"))
-    .map((v) => ({ kind: v.line!.product!.kind, quantity: v.item.quantity, unitPriceMinor: v.line!.unitPriceMinor! }));
-  const discount = qualifies ? transferDiscountMinor(promoLines, cart.payment) : 0;
+  // Importes (lista, combo caja + sobres, transferencia y total) del SERVIDOR para el medio de pago elegido, solo si corresponden al contenido actual del carrito.
+  // El navegador no calcula ningún descuento: el servidor los vuelve a calcular al preparar la consulta y avisa si algo cambió.
+  const sp = validation.fresh ? pricingFor(validation.data, cart.payment) : null;
+  const discount = sp?.transferDiscountMinor ?? 0;
+  const comboOff = sp?.comboDiscountMinor ?? 0;
+  const totalFinal = sp ? sp.totalMinor : subtotal;
+  const anyOff = discount > 0 || comboOff > 0;
+  const pricedOf = (id: string) => sp?.lines.find((l) => l.productId === id);
 
   // Si el pedido dejó de calificar (p. ej. se quitó la última caja), no puede quedar elegido un medio de pago de promoción.
   useEffect(() => {
@@ -146,8 +149,8 @@ export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }
     const method = parsed?.success ? parsed.data : delivery.method === "retiro" ? { method: "retiro" as const } : { method: "moto" as const, locality: "", postalCode: "" };
     let text = buildMessage({
       reference: "(se asigna al preparar la consulta)", contactName: normalizeName(cart.contactName) || undefined,
-      lines: okLines.map((v) => ({ quantity: v.item.quantity, title: v.line!.product!.title, language: v.line!.product!.language, sku: v.line!.product!.sku, unitPriceMinor: v.item.mode === "encargo" ? null : unitOf(v) })),
-      subtotalMinor: subtotal, discountMinor: discount, delivery: method, paymentLabel: paymentMethods.find((p) => p.id === cart.payment)?.label ?? "",
+      lines: okLines.map((v) => { const pl = pricedOf(v.item.productId); return { quantity: v.item.quantity, title: v.line!.product!.title, language: v.line!.product!.language, sku: v.line!.product!.sku, unitPriceMinor: v.item.mode === "encargo" ? null : unitOf(v), packSize: v.line!.product!.packSize ?? null, comboUnits: pl?.comboUnits ?? 0, comboDiscountMinor: pl?.comboDiscountMinor ?? 0, transferDiscountMinor: pl?.transferDiscountMinor ?? 0 }; }),
+      subtotalMinor: subtotal, discountMinor: discount, comboDiscountMinor: comboOff, delivery: method, paymentLabel: paymentMethods.find((p) => p.id === cart.payment)?.label ?? "",
     });
     if (!parsed?.success) text = text.replace(/Entrega: .*/, "Entrega: (completá los datos de entrega)");
     if (!cart.payment) text = text.replace(/Método de pago: .*/, "Método de pago: (elegí cómo preferís pagar)");
@@ -175,7 +178,9 @@ export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }
             {line?.product ? (
               <>
                 <Link href={`/productos/${line.product.slug}`} className="font-bold leading-tight hover:underline">{line.product.title}</Link>
-                <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-ink/65"><LanguageBadge language={line.product.language} size="plain" /> · {kindLabel[line.product.kind]} sellado · SKU {line.product.sku}</p>
+                {line.product.packSize
+                  ? <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-ink/65" data-testid={`pack-${item.productId}`}>{kindLabel[line.product.kind]} · pack de {line.product.packSize} unidades (cada unidad del carrito es un pack) · SKU {line.product.sku}</p>
+                  : <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-ink/65"><LanguageBadge language={line.product.language} size="plain" /> · {kindLabel[line.product.kind]} sellado · SKU {line.product.sku}</p>}
               </>
             ) : (
               <>
@@ -188,19 +193,34 @@ export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }
               {porEncargo ? <b data-testid={`cotizacion-${item.productId}`}>Cotización a confirmar</b> : (
                 <>
                   {line?.status === "price_changed" && line.previousPriceMinor !== null && <s className="mr-2 text-ink/50">{money(line.previousPriceMinor)}</s>}
-                  {pendingPrice ? <b>Precio a confirmar</b> : (<><b>{money(unit)}</b> <span className="text-ink/60">c/u</span></>)}
+                  {pendingPrice ? <b>Precio a confirmar</b> : (<><b>{money(unit)}</b> <span className="text-ink/60">{line?.product?.packSize ? "por pack" : "c/u"}</span></>)}
                 </>
               )}
             </p>
           </div>
-          <div className="col-span-2 flex items-center justify-between gap-3 sm:col-span-1 sm:flex-col sm:items-end">
+          <div className="col-span-2 flex flex-wrap items-center justify-between gap-3 sm:col-span-1 sm:flex-col sm:items-end">
             <div className="flex h-12 items-center border border-ink/40 bg-white" role="group" aria-label={`Cantidad de ${line?.product?.title ?? "producto"}`}>
               <button type="button" onClick={() => (item.quantity <= 1 ? cartActions.remove(item.productId) : cartActions.setQuantity(item.productId, item.quantity - 1))} aria-label={item.quantity <= 1 ? "Quitar del carrito" : "Menos"} className="h-12 w-11 text-xl hover:bg-gold">−</button>
               <output className="w-9 text-center font-bold" aria-live="polite" data-testid={`cantidad-${item.productId}`}>{item.quantity}</output>
               <button type="button" onClick={() => cartActions.setQuantity(item.productId, item.quantity + 1)} disabled={Boolean(line && item.quantity >= (line.maxQuantity || 99))} aria-label="Más" className="h-12 w-11 text-xl hover:bg-gold disabled:opacity-40">+</button>
             </div>
-            <p className="text-lg font-extrabold" data-testid={`subtotal-${item.productId}`}>{porEncargo || pendingPrice ? "—" : money(unit * item.quantity)}</p>
+            <p className="text-right text-lg font-extrabold" data-testid={`subtotal-${item.productId}`}>
+              {porEncargo || pendingPrice ? "—" : (() => {
+                const pl = pricedOf(item.productId);
+                const off = pl ? pl.comboDiscountMinor + pl.transferDiscountMinor : 0;
+                return off > 0 && pl ? <><s className="mr-1.5 text-sm font-semibold text-ink/75" data-testid={`original-${item.productId}`}>{money(pl.listTotalMinor)}</s>{money(pl.finalTotalMinor)}</> : money(unit * item.quantity);
+              })()}
+            </p>
             <button type="button" onClick={() => cartActions.remove(item.productId)} className="min-h-11 text-sm font-semibold underline hover:text-vermilion" aria-label={`Quitar ${line?.product?.title ?? "producto"} del carrito`}>Quitar</button>
+            {(() => {
+              const pl = pricedOf(item.productId);
+              const off = pl ? pl.comboDiscountMinor + pl.transferDiscountMinor : 0;
+              return off > 0 && pl ? (
+                <p className="w-full basis-full text-right text-xs font-semibold text-emerald sm:w-52 sm:basis-auto" data-testid={`ahorro-${item.productId}`}>
+                  Ahorrás {money(off)}{pl.comboDiscountMinor > 0 ? ` · combo caja + sobres: 10% OFF en ${pl.comboUnits} ${pl.comboUnits === 1 ? "sobre" : "sobres"}` : " · 10% OFF por transferencia"}
+                </p>
+              ) : null;
+            })()}
           </div>
         </div>
         {bad && line.status === "price_changed" && (
@@ -248,7 +268,7 @@ export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }
     try {
       const res = await fetch("/api/inquiries", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items: itemsPayload, delivery: parsed.data, payment: cart.payment, contactName: normalizeName(cart.contactName), contactPhone: cart.contactPhone.trim() || undefined, idempotencyKey: key }),
+        body: JSON.stringify({ items: itemsPayload, delivery: parsed.data, payment: cart.payment, contactName: normalizeName(cart.contactName), contactPhone: cart.contactPhone.trim() || undefined, ...(sp ? { expectedTotalMinor: sp.totalMinor } : {}), idempotencyKey: key }),
       });
       const data = await res.json().catch(() => null);
       if (res.ok && data?.reference) {
@@ -418,16 +438,17 @@ export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }
             <>
               <dl className="mt-4 space-y-2 text-base">
                 <div className="flex justify-between"><dt>{mixed ? "Productos disponibles" : "Productos"} ({units})</dt><dd data-testid="resumen-productos">{money(subtotal)}</dd></div>
+                {comboOff > 0 && <div className="flex justify-between text-emerald"><dt>Descuento combo caja + sobres ({"10"}%)</dt><dd className="font-semibold" data-testid="resumen-descuento-combo">−{money(comboOff)}</dd></div>}
                 {discount > 0 && <div className="flex justify-between text-emerald"><dt>Descuento por transferencia ({promo.transferDiscountPercent}%)</dt><dd className="font-semibold" data-testid="resumen-descuento">−{money(discount)}</dd></div>}
                 <div className="flex justify-between"><dt>Envío</dt><dd className="font-semibold" data-testid="resumen-envio">{envioTexto}</dd></div>
-                <div className="flex items-end justify-between border-t border-ink/20 pt-3"><dt className="text-lg font-bold">{discount > 0 ? "Subtotal sin descuento" : "Subtotal de productos"}</dt><dd className="text-3xl font-extrabold" data-testid="resumen-subtotal">{money(subtotal)}</dd></div>
-                {discount > 0 && <div className="flex items-end justify-between"><dt className="font-bold">Productos con descuento</dt><dd className="text-2xl font-extrabold" data-testid="resumen-total-descuento">{money(subtotal - discount)}</dd></div>}
+                <div className="flex items-end justify-between border-t border-ink/20 pt-3"><dt className="text-lg font-bold">{anyOff ? "Subtotal sin descuento" : "Subtotal de productos"}</dt><dd className="text-3xl font-extrabold" data-testid="resumen-subtotal">{money(subtotal)}</dd></div>
+                {anyOff && <div className="flex items-end justify-between"><dt className="font-bold">Productos con descuento</dt><dd className="text-2xl font-extrabold" data-testid="resumen-total-descuento">{money(totalFinal)}</dd></div>}
               </dl>
-              {cart.payment === "tarjeta-3-cuotas" && qualifies && subtotal > 0 && (
-                <p className="mt-2 text-sm font-semibold" data-testid="resumen-cuotas">{promo.installments} cuotas sin interés: {splitInstallments(subtotal, promo.installments).map((c) => money(c)).join(" + ")} = {money(subtotal)}</p>
+              {cart.payment === "tarjeta-3-cuotas" && qualifies && totalFinal > 0 && (
+                <p className="mt-2 text-sm font-semibold" data-testid="resumen-cuotas">{promo.installments} cuotas sin interés: {splitInstallments(totalFinal, promo.installments).map((c) => money(c)).join(" + ")} = {money(totalFinal)}</p>
               )}
               <div className="min-h-[3.1rem]">{fx && stockView.some((v) => v.line?.unitPriceUsdMinor) && <p className="mt-1 text-xs text-ink/70" data-testid="resumen-fx">Precios en pesos calculados con {fx.mode === "manual" ? "la cotización fijada por la tienda" : "el dólar blue (venta)"} a {formatRate(fx.rate10k)} por dólar, redondeados a múltiplos de $100 por unidad. La consulta que prepares guarda esta cotización.</p>}</div>
-              <p className="mt-1 text-xs text-ink/70">{discount > 0 ? "El 10% OFF se calcula sobre los productos disponibles de un pedido con caja; el envío no entra. " : ""}{mixed ? "No incluye los productos por encargo (sin cotizar). " : ""}{delivery.method === "retiro" ? "El importe final y el horario de retiro se confirman por WhatsApp." : "Envío e importe final se confirman por WhatsApp."}</p>
+              <p className="mt-1 text-xs text-ink/70">{discount > 0 ? "El 10% OFF por transferencia se calcula sobre los productos de un pedido con caja (sin los accesorios); el envío no entra. " : ""}{comboOff > 0 ? "El combo caja + sobres no se suma al 10% por transferencia sobre un mismo sobre: rige el más favorable. " : ""}{mixed ? "No incluye los productos por encargo (sin cotizar). " : ""}{delivery.method === "retiro" ? "El importe final y el horario de retiro se confirman por WhatsApp." : "Envío e importe final se confirman por WhatsApp."}</p>
             </>
           ) : (
             <dl className="mt-4 space-y-2 text-base">
@@ -469,7 +490,7 @@ export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }
         <div className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-ink bg-paper px-3 py-2 pb-[max(.5rem,env(safe-area-inset-bottom))] shadow-[0_-6px_16px_rgba(18,23,21,.18)] lg:hidden" data-testid="barra-carrito">
           <div className="mx-auto flex max-w-[640px] items-center gap-3">
             <p className="min-w-0 flex-1 text-sm leading-tight">
-              {stockView.length > 0 ? <><span className="block text-xs text-ink/70">Subtotal de productos ({units})</span><b className="text-lg">{money(subtotal)}</b></> : <b>Consulta por encargo</b>}
+              {stockView.length > 0 ? <><span className="block text-xs text-ink/70">{anyOff ? "Total de productos" : "Subtotal de productos"} ({units})</span><b className="text-lg">{money(totalFinal)}</b></> : <b>Consulta por encargo</b>}
             </p>
             <button type="button" onClick={() => document.getElementById("resumen")?.scrollIntoView({ behavior: "smooth", block: "start" })} className="h-11 shrink-0 bg-emerald px-4 text-sm font-bold text-paper hover:bg-emerald-2">
               Ver resumen y continuar

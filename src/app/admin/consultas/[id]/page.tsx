@@ -55,7 +55,9 @@ export default async function AdminConsultaDetalle({ params, searchParams }: { p
             <tbody>
               {lines.map((l) => (
                 <tr key={l.id} className="border-t border-ink/10" data-testid="original-linea">
-                  <td className="py-1.5 pr-2">{l.title} <span className="text-ink/60">· <span className="font-mono">{l.sku}</span></span>{l.fulfillment === "encargo" && <span className="ml-1 rounded bg-gold/30 px-1.5 text-xs font-semibold">por encargo</span>}</td>
+                  <td className="py-1.5 pr-2">{l.title}{l.packSize ? <span className="text-ink/60"> (pack de {l.packSize})</span> : null} <span className="text-ink/60">· <span className="font-mono">{l.sku}</span>{l.baseCurrency ? ` · precio base ${l.baseCurrency}` : ""}</span>{l.fulfillment === "encargo" && <span className="ml-1 rounded bg-gold/30 px-1.5 text-xs font-semibold">por encargo</span>}
+                    {l.comboDiscountMinor > 0 && <span className="block text-xs font-semibold text-emerald">Combo caja + sobres: 10% OFF en {l.comboUnits} {l.comboUnits === 1 ? "sobre" : "sobres"} (−{formatARS(l.comboDiscountMinor)})</span>}
+                    {l.transferDiscountMinor > 0 && <span className="block text-xs font-semibold text-emerald">Transferencia: −{formatARS(l.transferDiscountMinor)}</span>}</td>
                   <td className="pr-2">{l.quantity}</td>
                   <td className="pr-2">{l.fulfillment === "encargo" && l.unitPriceMinor === 0 ? "sin cotizar" : formatARS(l.unitPriceMinor)}</td>
                   <td className="text-right">{l.fulfillment === "encargo" && l.unitPriceMinor === 0 ? "—" : formatARS(l.lineSubtotalMinor)}</td>
@@ -66,7 +68,9 @@ export default async function AdminConsultaDetalle({ params, searchParams }: { p
         </div>
         <dl className="mt-3 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
           <div className="flex justify-between"><dt>Subtotal</dt><dd>{formatARS(i.subtotalMinor)}</dd></div>
-          <div className="flex justify-between"><dt>Descuento</dt><dd>{i.discountMinor ? `− ${formatARS(i.discountMinor)}` : "—"}</dd></div>
+          <div className="flex justify-between"><dt>Descuento por transferencia</dt><dd>{i.discountMinor ? `− ${formatARS(i.discountMinor)}` : "—"}</dd></div>
+          <div className="flex justify-between"><dt>Descuento combo caja + sobres</dt><dd data-testid="original-combo">{i.comboDiscountMinor ? `− ${formatARS(i.comboDiscountMinor)}` : "—"}</dd></div>
+          <div className="flex justify-between sm:col-span-2 font-semibold"><dt>Total cotizado</dt><dd data-testid="original-total">{formatARS(i.subtotalMinor - i.discountMinor - i.comboDiscountMinor)}</dd></div>
           <div className="flex justify-between sm:col-span-2"><dt>Moneda / cotización</dt><dd className="text-right">{i.currency}{fx ? ` · ${fx}` : " · sin conversión de dólar"}</dd></div>
           <div className="flex justify-between sm:col-span-2"><dt>Entrega</dt><dd className="text-right">{deliveryText(i.deliveryJson) || "—"}</dd></div>
           <div className="flex justify-between sm:col-span-2"><dt>Pago</dt><dd className="text-right">{paymentText(i.paymentPreference) || "—"}</dd></div>

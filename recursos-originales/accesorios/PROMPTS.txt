@@ -1,0 +1,3 @@
+Herramienta: image_gen integrada. Portadas ilustrativas generadas, no fotografías del stock real.
+Sleeve: fotografía de producto cuadrada de una única funda flexible transparente vacía, bordes finos termosellados, apertura superior, centrada sobre fondo blanco con sombra suave; sin texto, marca, envase ni carta.
+Top loader: fotografía de producto cuadrada de un único protector rígido transparente vacío, laterales y base gruesos, apertura superior, bordes levemente azulados, centrado sobre fondo blanco con sombra suave; sin texto, marca, envase ni carta.
