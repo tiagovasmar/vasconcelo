@@ -538,6 +538,117 @@ test.describe("ficha de la caja: sobres con 10% OFF y protección", () => {
   }
 });
 
+const setStock = async (owner: Page, id: string, n: number) => {
+  await go(owner, `/admin?q=${encodeURIComponent("transparentes")}`);
+  const row = owner.getByTestId(`admin-fila-${id}`);
+  await row.getByTestId("input-stock").fill(String(n));
+  await row.getByTestId("guardar-fila").click();
+  await expect(row.getByTestId("mensaje")).toHaveText("Guardado.");
+};
+
+test.describe("ficha de la caja: combinaciones, cupos y cambios antes de agregar", () => {
+  test("dos cajas y dos tipos de sobres a la vez: cupos del conjunto, desglose y carrito coinciden", async ({ page }) => {
+    await waitFicha(page);
+    await page.getByRole("button", { name: "Más", exact: true }).click(); // 2 cajas (máximo por pedido: 2)
+    await expect(page.getByTestId("adicionales-cupos")).toContainText("0 elegidos · te quedan 10 cupos");
+    await page.getByTestId("adicional-elegir-storm-sobre").click();
+    await page.getByTestId("adicional-mas-storm-sobre").click();
+    await page.getByTestId("adicional-mas-storm-sobre").click();
+    await page.getByTestId("adicional-elegir-parcial-sobre").click();
+    await page.getByTestId("adicional-mas-parcial-sobre").click();
+    await expect(page.getByTestId("adicionales-cupos")).toContainText("5 elegidos · te quedan 5 cupos");
+    const d = page.getByTestId("adicionales-desglose");
+    await expect(d.getByTestId("desglose-caja")).toHaveText(/370\.000/);
+    await expect(d.getByTestId("desglose-sobres")).toHaveText(/50\.500/); // 3 × 9.500 + 2 × 11.000
+    await expect(d.getByTestId("desglose-ahorro")).toHaveText(/−\s?\$\s?5\.050/); // 3 × 950 + 2 × 1.100
+    await expect(d.getByTestId("desglose-total")).toHaveText(/415\.450/);
+    await addToCart(page).click();
+    await expect(drawer(page).getByTestId("drawer-cantidad-storm-caja")).toHaveValue("2");
+    await expect(drawer(page).getByTestId("drawer-cantidad-storm-sobre")).toHaveValue("3");
+    await expect(drawer(page).getByTestId("drawer-cantidad-parcial-sobre")).toHaveValue("2");
+    await expect(drawer(page).getByTestId("drawer-descuento-combo")).toHaveText(/−\s?\$\s?5\.050/);
+    await expect(drawer(page).getByTestId("drawer-subtotal")).toContainText("415.450"); // el total es la suma de las líneas
+    await expect(drawer(page).getByTestId("drawer-cupos")).toContainText("5 de 10 cupos usados");
+  });
+
+  test("más sobres que cupos y de distinto precio: el descuento va primero a los de mayor precio y no se muestran descontadas unidades de más", async ({ page }) => {
+    await seed(page, [sobre(3), { productId: "parcial-sobre", quantity: 4, priceMinor: 1100000 }]); // 7 sobres sin caja
+    await go(page, FICHA);
+    await page.locator("html[data-hydrated='true']").waitFor();
+    await expect(page.getByTestId("adicionales-cupos")).toContainText("sin cupos libres"); // 7 sobres ya superan los 5 cupos de la caja de esta ficha
+    await expect(page.getByTestId("adicional-elegir-storm-sobre")).toBeDisabled();
+    await addToCart(page).click(); // agrega solo la caja
+    await expect(drawer(page).getByTestId("drawer-linea-storm-caja")).toBeVisible();
+    // 5 cupos: los 4 de $11.000 primero (−$1.100 c/u) y 1 de $9.500 (−$950)
+    await expect(drawer(page).getByTestId("drawer-descuento-combo")).toHaveText(/−\s?\$\s?5\.350/);
+    await expect(drawer(page).getByTestId("drawer-ahorro-parcial-sobre")).toContainText("Ahorrás $ 4.400");
+    await expect(drawer(page).getByTestId("drawer-ahorro-storm-sobre")).toContainText("Ahorrás $ 950");
+    await expect(drawer(page).getByTestId("drawer-cupos")).toContainText("5 de 5 cupos usados");
+    // quitar la caja recalcula: ya no hay descuento
+    await drawer(page).getByRole("button", { name: /Quitar Storm Emeralda · Caja del carrito/ }).click();
+    await expect(drawer(page).getByTestId("drawer-descuento-combo")).toHaveCount(0);
+  });
+
+  test("stock 0 → no se ofrece; cambia el stock después de elegir → se informa y no se agrega nada; con stock positivo vuelve y el reintento funciona", async ({ page, browser }) => {
+    test.setTimeout(150_000);
+    const ownerCtx = await browser.newContext({ baseURL: BASE });
+    const owner = await ownerCtx.newPage();
+    await ownerSession(owner);
+    try {
+      // con stock positivo (inicial de prueba): se ofrece; se eligen un sobre y la sleeve
+      await waitFicha(page);
+      await page.getByTestId("adicional-elegir-storm-sobre").click();
+      await page.getByTestId(`adicional-elegir-${SLEEVES}`).click();
+      await expect(page.getByTestId("desglose-total")).toBeVisible();
+      // el dueño deja la sleeve sin stock mientras el cliente mira la ficha
+      await setStock(owner, SLEEVES, 0);
+      await addToCart(page).click();
+      const alerta = page.getByTestId("adicionales-problemas");
+      await expect(alerta).toContainText("Revisá tu selección");
+      await expect(alerta).toContainText("Sleeves transparentes");
+      await expect(drawer(page)).toHaveCount(0);
+      expect(await page.evaluate((k) => JSON.parse(localStorage.getItem(k) ?? "{\"items\":[]}").items.length, KEY)).toBe(0); // nada se agregó
+      await expect(cap(page, SLEEVES)).toHaveAttribute("data-selected", "false");
+      await expect(cap(page, "storm-sobre")).toHaveAttribute("data-selected", "true"); // lo que sigue siendo válido se conserva
+      // una ficha nueva ya no ofrece la sleeve (stock 0) pero sí el top loader; los precios de los accesorios siguen fijos
+      await go(page, FICHA);
+      await expect(cap(page, SLEEVES)).toHaveCount(0);
+      await expect(cap(page, TOP)).toBeVisible();
+      await expect(page.getByTestId(`adicional-precio-${TOP}`)).toHaveText(/\$\s?3\.500/);
+      // el reintento con lo que sigue siendo válido se agrega completo
+      await page.locator("html[data-hydrated='true']").waitFor();
+      await page.getByTestId("adicional-elegir-storm-sobre").click();
+      await addToCart(page).click();
+      await expect(drawer(page).getByTestId("drawer-linea-storm-caja")).toBeVisible();
+      await expect(drawer(page).getByTestId("drawer-linea-storm-sobre")).toBeVisible();
+      await expect(drawer(page).getByTestId(`drawer-linea-${SLEEVES}`)).toHaveCount(0);
+      await page.keyboard.press("Escape");
+    } finally {
+      await setStock(owner, SLEEVES, 20); // vuelve el stock de prueba para el resto de las pruebas
+      await ownerCtx.close();
+    }
+    await go(page, FICHA);
+    await expect(cap(page, SLEEVES)).toBeVisible(); // con stock positivo se habilita de nuevo
+  });
+
+  for (const width of [360, 390, 430]) {
+    test(`móvil ${width} px: la ficha no se corre al cargar ni al elegir (sin saltos de diseño)`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 800 });
+      await page.addInitScript(() => {
+        (window as unknown as { __cls: number }).__cls = 0;
+        new PerformanceObserver((list) => { for (const e of list.getEntries() as Array<PerformanceEntry & { value: number }>) (window as unknown as { __cls: number }).__cls += e.value; }).observe({ type: "layout-shift", buffered: true });
+      });
+      await waitFicha(page);
+      await page.waitForTimeout(800);
+      await page.getByTestId("adicional-elegir-storm-sobre").click();
+      await expect(page.getByTestId("desglose-total")).toBeVisible();
+      await page.waitForTimeout(600);
+      const cls = await page.evaluate(() => (window as unknown as { __cls: number }).__cls);
+      expect(cls, `CLS de la ficha en ${width} px`).toBeLessThan(0.1);
+    });
+  }
+});
+
 test.describe("accesibilidad y móvil", () => {
   test("axe: panel con sugerencias, ficha de accesorio y configuración", async ({ page }) => {
     test.setTimeout(120_000);
