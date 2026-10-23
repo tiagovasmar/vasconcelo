@@ -1,0 +1,14 @@
+== ronda 1 puerto 3302
+{"perfil":"móvil lento (CPU 4×, 400 kb/s, 400 ms)","página":"catálogo","FCP ms":2540,"LCP ms":2540,"CLS":0,"TBT ms":63,"KB transferidos":586,"INP lab ms":"—","corridas":9}
+{"perfil":"móvil lento (CPU 4×, 400 kb/s, 400 ms)","página":"ficha caja con adicionales","FCP ms":2688,"LCP ms":4876,"CLS":0,"TBT ms":56,"KB transferidos":292,"INP lab ms":"—","corridas":9}
+== ronda 1 puerto 3303
+{"perfil":"móvil lento (CPU 4×, 400 kb/s, 400 ms)","página":"catálogo","FCP ms":2344,"LCP ms":2828,"CLS":0,"TBT ms":63,"KB transferidos":595,"INP lab ms":"—","corridas":9}
+{"perfil":"móvil lento (CPU 4×, 400 kb/s, 400 ms)","página":"ficha caja con adicionales","FCP ms":2364,"LCP ms":5800,"CLS":0,"TBT ms":66,"KB transferidos":302,"INP lab ms":"—","corridas":9}
+== ronda 1 puerto 3301
+{"perfil":"móvil lento (CPU 4×, 400 kb/s, 400 ms)","página":"catálogo","FCP ms":2468,"LCP ms":2468,"CLS":0,"TBT ms":60,"KB transferidos":592,"INP lab ms":"—","corridas":9}
+{"perfil":"móvil lento (CPU 4×, 400 kb/s, 400 ms)","página":"ficha caja con adicionales","FCP ms":2796,"LCP ms":4888,"CLS":0,"TBT ms":118,"KB transferidos":299,"INP lab ms":"—","corridas":9}
+== ronda 2 puerto 3302
+{"perfil":"móvil lento (CPU 4×, 400 kb/s, 400 ms)","página":"catálogo","FCP ms":2548,"LCP ms":2548,"CLS":0,"TBT ms":91,"KB transferidos":586,"INP lab ms":"—","corridas":9}
+{"perfil":"móvil lento (CPU 4×, 400 kb/s, 400 ms)","página":"ficha caja con adicionales","FCP ms":2752,"LCP ms":4876,"CLS":0,"TBT ms":135,"KB transferidos":292,"INP lab ms":"—","corridas":9}
+== ronda 2 puerto 3303
+== ronda 2 puerto 3301

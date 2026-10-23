@@ -1,17 +1,15 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
+import { SafeImage } from "./safe-image";
+import { useDrawerShell } from "./cart-drawer-shell";
 import { cartActions, cartCount, cartDrawer, useCart, type CartItem } from "@/features/cart/store";
 import { pricingFor, useCartValidation, type ServerLine, type ServerPricedLine } from "@/features/cart/validation";
 import { CartSuggestions } from "./cart-suggestions";
 import { formatARS } from "@/lib/format";
 import { LanguageBadge } from "./language-badge";
 import { kindLabel } from "@/content/labels";
-
-const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 /** Cantidad editable: se puede tocar «−»/«+» o escribir el número (se confirma al salir del campo o con Enter; se ajusta a 1 … máximo). */
 function Quantity({ item, name, max }: { item: CartItem; name: string; max: number }) {
@@ -55,11 +53,12 @@ function Line({ item, line, priced, onNavigate }: { item: CartItem; line?: Serve
     line?.status === "unavailable" ? "Ya no está en el catálogo: quitalo para continuar." :
     line?.status === "out_of_stock" ? "Sin stock por ahora: podés consultarlo por encargo en el pedido." :
     pendiente ? "Precio por confirmar: podés consultarlo por encargo en el pedido." : "";
+  const sinFoto = <span className="text-[.6rem] font-bold uppercase text-ink/75">{p ? kindLabel[p.kind] : "—"}</span>;
   return (
     <li className="py-4" data-testid={`drawer-linea-${item.productId}`}>
       <div className="grid grid-cols-[64px_1fr] gap-3">
         <div className="flex aspect-square items-center justify-center overflow-hidden bg-white">
-          {src ? <Image src={src} alt="" width={96} height={96} sizes="64px" className="h-full w-full object-contain" /> : <span className="text-[.6rem] font-bold uppercase text-ink/75">{p ? kindLabel[p.kind] : "—"}</span>}
+          {src ? <SafeImage src={src} alt="" width={96} height={96} sizes="64px" className="h-full w-full object-contain" fallback={sinFoto} /> : sinFoto}
         </div>
         <div className="min-w-0">
           {p ? <Link href={`/productos/${p.slug}`} onClick={onNavigate} className="block font-bold leading-tight hover:underline">{name}</Link> : <p className="font-bold leading-tight">{name}</p>}
@@ -90,57 +89,14 @@ function Line({ item, line, priced, onNavigate }: { item: CartItem; line?: Serve
 
 export default function CartDrawerPanel() {
   const cart = useCart();
-  const pathname = usePathname();
   const { data, fresh, error, retry, notices, clearNotices } = useCartValidation(true);
   const panelRef = useRef<HTMLElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const skipRestore = useRef(false);
   const units = cartCount(cart);
 
-  // Se cierra solo al cambiar de página (p. ej. al tocar un producto o «Continuar»).
-  const first = useRef(pathname);
-  useEffect(() => {
-    if (first.current !== pathname) cartDrawer.close();
-  }, [pathname]);
-
-  // Foco, bloqueo del desplazamiento del fondo y devolución del foco al cerrar.
-  useEffect(() => {
-    const html = document.documentElement;
-    const scrollbar = window.innerWidth - html.clientWidth;
-    const prevPad = document.body.style.paddingRight;
-    html.dataset.cartDrawer = "open";
-    if (scrollbar > 0) document.body.style.paddingRight = `${scrollbar}px`;
-    titleRef.current?.focus();
-    return () => {
-      delete html.dataset.cartDrawer;
-      document.body.style.paddingRight = prevPad;
-      const el = cartDrawer.takeReturnFocus();
-      if (skipRestore.current) return;
-      const target = el && el.isConnected ? el : (document.querySelector("[data-cart-trigger]") as HTMLElement | null);
-      target?.focus();
-    };
-  }, []);
-
-  // Escape cierra; Tab queda dentro del panel.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        cartDrawer.close();
-      } else if (e.key === "Tab" && panelRef.current) {
-        const els = Array.from(panelRef.current.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((el) => el.offsetParent !== null);
-        if (!els.length) return;
-        const firstEl = els[0];
-        const lastEl = els[els.length - 1];
-        const active = document.activeElement;
-        if (!panelRef.current.contains(active)) { e.preventDefault(); firstEl.focus(); }
-        else if (e.shiftKey && (active === firstEl || active === titleRef.current)) { e.preventDefault(); lastEl.focus(); }
-        else if (!e.shiftKey && active === lastEl) { e.preventDefault(); firstEl.focus(); }
-      }
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, []);
+  // Foco, bloqueo del desplazamiento, Escape, Tab y cierre al cambiar de página: comunes con el marco de carga (cart-drawer-shell.ts).
+  useDrawerShell(panelRef, titleRef, skipRestore);
 
   const leave = () => { skipRestore.current = true; };
   const stockItems = cart.items.filter((i) => i.mode !== "encargo");

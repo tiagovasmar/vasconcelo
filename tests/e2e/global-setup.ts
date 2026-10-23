@@ -11,9 +11,9 @@ const routes = [
 const rutasReales = [...routes, "/productos/storm-emeralda-caja", "/productos/black-bolt-caja", "/productos/30th-celebration-sobre", "/expansiones/black-bolt", "/expansiones/30th-celebration"];
 
 export default async function globalSetup() {
-  const tags: Record<string, number> = { demo: 3100, live: 3101, real: 3102, admin: 3103, consultas: 3104, extra: 3105 };
+  const tags: Record<string, number> = { demo: 3100, live: 3101, real: 3102, admin: 3103, consultas: 3104, extra: 3105, resil: 3106 };
   const only = process.env.E2E_SERVERS?.split(",").map((t) => tags[t]).filter(Boolean);
-  for (const port of only?.length ? only : [3100, 3101, 3102, 3103, 3104, 3105]) {
+  for (const port of only?.length ? only : [3100, 3101, 3102, 3103, 3104, 3105, 3106]) {
     for (const route of port === 3102 ? rutasReales : routes) {
       const res = await fetch(`http://localhost:${port}${route}`, { redirect: "manual", signal: AbortSignal.timeout(120_000) });
       if (res.status >= 500) throw new Error(`El servidor :${port} respondió ${res.status} en ${route} durante el calentamiento`);

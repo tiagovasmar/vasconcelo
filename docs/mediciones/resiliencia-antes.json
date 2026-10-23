@@ -1,0 +1,139 @@
+{
+  "fecha": "2026-10-23T07:55:45.569Z",
+  "base": "http://localhost:3302",
+  "corridas": 5,
+  "filas": [
+    {
+      "perfil": "móvil (CPU 4×, 1,6 Mb/s, 150 ms)",
+      "página": "inicio",
+      "FCP ms": 1120,
+      "LCP ms": 1120,
+      "CLS": 0,
+      "TBT ms": 69,
+      "KB transferidos": 360,
+      "INP lab ms": "—",
+      "corridas": 5
+    },
+    {
+      "perfil": "móvil (CPU 4×, 1,6 Mb/s, 150 ms)",
+      "página": "catálogo",
+      "FCP ms": 988,
+      "LCP ms": 988,
+      "CLS": 0,
+      "TBT ms": 58,
+      "KB transferidos": 247,
+      "INP lab ms": "—",
+      "corridas": 5
+    },
+    {
+      "perfil": "móvil (CPU 4×, 1,6 Mb/s, 150 ms)",
+      "página": "ficha caja con adicionales",
+      "FCP ms": 1072,
+      "LCP ms": 1072,
+      "CLS": 0.032,
+      "TBT ms": 57,
+      "KB transferidos": 265,
+      "INP lab ms": 32,
+      "corridas": 5
+    },
+    {
+      "perfil": "móvil (CPU 4×, 1,6 Mb/s, 150 ms)",
+      "página": "carrito (2 sobres)",
+      "FCP ms": 904,
+      "LCP ms": 904,
+      "CLS": 0,
+      "TBT ms": 86,
+      "KB transferidos": 279,
+      "INP lab ms": "—",
+      "corridas": 5
+    },
+    {
+      "perfil": "móvil lento (CPU 4×, 400 kb/s, 400 ms)",
+      "página": "inicio",
+      "FCP ms": 2720,
+      "LCP ms": 2720,
+      "CLS": 0,
+      "TBT ms": 63,
+      "KB transferidos": 360,
+      "INP lab ms": "—",
+      "corridas": 5
+    },
+    {
+      "perfil": "móvil lento (CPU 4×, 400 kb/s, 400 ms)",
+      "página": "catálogo",
+      "FCP ms": 2492,
+      "LCP ms": 2492,
+      "CLS": 0,
+      "TBT ms": 59,
+      "KB transferidos": 247,
+      "INP lab ms": "—",
+      "corridas": 5
+    },
+    {
+      "perfil": "móvil lento (CPU 4×, 400 kb/s, 400 ms)",
+      "página": "ficha caja con adicionales",
+      "FCP ms": 2576,
+      "LCP ms": 2576,
+      "CLS": 0.114,
+      "TBT ms": 55,
+      "KB transferidos": 262,
+      "INP lab ms": 32,
+      "corridas": 5
+    },
+    {
+      "perfil": "móvil lento (CPU 4×, 400 kb/s, 400 ms)",
+      "página": "carrito (2 sobres)",
+      "FCP ms": 2448,
+      "LCP ms": 2448,
+      "CLS": 0,
+      "TBT ms": 96,
+      "KB transferidos": 279,
+      "INP lab ms": "—",
+      "corridas": 5
+    },
+    {
+      "perfil": "escritorio (sin límites)",
+      "página": "inicio",
+      "FCP ms": 144,
+      "LCP ms": 144,
+      "CLS": 0,
+      "TBT ms": 0,
+      "KB transferidos": 368,
+      "INP lab ms": "—",
+      "corridas": 5
+    },
+    {
+      "perfil": "escritorio (sin límites)",
+      "página": "catálogo",
+      "FCP ms": 132,
+      "LCP ms": 132,
+      "CLS": 0,
+      "TBT ms": 0,
+      "KB transferidos": 250,
+      "INP lab ms": "—",
+      "corridas": 5
+    },
+    {
+      "perfil": "escritorio (sin límites)",
+      "página": "ficha caja con adicionales",
+      "FCP ms": 136,
+      "LCP ms": 136,
+      "CLS": 0,
+      "TBT ms": 0,
+      "KB transferidos": 272,
+      "INP lab ms": 24,
+      "corridas": 5
+    },
+    {
+      "perfil": "escritorio (sin límites)",
+      "página": "carrito (2 sobres)",
+      "FCP ms": 104,
+      "LCP ms": 104,
+      "CLS": 0,
+      "TBT ms": 0,
+      "KB transferidos": 291,
+      "INP lab ms": "—",
+      "corridas": 5
+    }
+  ]
+}

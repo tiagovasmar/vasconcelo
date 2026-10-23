@@ -6,6 +6,8 @@ import { useEffect, useRef, useState } from "react";
 import { formatARS } from "@/lib/format";
 import { cartActions, cartCount, cartDrawer, useCart, useCartDrawerOpen, useCartSelect } from "@/features/cart/store";
 import { preloadCartDrawer } from "./cart-drawer";
+import { boxesAddable } from "@/features/promos/cupos";
+import { failureMessage, failureOf, failureOfStatus, isAbort, requestJson } from "@/lib/request";
 import { ENCARGO_EXPLICACION } from "@/features/politicas/encargos";
 import { encargo as encargoPolitica } from "@/content/politicas";
 import { ENCARGO_MAX } from "@/features/inquiries/pricing";
@@ -39,6 +41,10 @@ export function CartLink() {
     </button>
   );
 }
+
+/** Plazos máximos (la respuesta normal tarda menos de un segundo): el cálculo del desglose y la validación previa a agregar. */
+const PREVIEW_TIMEOUT_MS = 8_000;
+const ADD_TIMEOUT_MS = 10_000;
 
 type AddProps = { productId: string; title: string; /** Foto de portada (solo para mostrar el producto en el panel lateral). */ imageSrc?: string | null; priceMinor: number; max: number; state: "available" | "soldout" | "pending"; /** Producto «solo por encargo» (no se vende de stock). */ orderOnly?: boolean; /** Hay unidades en stock confirmadas (solo falta el precio). */ stockKnown?: boolean; /** Unidades por pack (accesorios): la cantidad del carrito se cuenta en PACKS. */ packSize?: number | null; /** Adicionales de la ficha de una caja (sobres con combo y protectores); el servidor ya filtró lo que se puede comprar. */ addons?: AddonCatalog | null };
 
@@ -117,28 +123,42 @@ export function AddToCartPanel({ productId, title, imageSrc, priceMinor, max, st
   const cartItems = useCart().items;
   const router = useRouter();
   const [sel, setSel] = useState<Selection>({});
-  const [preview, setPreview] = useState<{ key: string; data: AddonPreview } | null>(null);
+  // Resultado del cálculo para UNA selección (`key`): listo o con error. Solo vale si su clave es la de la selección actual.
+  const [preview, setPreview] = useState<{ key: string; data: AddonPreview } | { key: string; error: string } | null>(null);
+  const [attempt, setAttempt] = useState(0);
   const [problems, setProblems] = useState<string[]>([]);
+  const [addError, setAddError] = useState("");
   const [busy, setBusy] = useState(false);
   const busyRef = useRef(false);
   const options = addons ? [...addons.boosters, ...addons.protection] : [];
   const picked = Object.entries(sel).filter(([, n]) => n > 0);
   const hasAddons = Boolean(addons) && picked.length > 0;
+  // La caja solo entra en la cuenta si realmente se puede agregar ahora (con la caja en su máximo, el selector sigue mostrando 1 pero no se suma nada).
+  const addQty = boxesAddable(qty, room);
   const payload = () => ({
     cart: cartItems.map((i) => ({ productId: i.productId, quantity: i.quantity, expectedPriceMinor: i.priceMinor, mode: i.mode })),
-    add: [{ productId, quantity: q, expectedPriceMinor: priceMinor }, ...picked.map(([id, n]) => ({ productId: id, quantity: n, expectedPriceMinor: options.find((o) => o.productId === id)?.listPriceMinor }))],
+    add: [...(addQty > 0 ? [{ productId, quantity: addQty, expectedPriceMinor: priceMinor }] : []), ...picked.map(([id, n]) => ({ productId: id, quantity: n, expectedPriceMinor: options.find((o) => o.productId === id)?.listPriceMinor }))],
   });
-  const selKey = JSON.stringify([sel, q, cartItems.map((i) => [i.productId, i.quantity, i.mode])]);
+  const selKey = JSON.stringify([sel, addQty, cartItems.map((i) => [i.productId, i.quantity, i.mode])]);
+  const selKeyRef = useRef(selKey);
+  useEffect(() => {
+    selKeyRef.current = selKey;
+  }, [selKey]);
   // El desglose sale del servidor (mismo motor que el carrito): se pide con una pequeña espera para no consultar en cada toque.
+  // Cada selección tiene su propio resultado (`key`) y su plazo máximo: una respuesta vieja nunca se muestra como si fuera de la selección actual,
+  // y si falla o tarda de más se muestra el error con «Reintentar» (la selección se conserva).
   useEffect(() => {
     if (!hasAddons) return;
     const ctl = new AbortController();
+    const key = selKey;
     const t = setTimeout(async () => {
       try {
-        const r = await fetch("/api/cart/adicionales", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload()), signal: ctl.signal });
-        if (r.ok) setPreview({ key: selKey, data: (await r.json()) as AddonPreview });
-      } catch {
-        /* sin desglose: el botón valida de nuevo antes de agregar */
+        const r = await requestJson<AddonPreview>("/api/cart/adicionales", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload()), signal: ctl.signal, timeoutMs: PREVIEW_TIMEOUT_MS });
+        if (ctl.signal.aborted) return;
+        setPreview(r.ok && r.data?.breakdown ? { key, data: r.data } : { key, error: failureMessage(failureOfStatus(r.status), "calcular tu selección") });
+      } catch (e) {
+        if (isAbort(e) || ctl.signal.aborted) return;
+        setPreview({ key, error: failureMessage(failureOf(e), "calcular tu selección") });
       }
     }, 250);
     return () => {
@@ -146,9 +166,16 @@ export function AddToCartPanel({ productId, title, imageSrc, priceMinor, max, st
       ctl.abort();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selKey, hasAddons]);
-  const shownPreview = hasAddons ? preview : null;
-  const previewLoading = hasAddons && preview?.key !== selKey;
+  }, [selKey, hasAddons, attempt]);
+  const retryPreview = () => {
+    setPreview(null);
+    setAttempt((n) => n + 1);
+  };
+  const current = preview?.key === selKey ? preview : null;
+  const previewError = hasAddons && current && "error" in current ? current.error : "";
+  // Con la selección nueva se sigue viendo (atenuado) el último desglose bueno; un error nunca deja un total viejo a la vista.
+  const shownPreview = hasAddons && preview && "data" in preview ? preview : null;
+  const previewLoading = hasAddons && !current;
 
   const addSimple = () => {
     const r = cartActions.add(productId, title, q, priceMinor, max, "buy", imageSrc);
@@ -163,11 +190,19 @@ export function AddToCartPanel({ productId, title, imageSrc, priceMinor, max, st
     busyRef.current = true;
     setBusy(true);
     setProblems([]);
+    setAddError("");
+    const startedWith = selKeyRef.current;
     try {
-      const r = await fetch("/api/cart/adicionales", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload()) });
-      const data = r.ok ? ((await r.json()) as AddonPreview) : null;
+      // Solo se valida (no se guarda nada en el servidor): reintentar es seguro. Con plazo máximo para no dejar el botón en «Validando…».
+      const r = await requestJson<AddonPreview>("/api/cart/adicionales", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload()), timeoutMs: ADD_TIMEOUT_MS });
+      const data = r.ok && r.data?.breakdown ? r.data : null;
       if (!data) {
-        setProblems(["No pudimos validar tu selección. Probá de nuevo en un momento."]);
+        setAddError(failureMessage(failureOfStatus(r.status), "validar tu selección"));
+        return;
+      }
+      if (selKeyRef.current !== startedWith) {
+        // Tocaron algo mientras se validaba: esa validación ya no corresponde a lo que se ve. No se agrega nada ni se pisa la selección nueva.
+        setAddError("Cambiaste tu selección mientras la validábamos, así que no agregamos nada.");
         return;
       }
       if (!data.ok) {
@@ -183,7 +218,7 @@ export function AddToCartPanel({ productId, title, imageSrc, priceMinor, max, st
         if (data.problems.some((p) => p.status === "price_changed")) router.refresh();
         return;
       }
-      cartActions.add(productId, title, q, priceMinor, max, "buy", imageSrc);
+      if (addQty > 0) cartActions.add(productId, title, addQty, priceMinor, max, "buy", imageSrc);
       for (const [id, n] of picked) {
         const o = options.find((x) => x.productId === id);
         if (o) cartActions.add(o.productId, o.title, n, o.listPriceMinor, o.maxQuantity, "buy", o.imageSrc);
@@ -191,8 +226,8 @@ export function AddToCartPanel({ productId, title, imageSrc, priceMinor, max, st
       setMsg(`Agregaste la caja y ${picked.length === 1 ? "1 adicional" : `${picked.length} adicionales`} al carrito.`);
       setSel({});
       setQty(1);
-    } catch {
-      setProblems(["No pudimos validar tu selección. Probá de nuevo en un momento."]);
+    } catch (e) {
+      setAddError(failureMessage(failureOf(e), "validar tu selección"));
     } finally {
       busyRef.current = false;
       setBusy(false);
@@ -206,7 +241,7 @@ export function AddToCartPanel({ productId, title, imageSrc, priceMinor, max, st
   return (
     <div className="mt-4 sm:mt-6" ref={panelRef}>
       <BottomBar show={out}>
-        <p className="min-w-0 flex-1 text-lg font-extrabold leading-tight" data-testid="barra-precio">{formatARS(hasAddons && shownPreview && !previewLoading ? shownPreview.data.breakdown.totalMinor : priceMinor)}</p>
+        <p className="min-w-0 flex-1 text-lg font-extrabold leading-tight" data-testid="barra-precio">{previewError ? "—" : formatARS(hasAddons && shownPreview && !previewLoading ? shownPreview.data.breakdown.totalMinor : priceMinor)}</p>
         <div className="flex h-11 items-center border border-ink/40 bg-white" role="group" aria-label="Cantidad (barra inferior)">
           <button type="button" onClick={() => setQty(Math.max(1, q - 1))} disabled={q <= 1} aria-label="Bajar cantidad" className="h-11 w-10 text-xl disabled:opacity-40">−</button>
           <output className="w-7 text-center font-bold" aria-label="Cantidad elegida">{q}</output>
@@ -216,8 +251,15 @@ export function AddToCartPanel({ productId, title, imageSrc, priceMinor, max, st
           {room === 0 ? "Máximo" : hasAddons ? "Agregar todo" : "Agregar"}
         </button>
       </BottomBar>
-      {addons && (addons.boosters.length > 0 || addons.protection.length > 0) && <BoxAddons catalog={addons} sel={sel} setSel={setSel} cart={cartItems} boxQty={q} />}
-      {hasAddons && <AddonBreakdown preview={shownPreview?.data ?? null} boxQty={q} loading={previewLoading} />}
+      {addons && (addons.boosters.length > 0 || addons.protection.length > 0) && <BoxAddons catalog={addons} sel={sel} setSel={setSel} cart={cartItems} boxQty={addQty} />}
+      {hasAddons && <AddonBreakdown preview={shownPreview?.data ?? null} boxQty={addQty} loading={previewLoading} error={previewError} onRetry={retryPreview} />}
+      {addError && (
+        <div role="alert" className="mt-3 rounded-2xl border-l-4 border-vermilion bg-vermilion/10 p-3 text-sm" data-testid="adicionales-error-agregar">
+          <p className="font-bold">No agregamos nada al carrito.</p>
+          <p className="mt-1">{addError} Tu selección y tu carrito siguen como estaban.</p>
+          <button type="button" onClick={add} disabled={busy} className="mt-2 min-h-11 border-2 border-ink px-4 font-bold hover:bg-gold disabled:opacity-50" data-testid="agregar-reintentar">Reintentar</button>
+        </div>
+      )}
       {problems.length > 0 && (
         <div role="alert" className="mt-3 rounded-2xl border-l-4 border-vermilion bg-vermilion/10 p-3 text-sm" data-testid="adicionales-problemas">
           <p className="font-bold">Revisá tu selección: algo cambió y no agregamos nada.</p>

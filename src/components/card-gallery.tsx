@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import Image from "next/image";
+import { SafeImage } from "./safe-image";
 import { CardArt } from "./art";
 
 export type CardView = {
@@ -22,11 +22,9 @@ const norm = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCa
 const GRID_SIZES = "(min-width:1280px) 190px, (min-width:1024px) 22vw, (min-width:640px) 30vw, 46vw";
 
 function CardFace({ c, className = "", sizes = GRID_SIZES }: { c: CardView; className?: string; sizes?: string }) {
-  return c.available ? (
-    <Image src={c.src} alt={c.alt} width={360} height={504} sizes={sizes} loading="lazy" fetchPriority="low" className={className} />
-  ) : (
-    <CardArt tone={toneFor(c.rarity)} label={c.name.toUpperCase().slice(0, 18)} className={className} />
-  );
+  const art = <CardArt tone={toneFor(c.rarity)} label={c.name.toUpperCase().slice(0, 18)} className={className} />;
+  // Si la imagen de la carta no se descarga (404, red), se muestra la ilustración de reserva en el mismo recuadro.
+  return c.available ? <SafeImage src={c.src} alt={c.alt} width={360} height={504} sizes={sizes} loading="lazy" fetchPriority="low" className={className} fallback={art} /> : art;
 }
 
 /**

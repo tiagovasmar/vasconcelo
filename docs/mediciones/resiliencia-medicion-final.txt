@@ -1,0 +1,85 @@
+== despues demo
+{"perfil":"móvil (CPU 4×, 1,6 Mb/s, 150 ms)","página":"inicio","FCP ms":1104,"LCP ms":1104,"CLS":0,"TBT ms":68,"KB transferidos":368,"INP lab ms":"—","corridas":5}
+{"perfil":"móvil (CPU 4×, 1,6 Mb/s, 150 ms)","página":"catálogo","FCP ms":988,"LCP ms":988,"CLS":0,"TBT ms":63,"KB transferidos":256,"INP lab ms":"—","corridas":5}
+{"perfil":"móvil (CPU 4×, 1,6 Mb/s, 150 ms)","página":"ficha caja con adicionales","FCP ms":1076,"LCP ms":1076,"CLS":0,"TBT ms":66,"KB transferidos":268,"INP lab ms":40,"corridas":5}
+{"perfil":"móvil (CPU 4×, 1,6 Mb/s, 150 ms)","página":"carrito (2 sobres)","FCP ms":908,"LCP ms":908,"CLS":0,"TBT ms":84,"KB transferidos":283,"INP lab ms":"—","corridas":5}
+{"perfil":"móvil lento (CPU 4×, 400 kb/s, 400 ms)","página":"inicio","FCP ms":2720,"LCP ms":2720,"CLS":0,"TBT ms":60,"KB transferidos":368,"INP lab ms":"—","corridas":5}
+{"perfil":"móvil lento (CPU 4×, 400 kb/s, 400 ms)","página":"catálogo","FCP ms":2484,"LCP ms":2484,"CLS":0,"TBT ms":61,"KB transferidos":256,"INP lab ms":"—","corridas":5}
+{"perfil":"móvil lento (CPU 4×, 400 kb/s, 400 ms)","página":"ficha caja con adicionales","FCP ms":2600,"LCP ms":2600,"CLS":0,"TBT ms":59,"KB transferidos":268,"INP lab ms":40,"corridas":5}
+{"perfil":"móvil lento (CPU 4×, 400 kb/s, 400 ms)","página":"carrito (2 sobres)","FCP ms":2384,"LCP ms":2384,"CLS":0,"TBT ms":84,"KB transferidos":283,"INP lab ms":"—","corridas":5}
+{"perfil":"escritorio (sin límites)","página":"inicio","FCP ms":148,"LCP ms":148,"CLS":0,"TBT ms":0,"KB transferidos":377,"INP lab ms":"—","corridas":5}
+{"perfil":"escritorio (sin límites)","página":"catálogo","FCP ms":136,"LCP ms":136,"CLS":0,"TBT ms":0,"KB transferidos":256,"INP lab ms":"—","corridas":5}
+{"perfil":"escritorio (sin límites)","página":"ficha caja con adicionales","FCP ms":136,"LCP ms":136,"CLS":0,"TBT ms":0,"KB transferidos":279,"INP lab ms":24,"corridas":5}
+{"perfil":"escritorio (sin límites)","página":"carrito (2 sobres)","FCP ms":68,"LCP ms":68,"CLS":0,"TBT ms":0,"KB transferidos":297,"INP lab ms":"—","corridas":5}
+{"ancho":360,"página":"inicio","desborde":0}
+{"ancho":360,"página":"catálogo","desborde":0}
+{"ancho":360,"página":"ficha caja con adicionales","desborde":0}
+{"ancho":360,"página":"carrito (2 sobres)","desborde":0}
+{"ancho":390,"página":"inicio","desborde":0}
+{"ancho":390,"página":"catálogo","desborde":0}
+{"ancho":390,"página":"ficha caja con adicionales","desborde":0}
+{"ancho":390,"página":"carrito (2 sobres)","desborde":0}
+{"ancho":430,"página":"inicio","desborde":0}
+{"ancho":430,"página":"catálogo","desborde":0}
+{"ancho":430,"página":"ficha caja con adicionales","desborde":0}
+{"ancho":430,"página":"carrito (2 sobres)","desborde":0}
+{"ancho":1366,"página":"inicio","desborde":0}
+{"ancho":1366,"página":"catálogo","desborde":0}
+{"ancho":1366,"página":"ficha caja con adicionales","desborde":0}
+{"ancho":1366,"página":"carrito (2 sobres)","desborde":0}
+== antes demo
+{"perfil":"móvil (CPU 4×, 1,6 Mb/s, 150 ms)","página":"inicio","FCP ms":1120,"LCP ms":1120,"CLS":0,"TBT ms":69,"KB transferidos":360,"INP lab ms":"—","corridas":5}
+{"perfil":"móvil (CPU 4×, 1,6 Mb/s, 150 ms)","página":"catálogo","FCP ms":988,"LCP ms":988,"CLS":0,"TBT ms":58,"KB transferidos":247,"INP lab ms":"—","corridas":5}
+{"perfil":"móvil (CPU 4×, 1,6 Mb/s, 150 ms)","página":"ficha caja con adicionales","FCP ms":1072,"LCP ms":1072,"CLS":0.032,"TBT ms":57,"KB transferidos":265,"INP lab ms":32,"corridas":5}
+{"perfil":"móvil (CPU 4×, 1,6 Mb/s, 150 ms)","página":"carrito (2 sobres)","FCP ms":904,"LCP ms":904,"CLS":0,"TBT ms":86,"KB transferidos":279,"INP lab ms":"—","corridas":5}
+{"perfil":"móvil lento (CPU 4×, 400 kb/s, 400 ms)","página":"inicio","FCP ms":2720,"LCP ms":2720,"CLS":0,"TBT ms":63,"KB transferidos":360,"INP lab ms":"—","corridas":5}
+{"perfil":"móvil lento (CPU 4×, 400 kb/s, 400 ms)","página":"catálogo","FCP ms":2492,"LCP ms":2492,"CLS":0,"TBT ms":59,"KB transferidos":247,"INP lab ms":"—","corridas":5}
+{"perfil":"móvil lento (CPU 4×, 400 kb/s, 400 ms)","página":"ficha caja con adicionales","FCP ms":2576,"LCP ms":2576,"CLS":0.114,"TBT ms":55,"KB transferidos":262,"INP lab ms":32,"corridas":5}
+{"perfil":"móvil lento (CPU 4×, 400 kb/s, 400 ms)","página":"carrito (2 sobres)","FCP ms":2448,"LCP ms":2448,"CLS":0,"TBT ms":96,"KB transferidos":279,"INP lab ms":"—","corridas":5}
+{"perfil":"escritorio (sin límites)","página":"inicio","FCP ms":144,"LCP ms":144,"CLS":0,"TBT ms":0,"KB transferidos":368,"INP lab ms":"—","corridas":5}
+{"perfil":"escritorio (sin límites)","página":"catálogo","FCP ms":132,"LCP ms":132,"CLS":0,"TBT ms":0,"KB transferidos":250,"INP lab ms":"—","corridas":5}
+{"perfil":"escritorio (sin límites)","página":"ficha caja con adicionales","FCP ms":136,"LCP ms":136,"CLS":0,"TBT ms":0,"KB transferidos":272,"INP lab ms":24,"corridas":5}
+{"perfil":"escritorio (sin límites)","página":"carrito (2 sobres)","FCP ms":104,"LCP ms":104,"CLS":0,"TBT ms":0,"KB transferidos":291,"INP lab ms":"—","corridas":5}
+{"ancho":360,"página":"inicio","desborde":0}
+{"ancho":360,"página":"catálogo","desborde":0}
+{"ancho":360,"página":"ficha caja con adicionales","desborde":0}
+{"ancho":360,"página":"carrito (2 sobres)","desborde":0}
+{"ancho":390,"página":"inicio","desborde":0}
+{"ancho":390,"página":"catálogo","desborde":0}
+{"ancho":390,"página":"ficha caja con adicionales","desborde":0}
+{"ancho":390,"página":"carrito (2 sobres)","desborde":0}
+{"ancho":430,"página":"inicio","desborde":0}
+{"ancho":430,"página":"catálogo","desborde":0}
+{"ancho":430,"página":"ficha caja con adicionales","desborde":0}
+{"ancho":430,"página":"carrito (2 sobres)","desborde":0}
+{"ancho":1366,"página":"inicio","desborde":0}
+{"ancho":1366,"página":"catálogo","desborde":0}
+{"ancho":1366,"página":"ficha caja con adicionales","desborde":0}
+{"ancho":1366,"página":"carrito (2 sobres)","desborde":0}
+== despues real
+{"perfil":"móvil (CPU 4×, 1,6 Mb/s, 150 ms)","página":"inicio","FCP ms":1164,"LCP ms":1192,"CLS":0,"TBT ms":62,"KB transferidos":563,"INP lab ms":"—","corridas":5}
+{"perfil":"móvil (CPU 4×, 1,6 Mb/s, 150 ms)","página":"catálogo","FCP ms":1020,"LCP ms":1020,"CLS":0,"TBT ms":64,"KB transferidos":472,"INP lab ms":"—","corridas":5}
+{"perfil":"móvil (CPU 4×, 1,6 Mb/s, 150 ms)","página":"ficha caja con adicionales","FCP ms":1148,"LCP ms":1244,"CLS":0,"TBT ms":63,"KB transferidos":299,"INP lab ms":"—","corridas":5}
+{"perfil":"móvil (CPU 4×, 1,6 Mb/s, 150 ms)","página":"carrito (2 sobres)","FCP ms":912,"LCP ms":2248,"CLS":0,"TBT ms":98,"KB transferidos":312,"INP lab ms":"—","corridas":5}
+{"perfil":"móvil lento (CPU 4×, 400 kb/s, 400 ms)","página":"inicio","FCP ms":2788,"LCP ms":3344,"CLS":0,"TBT ms":58,"KB transferidos":618,"INP lab ms":"—","corridas":5}
+{"perfil":"móvil lento (CPU 4×, 400 kb/s, 400 ms)","página":"catálogo","FCP ms":2492,"LCP ms":2492,"CLS":0,"TBT ms":53,"KB transferidos":592,"INP lab ms":"—","corridas":5}
+{"perfil":"móvil lento (CPU 4×, 400 kb/s, 400 ms)","página":"ficha caja con adicionales","FCP ms":2668,"LCP ms":4884,"CLS":0,"TBT ms":65,"KB transferidos":299,"INP lab ms":"—","corridas":5}
+{"perfil":"móvil lento (CPU 4×, 400 kb/s, 400 ms)","página":"carrito (2 sobres)","FCP ms":2376,"LCP ms":2376,"CLS":0,"TBT ms":90,"KB transferidos":312,"INP lab ms":"—","corridas":5}
+{"perfil":"escritorio (sin límites)","página":"inicio","FCP ms":208,"LCP ms":208,"CLS":0,"TBT ms":0,"KB transferidos":900,"INP lab ms":"—","corridas":5}
+{"perfil":"escritorio (sin límites)","página":"catálogo","FCP ms":128,"LCP ms":128,"CLS":0,"TBT ms":0,"KB transferidos":598,"INP lab ms":"—","corridas":5}
+{"perfil":"escritorio (sin límites)","página":"ficha caja con adicionales","FCP ms":168,"LCP ms":168,"CLS":0,"TBT ms":0,"KB transferidos":396,"INP lab ms":"—","corridas":5}
+{"perfil":"escritorio (sin límites)","página":"carrito (2 sobres)","FCP ms":80,"LCP ms":80,"CLS":0,"TBT ms":0,"KB transferidos":325,"INP lab ms":"—","corridas":5}
+== antes real
+{"perfil":"móvil (CPU 4×, 1,6 Mb/s, 150 ms)","página":"inicio","FCP ms":1192,"LCP ms":1192,"CLS":0,"TBT ms":57,"KB transferidos":555,"INP lab ms":"—","corridas":5}
+{"perfil":"móvil (CPU 4×, 1,6 Mb/s, 150 ms)","página":"catálogo","FCP ms":1012,"LCP ms":1012,"CLS":0,"TBT ms":54,"KB transferidos":463,"INP lab ms":"—","corridas":5}
+{"perfil":"móvil (CPU 4×, 1,6 Mb/s, 150 ms)","página":"ficha caja con adicionales","FCP ms":1136,"LCP ms":1276,"CLS":0,"TBT ms":54,"KB transferidos":292,"INP lab ms":"—","corridas":5}
+{"perfil":"móvil (CPU 4×, 1,6 Mb/s, 150 ms)","página":"carrito (2 sobres)","FCP ms":916,"LCP ms":2236,"CLS":0,"TBT ms":82,"KB transferidos":307,"INP lab ms":"—","corridas":5}
+{"perfil":"móvil lento (CPU 4×, 400 kb/s, 400 ms)","página":"inicio","FCP ms":2776,"LCP ms":3252,"CLS":0,"TBT ms":84,"KB transferidos":643,"INP lab ms":"—","corridas":5}
+{"perfil":"móvil lento (CPU 4×, 400 kb/s, 400 ms)","página":"catálogo","FCP ms":2480,"LCP ms":2480,"CLS":0,"TBT ms":63,"KB transferidos":586,"INP lab ms":"—","corridas":5}
+{"perfil":"móvil lento (CPU 4×, 400 kb/s, 400 ms)","página":"ficha caja con adicionales","FCP ms":2656,"LCP ms":4848,"CLS":0,"TBT ms":60,"KB transferidos":292,"INP lab ms":"—","corridas":5}
+{"perfil":"móvil lento (CPU 4×, 400 kb/s, 400 ms)","página":"carrito (2 sobres)","FCP ms":2424,"LCP ms":2424,"CLS":0,"TBT ms":96,"KB transferidos":307,"INP lab ms":"—","corridas":5}
+{"perfil":"escritorio (sin límites)","página":"inicio","FCP ms":204,"LCP ms":204,"CLS":0,"TBT ms":0,"KB transferidos":893,"INP lab ms":"—","corridas":5}
+{"perfil":"escritorio (sin límites)","página":"catálogo","FCP ms":140,"LCP ms":140,"CLS":0,"TBT ms":0,"KB transferidos":590,"INP lab ms":"—","corridas":5}
+{"perfil":"escritorio (sin límites)","página":"ficha caja con adicionales","FCP ms":168,"LCP ms":168,"CLS":0,"TBT ms":0,"KB transferidos":390,"INP lab ms":"—","corridas":5}
+{"perfil":"escritorio (sin límites)","página":"carrito (2 sobres)","FCP ms":68,"LCP ms":68,"CLS":0,"TBT ms":0,"KB transferidos":318,"INP lab ms":"—","corridas":5}
+FIN

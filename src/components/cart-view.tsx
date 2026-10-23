@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
@@ -16,21 +15,31 @@ import { LanguageBadge } from "./language-badge";
 import { kindLabel, wideKinds } from "@/content/labels";
 import { formatARS } from "@/lib/format";
 import { formatRate, splitInstallments } from "@/features/fx/convert";
-import { BoxArt, PackArt } from "./art";
+import { BoxArt, PackArt } from "./art-reserva";
+import { SafeImage } from "./safe-image";
+import { failureMessage, failureOf, failureOfStatus, requestJson } from "@/lib/request";
 import { toneBg } from "./tones";
 import { useAccount } from "./account-provider";
 
 const field = "h-12 w-full border border-ink/40 bg-white px-3 text-base sm:text-sm aria-[invalid=true]:border-vermilion aria-[invalid=true]:bg-vermilion/5";
 const label = "mb-1 block text-[.7rem] font-bold uppercase tracking-[.14em] text-ink/70";
 const money = (m: number) => formatARS(m);
+/** Plazo máximo para preparar la consulta (escribe en la base: más holgado que las lecturas). */
+const SUBMIT_TIMEOUT_MS = 20_000;
+
+/** Ilustración de reserva del producto (sin foto, o si la foto no se pudo descargar). */
+function Reserva({ line }: { line: ServerLine }) {
+  const p = line.product!;
+  const wide = wideKinds.includes(p.kind);
+  const text = kindLabel[p.kind].toUpperCase();
+  return wide ? <BoxArt tone={p.fallbackTone} label={text} className="w-[88%]" /> : <PackArt tone={p.fallbackTone} label={text} className="h-[88%] w-auto" />;
+}
 
 function Thumb({ line }: { line: ServerLine }) {
   const p = line.product;
   if (!p) return <div className="h-full w-full bg-ink/10" />;
-  if (p.imageSrc) return <Image src={p.imageSrc} alt={p.imageAlt} width={160} height={160} className="h-full w-full object-contain" />;
-  const wide = wideKinds.includes(p.kind);
-  const text = kindLabel[p.kind].toUpperCase();
-  return wide ? <BoxArt tone={p.fallbackTone} label={text} className="w-[88%]" /> : <PackArt tone={p.fallbackTone} label={text} className="h-[88%] w-auto" />;
+  if (p.imageSrc) return <SafeImage src={p.imageSrc} alt={p.imageAlt} width={160} height={160} className="h-full w-full object-contain" fallback={<Reserva line={line} />} />;
+  return <Reserva line={line} />;
 }
 
 function deliveryPayload(d: DeliveryDraft) {
@@ -59,6 +68,7 @@ export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }
   const [attempted, setAttempted] = useState(false);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
   const [submitError, setSubmitError] = useState("");
   const [serverFieldErrors, setServerFieldErrors] = useState<Record<string, string>>({});
   // Barra inferior del celular (resumen + próximo paso): se oculta cuando el resumen ya se ve y mientras se escribe en un campo (teclado abierto).
@@ -173,7 +183,7 @@ export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }
     return (
       <li key={item.productId} className="py-4" data-testid={`linea-${item.productId}`}>
         <div className="grid grid-cols-[84px_1fr] gap-3 sm:grid-cols-[96px_1fr_auto] sm:gap-4">
-          <div className={`flex aspect-square items-center justify-center overflow-hidden ${line?.product ? (line.product.imageSrc ? "bg-white" : toneBg[line.product.fallbackTone]) : "bg-ink/10"}`}>{line ? <Thumb line={line} /> : item.imageSrc ? <Image src={item.imageSrc} alt="" width={160} height={160} className="h-full w-full object-contain" /> : null}</div>
+          <div className={`flex aspect-square items-center justify-center overflow-hidden ${line?.product ? (line.product.imageSrc ? "bg-white" : toneBg[line.product.fallbackTone]) : "bg-ink/10"}`}>{line ? <Thumb line={line} /> : item.imageSrc ? <SafeImage src={item.imageSrc} alt="" width={160} height={160} className="h-full w-full object-contain" fallback={null} /> : null}</div>
           <div className="min-w-0">
             {line?.product ? (
               <>
@@ -251,6 +261,7 @@ export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }
   };
 
   async function submit() {
+    if (submittingRef.current) return; // doble toque: una sola consulta por vez
     setAttempted(true);
     setSubmitError("");
     setServerFieldErrors({});
@@ -264,13 +275,16 @@ export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }
     // Misma clave mientras el contenido no cambie; si cambia, clave nueva.
     const key = cart.idem?.sig === sig ? cart.idem.key : crypto.randomUUID().replace(/-/g, "");
     if (cart.idem?.sig !== sig) cartActions.setIdempotency({ sig, key });
+    submittingRef.current = true;
     setSubmitting(true);
     try {
-      const res = await fetch("/api/inquiries", {
-        method: "POST", headers: { "Content-Type": "application/json" },
+      // Con plazo máximo, pero SIN reintento automático: es una escritura. Si se corta la respuesta, la consulta pudo haberse guardado; al reintentar a mano se manda
+      // la MISMA clave de idempotencia (mientras el contenido no cambie) y el servidor devuelve la consulta ya guardada en lugar de crear otra.
+      const res = await requestJson<{ reference?: string; error?: { code?: string; message?: string; details?: unknown } }>("/api/inquiries", {
+        method: "POST", headers: { "Content-Type": "application/json" }, timeoutMs: SUBMIT_TIMEOUT_MS,
         body: JSON.stringify({ items: itemsPayload, delivery: parsed.data, payment: cart.payment, contactName: normalizeName(cart.contactName), contactPhone: cart.contactPhone.trim() || undefined, ...(sp ? { expectedTotalMinor: sp.totalMinor } : {}), idempotencyKey: key }),
       });
-      const data = await res.json().catch(() => null);
+      const data = res.data;
       if (res.ok && data?.reference) {
         router.push(`/carrito/consulta/${data.reference}?abrir=1`);
         return; // el carrito se conserva
@@ -281,11 +295,13 @@ export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }
         for (const d of err.details as Array<{ path: string; message: string }>) fe[d.path.split(".")[1] ?? d.path] ??= d.message;
         setServerFieldErrors(fe);
       }
-      if (["price_changed", "pending_commercial", "out_of_stock", "unavailable", "retired", "over_limit", "promo_not_eligible"].includes(err?.code)) validation.retry();
-      setSubmitError(err?.message ?? "No pudimos preparar tu consulta. Intentá de nuevo.");
-    } catch {
-      setSubmitError("No pudimos conectarnos. Tu consulta no se guardó: revisá tu conexión e intentá de nuevo.");
+      if (["price_changed", "pending_commercial", "out_of_stock", "unavailable", "retired", "over_limit", "promo_not_eligible"].includes(err?.code ?? "")) validation.retry();
+      setSubmitError(err?.message ?? `${failureMessage(failureOfStatus(res.status), "preparar tu consulta")} Intentá de nuevo.`);
+    } catch (e) {
+      // Sin respuesta (corte o demora): no se puede afirmar que NO se guardó. Reintentar es seguro por la clave de idempotencia.
+      setSubmitError(`${failureMessage(failureOf(e), "confirmar tu consulta")} No sabemos si llegó a guardarse: podés tocar de nuevo el botón, y si ya estaba guardada se abre la misma, no se duplica. Tu carrito y tus datos siguen acá.`);
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   }
@@ -469,7 +485,12 @@ export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }
           </dl>
 
           {blocking.length > 0 && <p role="alert" className="mt-4 text-sm font-semibold text-vermilion">Resolvé los avisos del carrito para continuar.</p>}
-          {submitError && <p role="alert" className="mt-4 border-l-4 border-vermilion bg-vermilion/10 p-3 text-sm font-semibold">{submitError}</p>}
+          {submitError && (
+            <div role="alert" className="mt-4 border-l-4 border-vermilion bg-vermilion/10 p-3 text-sm" data-testid="error-envio">
+              <p className="font-semibold">{submitError}</p>
+              <button type="button" onClick={submit} disabled={submitting || !canContinue} className="mt-2 min-h-11 border-2 border-ink px-4 font-bold hover:bg-gold disabled:opacity-50" data-testid="reintentar-envio">Reintentar</button>
+            </div>
+          )}
           <button id="cta-continuar" type="button" onClick={submit} disabled={!canContinue} aria-describedby="cta-nota" className="mt-5 flex min-h-14 w-full items-center justify-center gap-2 bg-emerald px-6 text-lg font-bold text-paper hover:bg-emerald-2 disabled:cursor-not-allowed disabled:opacity-50">
             {submitting ? "Preparando tu consulta…" : stockView.length === 0 && encargoView.length > 0 ? "Consultar por encargo por WhatsApp" : "Continuar por WhatsApp"}
           </button>

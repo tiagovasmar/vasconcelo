@@ -128,6 +128,7 @@ export const cartDrawer = {
     drawerOpen = false;
     drawerListeners.forEach((l) => l());
   },
+  isOpen: () => drawerOpen,
   /** Elemento al que corresponde devolver el foco (una sola vez). */
   takeReturnFocus(): HTMLElement | null {
     const el = returnFocusTo;

@@ -1,5 +1,6 @@
 import Image from "next/image";
 import publicAssets from "@/generated/public-assets.json";
+import { ProductPhoto, type Reserve } from "./safe-image";
 
 const PUBLIC_ASSETS = new Set<string>(publicAssets as string[]);
 
@@ -7,7 +8,7 @@ const PUBLIC_ASSETS = new Set<string>(publicAssets as string[]);
  * ¿Existe la imagen? Las imágenes versionadas de /public se consultan en un listado generado en cada build (`npm run assets:manifest`): en un
  * despliegue serverless la carpeta /public no está en el disco de la función, así que no se puede preguntar al sistema de archivos.
  * Las fotos subidas desde el panel (`/images/uploads/…`) viven en Storage y solo llegan a la base tras validarse al guardar la galería:
- * se dan por existentes (si el archivo faltara, la ruta responde 404 y el panel lo marca).
+ * se dan por existentes. Si una imagen "existente" no se puede descargar (archivo borrado, Storage caído), `ProductPhoto` la reemplaza en el navegador por la ilustración de reserva.
  */
 export function hasAsset(src: string): boolean {
   if (src.startsWith("/images/uploads/")) return true;
@@ -29,6 +30,7 @@ export function ArtSlot({
   lowPriority = false,
   quality,
   fallback,
+  reserve,
 }: {
   src: string;
   alt: string;
@@ -42,7 +44,12 @@ export function ArtSlot({
   /** Calidad del optimizador (60 o 75). */
   quality?: 60 | 75;
   fallback: React.ReactNode;
+  /** Descripción de la ilustración de reserva para el navegador: si la foto figura como existente pero NO se puede descargar (404, Storage caído), se reemplaza por ella. */
+  reserve?: Reserve;
 }) {
   if (!hasAsset(src)) return <>{fallback}</>;
+  if (reserve) {
+    return <ProductPhoto src={src} alt={alt} width={width} height={height} className={className} priority={priority} sizes={sizes} reserve={reserve} {...(quality ? { quality } : {})} {...(lowPriority && !priority ? { fetchPriority: "low" as const } : {})} />;
+  }
   return <Image src={src} alt={alt} width={width} height={height} className={className} priority={priority} sizes={sizes} {...(quality ? { quality } : {})} {...(lowPriority && !priority ? { fetchPriority: "low" as const } : {})} />;
 }

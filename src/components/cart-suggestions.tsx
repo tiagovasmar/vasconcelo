@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { SafeImage } from "./safe-image";
 import { useEffect, useId, useRef, useState } from "react";
 import { cartActions } from "@/features/cart/store";
 import type { ComboInfo, ServerSuggestion } from "@/features/cart/validation";
@@ -82,7 +82,7 @@ export function CartSuggestions({ suggestions, combo }: { suggestions: ServerSug
         {shown.map((s) => (
           <li key={s.productId} className="grid grid-cols-[56px_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 border border-ink/15 bg-white p-2" data-testid={`reco-${s.productId}`}>
             <div className="flex aspect-square h-14 w-14 items-center justify-center overflow-hidden bg-white">
-              {s.imageSrc ? <Image src={s.imageSrc} alt="" width={112} height={112} sizes="56px" className="h-full w-full object-contain" /> : <span className="text-[.55rem] font-bold uppercase text-ink/70">{s.presentation.slice(0, 8)}</span>}
+              {s.imageSrc ? <SafeImage src={s.imageSrc} alt="" width={112} height={112} sizes="56px" className="h-full w-full object-contain" fallback={<span className="text-[.55rem] font-bold uppercase text-ink/70">{s.presentation.slice(0, 8)}</span>} /> : <span className="text-[.55rem] font-bold uppercase text-ink/70">{s.presentation.slice(0, 8)}</span>}
             </div>
             <div className="min-w-0">
               <p className="text-sm font-bold leading-tight">{s.title}</p>

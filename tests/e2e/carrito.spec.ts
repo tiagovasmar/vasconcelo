@@ -234,7 +234,7 @@ test.describe("entrega, pago y consulta", () => {
     await fillRetiro(page);
     await page.route("**/api/inquiries", (r) => r.abort());
     await cta(page).click();
-    await expect(page.getByRole("alert").filter({ hasText: "Tu consulta no se guardó" })).toBeVisible();
+    await expect(page.getByRole("alert").filter({ hasText: "No sabemos si llegó a guardarse" })).toBeVisible();
     await expect(page).toHaveURL(/\/carrito$/);
     await page.unroute("**/api/inquiries");
     await cta(page).click();

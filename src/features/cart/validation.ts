@@ -3,7 +3,11 @@
 import { useEffect, useSyncExternalStore } from "react";
 import type { kindLabel, Language } from "@/content/schema";
 import type { toneBg } from "@/components/tones";
+import { failureMessage, failureOf, failureOfStatus, isAbort, requestJson, type FailureKind } from "@/lib/request";
 import { cartActions, useCart, type CartItem } from "./store";
+
+/** Plazo máximo de la verificación del carrito (la respuesta normal tarda menos de un segundo). */
+const VALIDATE_TIMEOUT_MS = 10_000;
 
 /**
  * Revalidación del carrito con el servidor (precios, disponibilidad y límites), COMPARTIDA entre el panel lateral y el pedido (/carrito).
@@ -51,12 +55,13 @@ async function run(key: string, items: CartItem[]) {
   const ctl = new AbortController();
   controller = ctl;
   try {
-    const res = await fetch("/api/cart/validate", {
-      method: "POST", headers: { "Content-Type": "application/json" }, signal: ctl.signal,
+    // Plazo máximo: sin él, una red colgada deja «Verificando…» y los botones del pedido en espera hasta que el navegador corte (minutos).
+    const res = await requestJson<{ lines: ServerLine[]; qualifiesForPromo: boolean; fx?: Fx | null; pricing?: { base: ServerPricing; transferencia: ServerPricing }; combo?: ComboInfo; suggestions?: ServerSuggestion[] }>("/api/cart/validate", {
+      method: "POST", headers: { "Content-Type": "application/json" }, signal: ctl.signal, timeoutMs: VALIDATE_TIMEOUT_MS,
       body: JSON.stringify({ items: items.map((i) => ({ productId: i.productId, quantity: i.quantity, mode: i.mode, ...(i.mode === "buy" ? { expectedPriceMinor: i.priceMinor } : {}) })) }),
     });
-    if (!res.ok) throw new Error(String(res.status));
-    const body = (await res.json()) as { lines: ServerLine[]; qualifiesForPromo: boolean; fx?: Fx | null; pricing?: { base: ServerPricing; transferencia: ServerPricing }; combo?: ComboInfo; suggestions?: ServerSuggestion[] };
+    const body = res.data;
+    if (!res.ok || !body || !Array.isArray(body.lines)) throw Object.assign(new Error(String(res.status)), { failure: failureOfStatus(res.status) });
     if (ctl.signal.aborted) return;
     const added: string[] = [];
     // Cantidades por encima de lo disponible: se ajustan y se avisa (la nueva cantidad dispara una nueva validación).
@@ -68,9 +73,11 @@ async function run(key: string, items: CartItem[]) {
     }
     set({ data: { key, lines: Object.fromEntries(body.lines.map((l) => [l.productId, l])), qualifies: Boolean(body.qualifiesForPromo), fx: body.fx ?? null, pricing: body.pricing ?? null, combo: body.combo ?? null, suggestions: body.suggestions ?? [] }, error: "", pendingKey: null, notices: added.length ? [...snap.notices, ...added] : snap.notices });
   } catch (e) {
-    if ((e as Error).name === "AbortError") return;
+    if (isAbort(e) || ctl.signal.aborted) return; // lo reemplazó un pedido más nuevo
     requestedKey = null;
-    set({ error: "No pudimos verificar precios y disponibilidad.", pendingKey: null });
+    const kind = (e as { failure?: FailureKind }).failure ?? failureOf(e);
+    // El error no borra la última respuesta buena: `fresh` ya indica que NO corresponde al contenido actual, así que sus importes no se usan.
+    set({ error: failureMessage(kind, "verificar precios y disponibilidad"), pendingKey: null });
   }
 }
 

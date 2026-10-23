@@ -1,8 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import { useState } from "react";
+import { SafeImage } from "./safe-image";
 import type { CartItem } from "@/features/cart/store";
+import { comboSlots } from "@/features/promos/cupos";
 import type { AddonCatalog, AddonOption, AddonPreview } from "@/features/promos/adicionales";
 import { formatARS } from "@/lib/format";
 
@@ -17,9 +18,10 @@ const VISIBLE = 6;
 const btn = "grid h-11 w-11 place-items-center rounded-full border border-ink/40 bg-white text-lg leading-none hover:bg-gold disabled:cursor-not-allowed disabled:opacity-40";
 
 function Thumb({ o, size = 44 }: { o: AddonOption; size?: number }) {
+  const text = <span className="text-[.55rem] font-bold uppercase text-ink/70">{o.presentation.slice(0, 6)}</span>;
   return (
     <span className="grid shrink-0 place-items-center overflow-hidden rounded-xl bg-white" style={{ width: size, height: size }} aria-hidden="true">
-      {o.imageSrc ? <Image src={o.imageSrc} alt="" width={size * 2} height={size * 2} sizes={`${size}px`} className="h-full w-full object-contain" /> : <span className="text-[.55rem] font-bold uppercase text-ink/70">{o.presentation.slice(0, 6)}</span>}
+      {o.imageSrc ? <SafeImage src={o.imageSrc} alt="" width={size * 2} height={size * 2} sizes={`${size}px`} className="h-full w-full object-contain" fallback={text} /> : text}
     </span>
   );
 }
@@ -85,12 +87,10 @@ export function BoxAddons({ catalog, sel, setSel, cart, boxQty }: { catalog: Add
     setSel(next);
   };
 
-  // Cupos: cajas participantes (las del carrito y la que se está agregando) × 5, menos los sobres participantes ya elegidos o ya en el carrito.
-  const boxesInCart = catalog.participatingBoxIds.reduce((n, id) => n + qtyIn(id), 0);
-  const slots = catalog.perBox * (boxesInCart + boxQty);
-  const inCartBoosters = catalog.participatingBoosterIds.reduce((n, id) => n + qtyIn(id), 0);
+  // Cupos: cajas participantes (las del carrito y las que realmente se pueden agregar ahora; `boxQty` es 0 si la caja ya está en su máximo) × 5,
+  // menos los sobres participantes ya elegidos o ya en el carrito.
   const picked = catalog.boosters.reduce((n, o) => n + (sel[o.productId] ?? 0), 0);
-  const free = Math.max(0, slots - inCartBoosters - picked);
+  const { free } = comboSlots({ perBox: catalog.perBox, participatingBoxIds: catalog.participatingBoxIds, participatingBoosterIds: catalog.participatingBoosterIds, qtyInCart: qtyIn, boxesToAdd: boxQty, pickedBoosters: picked });
   const boosterMax = (o: AddonOption) => Math.max(0, Math.min(o.maxQuantity - qtyIn(o.productId), (sel[o.productId] ?? 0) + free));
   const protMax = (o: AddonOption) => Math.max(0, o.maxQuantity - qtyIn(o.productId));
 
@@ -129,13 +129,26 @@ export function BoxAddons({ catalog, sel, setSel, cart, boxQty }: { catalog: Add
   );
 }
 
-export function AddonBreakdown({ preview, boxQty, loading }: { preview: AddonPreview | null; boxQty: number; loading: boolean }) {
+/**
+ * Desglose de la selección. Tres estados: calculando (si ya hay un desglose anterior se ve atenuado), listo y error. En error NO se muestra ningún total:
+ * el anterior correspondía a otra selección. La selección se conserva y se puede reintentar.
+ */
+export function AddonBreakdown({ preview, boxQty, loading, error, onRetry }: { preview: AddonPreview | null; boxQty: number; loading: boolean; error?: string; onRetry?: () => void }) {
   const b = preview?.breakdown;
+  if (error) {
+    return (
+      <div className="mt-3 min-h-[7.5rem] rounded-2xl border-2 border-vermilion bg-white p-3 text-sm" role="alert" data-testid="adicionales-desglose" data-estado="error">
+        <p className="font-bold">Todavía no tenemos el total de tu selección.</p>
+        <p className="mt-1 text-ink/80">{error} Tu selección sigue ahí: no se perdió nada.</p>
+        <button type="button" onClick={onRetry} className="mt-2 min-h-11 border-2 border-ink px-4 font-bold hover:bg-gold" data-testid="adicionales-reintentar">Reintentar</button>
+      </div>
+    );
+  }
   return (
-    <div className="mt-3 rounded-2xl border-2 border-ink bg-white p-3 text-sm" role="status" aria-live="polite" aria-busy={loading} data-testid="adicionales-desglose">
+    <div className="mt-3 rounded-2xl border-2 border-ink bg-white p-3 text-sm" role="status" aria-live="polite" aria-busy={loading} data-testid="adicionales-desglose" data-estado={loading ? "calculando" : "listo"}>
       {!b ? <p className="min-h-[7.5rem] text-ink/70">Calculando tu selección…</p> : (
         <dl className={`grid grid-cols-[1fr_auto] gap-x-3 gap-y-1 ${loading ? "opacity-60" : ""}`}>
-          <dt>Caja × {boxQty}</dt><dd className="text-right" data-testid="desglose-caja">{formatARS(b.boxMinor)}</dd>
+          {boxQty > 0 && <><dt>Caja × {boxQty}</dt><dd className="text-right" data-testid="desglose-caja">{formatARS(b.boxMinor)}</dd></>}
           {b.boostersUnits > 0 && <><dt>Sobres adicionales × {b.boostersUnits}</dt><dd className="text-right" data-testid="desglose-sobres">{formatARS(b.boostersListMinor)}</dd></>}
           {b.protectionUnits > 0 && <><dt>Protección × {b.protectionUnits} {b.protectionUnits === 1 ? "pack" : "packs"}</dt><dd className="text-right" data-testid="desglose-proteccion">{formatARS(b.protectionMinor)}</dd></>}
           {b.savingMinor > 0 && <><dt className="font-semibold text-emerald">Ahorro combo caja + sobres{b.boostersDiscountedUnits > 0 ? ` (${b.boostersDiscountedUnits} ${b.boostersDiscountedUnits === 1 ? "sobre" : "sobres"})` : ""}</dt><dd className="text-right font-semibold text-emerald" data-testid="desglose-ahorro">−{formatARS(b.savingMinor)}</dd></>}

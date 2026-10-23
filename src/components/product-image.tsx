@@ -36,6 +36,6 @@ export function ProductImage({ product, index = 0, className = "", sizes = "(min
     <PackArt tone={product.fallbackTone} label={label} className={`h-[84%] w-auto transition ${tilt}`} />
   );
   return (
-    <ArtSlot src={img.src} alt={img.alt} width={img.width} height={img.height} sizes={sizes} priority={priority} lowPriority={lowPriority} quality={lightPhotos && img.opaque ? 60 : undefined} className={`${className || "h-[88%] w-[88%] object-contain"} ${img.opaque ? "rounded-[3px] shadow-[0_6px_14px_rgba(11,64,50,.22)] ring-1 ring-ink/10" : "drop-shadow-[0_8px_10px_rgba(11,64,50,.28)]"}`} fallback={<div className="flex h-full w-full items-center justify-center overflow-hidden" role="img" aria-label={img.alt}>{fallback}</div>} />
+    <ArtSlot src={img.src} alt={img.alt} width={img.width} height={img.height} sizes={sizes} priority={priority} lowPriority={lowPriority} quality={lightPhotos && img.opaque ? 60 : undefined} reserve={{ wide, tone: product.fallbackTone, label, alt: img.alt, tilt }} className={`${className || "h-[88%] w-[88%] object-contain"} ${img.opaque ? "rounded-[3px] shadow-[0_6px_14px_rgba(11,64,50,.22)] ring-1 ring-ink/10" : "drop-shadow-[0_8px_10px_rgba(11,64,50,.28)]"}`} fallback={<div className="flex h-full w-full items-center justify-center overflow-hidden" role="img" aria-label={img.alt}>{fallback}</div>} />
   );
 }
