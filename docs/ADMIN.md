@@ -99,3 +99,8 @@ Guía corta: [GUIA-ADMIN.md](GUIA-ADMIN.md). Pruebas: `tests/admin-mejoras.test.
 - **`/admin/promociones`:** activar o desactivar «caja + sobres» y elegir qué cajas y sobres participan. No cambia precios ni stock; cada cambio queda en el historial. Por defecto está apagada y sin selección.
 - **Accesorios:** en `/admin` figuran con «Precio fijo (ARS)» (no hay campo USD) y «Packs disponibles» (cada pack trae 5 unidades). El stock inicial es 0. La edición masiva de precios en dólares los saltea. Ver [PROMOCION-COMBO-Y-ACCESORIOS.md](PROMOCION-COMBO-Y-ACCESORIOS.md).
 - **Ventas:** cada línea admite un descuento en pesos enteros (se precarga al convertir una consulta con combo o transferencia).
+
+## Stock de accesorios (22/10/2026)
+- **Cómo encontrarlos:** en `/admin` filtrá por formato «Accesorios» (o buscá «transparentes»). Aparecen «Sleeves transparentes · Pack de 5 unidades» y «Top loaders transparentes · Pack de 5 unidades».
+- **Cómo cargar stock:** en el campo «Stock disponible — packs de 5» escribí la cantidad de **packs** y «Guardar». 1 pack = 5 protectores: si tenés 100 protectores, cargá 20 packs. Con stock positivo se habilitan en el catálogo, la ficha y las sugerencias; comprar 1 descuenta 1 pack. El precio fijo en pesos se edita en la misma fila.
+- Cada cambio queda en el historial; no se acepta stock negativo; una anulación devuelve cada pack una sola vez.

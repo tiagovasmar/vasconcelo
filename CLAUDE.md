@@ -117,3 +117,7 @@ Antes de continuar, leer la última revisión en `docs/CAMBIOS-HOME-Y-PAGOS.md` 
 # Cambios de alcance del dueño (22/10/2026, octavo lote)
 
 - **Promoción caja + sobres, accesorios y recomendaciones:** ver `docs/PROMOCION-COMBO-Y-ACCESORIOS.md`. La promoción (10% en hasta 5 sobres por caja) la configura el dueño en `/admin/promociones`; **no inventar qué cajas y sobres participan**. Sleeves y top loaders se venden en packs de 5, a precio fijo en pesos ($1.000 y $3.500), con stock inicial 0 e imágenes ilustrativas (no fotos del stock real). No se acumula con el 10% por transferencia sobre el mismo sobre ni se extiende a mayoristas. La migración `0003` no se aplica a Supabase sin aprobación expresa.
+
+# Cambios de alcance del dueño (22/10/2026, noveno lote)
+
+- **Adicionales en la ficha de cada caja** (sobres con 10% OFF y protección) con validación del conjunto en el servidor; «Completá tu compra» del carrito queda secundario. Ver `docs/PROMOCION-COMBO-Y-ACCESORIOS.md`, sección 7. Confirmado por el dueño: los sobres reciben el descuento más favorable (sin acumular combo y transferencia) y los accesorios quedan fuera del descuento por transferencia. Sin selección real de participantes cargada por mi cuenta.

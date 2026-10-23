@@ -37,7 +37,7 @@ export const REASON_TOPLOADER = "Protección rígida para tus mejores cartas. Us
 export const REASON_BOOSTER = "Sumalo con 10% OFF: depende de los cupos disponibles de tus cajas.";
 export const MAX_SUGGESTIONS = 3;
 
-const sellable = (p: Product | undefined): p is Product => Boolean(p && p.active && !p.retired && !p.orderOnly && p.priceMinor !== null && p.stockQuantity !== null && p.stockQuantity > 0 && maxFor(p) > 0);
+export const sellable = (p: Product | undefined): p is Product => Boolean(p && p.active && !p.retired && !p.orderOnly && p.priceMinor !== null && p.stockQuantity !== null && p.stockQuantity > 0 && maxFor(p) > 0);
 
 export function buildSuggestions(products: Product[], cartIds: string[], pricing: Pricing, combo: ComboConfig, imageOf: (p: Product) => { src: string | null; alt: string }): Suggestion[] {
   const inCart = new Set(cartIds);

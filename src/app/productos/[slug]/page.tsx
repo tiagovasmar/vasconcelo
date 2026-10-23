@@ -15,6 +15,9 @@ import { hasAsset } from "@/components/slot";
 import { store } from "@/content/store";
 import { catalog } from "@/content/catalog";
 import { kindLabel, type Product } from "@/content/schema";
+import { getDb } from "@/db/client";
+import { buildAddonCatalog } from "@/features/promos/adicionales";
+import { getComboConfig } from "@/features/promos/settings";
 import { getExpansion, getProductBySlug, getRetiredProductBySlug, listAllProducts, relatedProducts } from "@/features/catalog/data";
 import { isAdmin } from "@/server/admin";
 import { getUser } from "@/server/session";
@@ -81,6 +84,13 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
   });
 
   const related = await relatedProducts(product, 4);
+  // Adicionales de la ficha de una caja (sobres con 10% OFF y protectores): el servidor filtra y calcula; el navegador solo muestra.
+  const addons = product.kind === "box" && state === "available"
+    ? buildAddonCatalog(await listAllProducts(), (await getComboConfig(getDb())).config, product, (p) => {
+        const img = p.images[0];
+        return { src: img && hasAsset(img.src) ? img.src : null, alt: img?.alt ?? p.title };
+      })
+    : null;
   const hasCards = groups.length > 0; // los kits y cajas especiales no pertenecen a una colección: no hay galería que mostrar
   const anchors = [
     ["descripcion", "Descripción"],
@@ -121,7 +131,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
             <PricePerBooster product={product} className="mt-3" />
             <StockBadge product={product} size="page" className="mt-1.5 sm:mt-2" />
             <PaymentBenefits kind={product.kind} />
-            <AddToCartPanel productId={product.id} title={product.title} imageSrc={product.images[0] && hasAsset(product.images[0].src) ? product.images[0].src : null} priceMinor={product.priceMinor ?? 0} max={maxFor(product)} state={state} stockKnown={isInStock(product)} orderOnly={Boolean(product.orderOnly)} packSize={product.packSize ?? null} />
+            <AddToCartPanel productId={product.id} title={product.title} imageSrc={product.images[0] && hasAsset(product.images[0].src) ? product.images[0].src : null} priceMinor={product.priceMinor ?? 0} max={maxFor(product)} state={state} stockKnown={isInStock(product)} orderOnly={Boolean(product.orderOnly)} packSize={product.packSize ?? null} addons={addons} />
             <FavoriteButton productId={product.id} title={product.title} withLabel className="mt-2 min-h-11 sm:mt-3 border border-ink/40 bg-white px-4 text-sm font-semibold hover:bg-gold" />
             <p className="mt-3 text-sm text-ink/80 sm:mt-4" data-testid="entrega"><b>Entrega:</b> Andreani · moto en CABA y AMBA · retiro en Av. Rivadavia 14600. Costo, horario y dirección exacta de retiro por WhatsApp.</p>
 
@@ -258,7 +268,7 @@ function AccesorioIncluye({ product }: { product: Product }) {
         {toploader && <li>Los top loaders se usan <b>junto con una sleeve</b>: la carta va primero en la sleeve y después en el top loader.</li>}
         <li>No incluye cartas.</li>
         <li>No tenemos confirmados la marca, las medidas, el espesor ni el material específico: no los indicamos para no inventarlos.</li>
-        <li>La imagen es una <b>ilustración generada</b> para mostrar el tipo de protector; no es una foto del stock real.</li>
+        <li>La imagen es una <b>ilustración generada</b> que muestra <b>una sola unidad</b> del tipo de protector; no es una foto del stock real. Lo que se vende es el pack de {product.packSize} unidades.</li>
       </ul>
     </section>
   );

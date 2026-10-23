@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { formatARS } from "@/lib/format";
 import { cartActions, cartCount, cartDrawer, useCart, useCartDrawerOpen, useCartSelect } from "@/features/cart/store";
@@ -10,6 +10,8 @@ import { ENCARGO_EXPLICACION } from "@/features/politicas/encargos";
 import { encargo as encargoPolitica } from "@/content/politicas";
 import { ENCARGO_MAX } from "@/features/inquiries/pricing";
 import { CartIcon, PlusIcon } from "./icons";
+import { AddonBreakdown, BoxAddons, type Selection } from "./box-addons";
+import type { AddonCatalog, AddonPreview } from "@/features/promos/adicionales";
 
 /**
  * Ícono del carrito en la cabecera, con la cantidad de unidades. Abre el panel lateral; dentro del pedido (/carrito) ya se está viendo el carrito y
@@ -38,7 +40,7 @@ export function CartLink() {
   );
 }
 
-type AddProps = { productId: string; title: string; /** Foto de portada (solo para mostrar el producto en el panel lateral). */ imageSrc?: string | null; priceMinor: number; max: number; state: "available" | "soldout" | "pending"; /** Producto «solo por encargo» (no se vende de stock). */ orderOnly?: boolean; /** Hay unidades en stock confirmadas (solo falta el precio). */ stockKnown?: boolean; /** Unidades por pack (accesorios): la cantidad del carrito se cuenta en PACKS. */ packSize?: number | null };
+type AddProps = { productId: string; title: string; /** Foto de portada (solo para mostrar el producto en el panel lateral). */ imageSrc?: string | null; priceMinor: number; max: number; state: "available" | "soldout" | "pending"; /** Producto «solo por encargo» (no se vende de stock). */ orderOnly?: boolean; /** Hay unidades en stock confirmadas (solo falta el precio). */ stockKnown?: boolean; /** Unidades por pack (accesorios): la cantidad del carrito se cuenta en PACKS. */ packSize?: number | null; /** Adicionales de la ficha de una caja (sobres con combo y protectores); el servidor ya filtró lo que se puede comprar. */ addons?: AddonCatalog | null };
 
 /** Botón «agregar» de las tarjetas (sin cantidad: suma 1). */
 export function AddToCartIcon({ productId, title, imageSrc, priceMinor, max, state }: AddProps) {
@@ -105,19 +107,98 @@ function BottomBar({ show, children }: { show: boolean; children: React.ReactNod
 }
 
 /** Compra desde la ficha: cantidad + agregar. */
-export function AddToCartPanel({ productId, title, imageSrc, priceMinor, max, state, stockKnown = false, orderOnly = false, packSize = null }: AddProps) {
+export function AddToCartPanel({ productId, title, imageSrc, priceMinor, max, state, stockKnown = false, orderOnly = false, packSize = null, addons = null }: AddProps) {
   const inCart = useCartSelect((s) => s.items.find((i) => i.productId === productId)?.quantity ?? 0);
   const room = Math.max(0, max - inCart);
   const [qty, setQty] = useState(1);
   const [msg, setMsg] = useState("");
   const q = Math.min(Math.max(1, qty), Math.max(1, room));
   const [panelRef, out] = useOutOfView<HTMLDivElement>();
-  const add = () => {
+  const cartItems = useCart().items;
+  const router = useRouter();
+  const [sel, setSel] = useState<Selection>({});
+  const [preview, setPreview] = useState<{ key: string; data: AddonPreview } | null>(null);
+  const [problems, setProblems] = useState<string[]>([]);
+  const [busy, setBusy] = useState(false);
+  const busyRef = useRef(false);
+  const options = addons ? [...addons.boosters, ...addons.protection] : [];
+  const picked = Object.entries(sel).filter(([, n]) => n > 0);
+  const hasAddons = Boolean(addons) && picked.length > 0;
+  const payload = () => ({
+    cart: cartItems.map((i) => ({ productId: i.productId, quantity: i.quantity, expectedPriceMinor: i.priceMinor, mode: i.mode })),
+    add: [{ productId, quantity: q, expectedPriceMinor: priceMinor }, ...picked.map(([id, n]) => ({ productId: id, quantity: n, expectedPriceMinor: options.find((o) => o.productId === id)?.listPriceMinor }))],
+  });
+  const selKey = JSON.stringify([sel, q, cartItems.map((i) => [i.productId, i.quantity, i.mode])]);
+  // El desglose sale del servidor (mismo motor que el carrito): se pide con una pequeña espera para no consultar en cada toque.
+  useEffect(() => {
+    if (!hasAddons) return;
+    const ctl = new AbortController();
+    const t = setTimeout(async () => {
+      try {
+        const r = await fetch("/api/cart/adicionales", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload()), signal: ctl.signal });
+        if (r.ok) setPreview({ key: selKey, data: (await r.json()) as AddonPreview });
+      } catch {
+        /* sin desglose: el botón valida de nuevo antes de agregar */
+      }
+    }, 250);
+    return () => {
+      clearTimeout(t);
+      ctl.abort();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selKey, hasAddons]);
+  const shownPreview = hasAddons ? preview : null;
+  const previewLoading = hasAddons && preview?.key !== selKey;
+
+  const addSimple = () => {
     const r = cartActions.add(productId, title, q, priceMinor, max, "buy", imageSrc);
     const unit = packSize ? (q === 1 ? `pack de ${packSize} unidades` : "packs") : q === 1 ? "unidad" : "unidades";
     setMsg(`Agregaste ${q} ${unit}. Tenés ${r.quantity} en el carrito.${r.clamped ? " Llegaste al máximo por pedido." : ""}`);
     setQty(1);
   };
+  /** Caja + adicionales: el servidor valida el conjunto completo (precios, cupos, límites y stock, con lo que ya hay en el carrito) ANTES de agregar nada. */
+  const add = async () => {
+    if (busyRef.current) return; // doble clic o reintento: una sola operación a la vez
+    if (!hasAddons) return addSimple();
+    busyRef.current = true;
+    setBusy(true);
+    setProblems([]);
+    try {
+      const r = await fetch("/api/cart/adicionales", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload()) });
+      const data = r.ok ? ((await r.json()) as AddonPreview) : null;
+      if (!data) {
+        setProblems(["No pudimos validar tu selección. Probá de nuevo en un momento."]);
+        return;
+      }
+      if (!data.ok) {
+        setProblems(data.problems.map((p) => p.message));
+        const next = { ...sel };
+        for (const p of data.problems) {
+          if (p.productId === productId) continue;
+          if (p.status === "price_changed") continue; // se conserva la elección; los precios nuevos llegan al refrescar la ficha
+          if (p.status === "over_limit" && p.room > 0) next[p.productId] = Math.min(next[p.productId] ?? 0, p.room);
+          else delete next[p.productId];
+        }
+        setSel(next);
+        if (data.problems.some((p) => p.status === "price_changed")) router.refresh();
+        return;
+      }
+      cartActions.add(productId, title, q, priceMinor, max, "buy", imageSrc);
+      for (const [id, n] of picked) {
+        const o = options.find((x) => x.productId === id);
+        if (o) cartActions.add(o.productId, o.title, n, o.listPriceMinor, o.maxQuantity, "buy", o.imageSrc);
+      }
+      setMsg(`Agregaste la caja y ${picked.length === 1 ? "1 adicional" : `${picked.length} adicionales`} al carrito.`);
+      setSel({});
+      setQty(1);
+    } catch {
+      setProblems(["No pudimos validar tu selección. Probá de nuevo en un momento."]);
+    } finally {
+      busyRef.current = false;
+      setBusy(false);
+    }
+  };
+  const ctaLabel = hasAddons ? "Agregar caja y adicionales" : "Agregar al carrito";
 
   if (state === "pending" || state === "soldout" || max === 0) {
     return <EncargoPanel productId={productId} title={title} imageSrc={imageSrc} pending={state === "pending"} stockKnown={stockKnown} orderOnly={orderOnly} />;
@@ -125,17 +206,25 @@ export function AddToCartPanel({ productId, title, imageSrc, priceMinor, max, st
   return (
     <div className="mt-4 sm:mt-6" ref={panelRef}>
       <BottomBar show={out}>
-        <p className="min-w-0 flex-1 text-lg font-extrabold leading-tight" data-testid="barra-precio">{formatARS(priceMinor)}</p>
+        <p className="min-w-0 flex-1 text-lg font-extrabold leading-tight" data-testid="barra-precio">{formatARS(hasAddons && shownPreview && !previewLoading ? shownPreview.data.breakdown.totalMinor : priceMinor)}</p>
         <div className="flex h-11 items-center border border-ink/40 bg-white" role="group" aria-label="Cantidad (barra inferior)">
           <button type="button" onClick={() => setQty(Math.max(1, q - 1))} disabled={q <= 1} aria-label="Bajar cantidad" className="h-11 w-10 text-xl disabled:opacity-40">−</button>
           <output className="w-7 text-center font-bold" aria-label="Cantidad elegida">{q}</output>
           <button type="button" onClick={() => setQty(Math.min(room, q + 1))} disabled={q >= room} aria-label="Subir cantidad" className="h-11 w-10 text-xl disabled:opacity-40">+</button>
         </div>
-        <button type="button" disabled={room === 0} onPointerDown={preloadCartDrawer} onClick={add} aria-label={room === 0 ? "Máximo en el carrito" : `Sumar ${q} al pedido`} className="h-11 bg-ink px-4 text-sm font-bold text-paper hover:bg-emerald disabled:cursor-not-allowed disabled:opacity-50">
-          {room === 0 ? "Máximo" : "Agregar"}
+        <button type="button" disabled={room === 0 || busy} onPointerDown={preloadCartDrawer} onClick={add} aria-label={room === 0 ? "Máximo en el carrito" : hasAddons ? "Agregar caja y adicionales" : `Sumar ${q} al pedido`} className="h-11 bg-ink px-4 text-sm font-bold text-paper hover:bg-emerald disabled:cursor-not-allowed disabled:opacity-50">
+          {room === 0 ? "Máximo" : hasAddons ? "Agregar todo" : "Agregar"}
         </button>
       </BottomBar>
-      <div className="flex flex-wrap gap-3">
+      {addons && (addons.boosters.length > 0 || addons.protection.length > 0) && <BoxAddons catalog={addons} sel={sel} setSel={setSel} cart={cartItems} boxQty={q} />}
+      {hasAddons && <AddonBreakdown preview={shownPreview?.data ?? null} boxQty={q} loading={previewLoading} />}
+      {problems.length > 0 && (
+        <div role="alert" className="mt-3 rounded-2xl border-l-4 border-vermilion bg-vermilion/10 p-3 text-sm" data-testid="adicionales-problemas">
+          <p className="font-bold">Revisá tu selección: algo cambió y no agregamos nada.</p>
+          <ul className="mt-1 list-disc pl-5">{problems.map((m) => <li key={m}>{m}</li>)}</ul>
+        </div>
+      )}
+      <div className={`${addons ? "mt-3 " : ""}flex flex-wrap gap-3`}>
         <div className="flex h-14 items-center border border-ink/40 bg-white" role="group" aria-label="Cantidad">
           <button type="button" onClick={() => setQty(Math.max(1, q - 1))} disabled={q <= 1} aria-label="Menos" className="h-14 w-12 text-xl hover:bg-gold disabled:opacity-40">−</button>
           <output className="w-10 text-center font-bold" aria-live="polite">{q}</output>
@@ -143,13 +232,14 @@ export function AddToCartPanel({ productId, title, imageSrc, priceMinor, max, st
         </div>
         <button
           type="button"
-          disabled={room === 0}
+          disabled={room === 0 || busy}
           onPointerDown={preloadCartDrawer}
           onFocus={preloadCartDrawer}
           onClick={add}
           className="h-14 flex-1 bg-ink px-6 font-bold text-paper hover:bg-emerald disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
+          data-testid="agregar"
         >
-          {room === 0 ? "Máximo en el carrito" : "Agregar al carrito"}
+          {room === 0 ? "Máximo en el carrito" : busy ? "Validando…" : ctaLabel}
         </button>
       </div>
       <p className="mt-2 text-xs text-ink/65">Máximo {max} {packSize ? "packs" : ""} por pedido. {inCart > 0 && <>Ya tenés {inCart} {packSize ? "packs " : ""}en el carrito. </>}{packSize ? <>Cada pack trae {packSize} unidades.</> : null}</p>

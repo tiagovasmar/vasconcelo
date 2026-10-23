@@ -390,10 +390,11 @@ export function AdminProductEditor({ data }: { data: EditorData }) {
           </div>
 
           <fieldset className="space-y-2" disabled={locked}>
-            <legend className={label}>{data.packSize ? `Packs disponibles (cada pack trae ${data.packSize} unidades)` : "Stock (unidades del artículo que se vende)"}</legend>
+            {data.packSize ? <p className="text-xs text-ink/70" data-testid="ayuda-packs">1 pack = 5 protectores. Si tenés 100 protectores, cargá 20 packs.</p> : null}
+            <legend className={label}>{data.packSize ? `Stock disponible — packs de ${data.packSize}` : "Stock (unidades del artículo que se vende)"}</legend>
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
               <label className="flex min-h-11 items-center gap-2 text-sm"><input type="radio" name="mode" checked={mode === "qty"} onChange={() => setMode("qty")} className="h-5 w-5 accent-emerald" /> {data.packSize ? "Packs en stock" : "Cantidad en stock"}</label>
-              <input aria-label={data.packSize ? "Packs disponibles" : "Cantidad en stock"} name="stock" inputMode="numeric" autoComplete="off" value={mode === "qty" ? stock : ""} onChange={(e) => setStock(e.target.value)} disabled={mode !== "qty"} placeholder="0 = sin stock" className={field + " !mt-0 max-w-40"} aria-invalid={Boolean(errs.stock)} />
+              <input aria-label={data.packSize ? `Stock disponible — packs de ${data.packSize}` : "Cantidad en stock"} name="stock" inputMode="numeric" autoComplete="off" value={mode === "qty" ? stock : ""} onChange={(e) => setStock(e.target.value)} disabled={mode !== "qty"} placeholder="0 = sin stock" className={field + " !mt-0 max-w-40"} aria-invalid={Boolean(errs.stock)} />
               <label className="flex min-h-11 items-center gap-2 text-sm"><input type="radio" name="mode" checked={mode === "unknown"} onChange={() => setMode("unknown")} className="h-5 w-5 accent-emerald" /> Cantidad desconocida (pendiente)</label>
               <label className="flex min-h-11 items-center gap-2 text-sm"><input type="radio" name="mode" checked={mode === "order"} onChange={() => setMode("order")} className="h-5 w-5 accent-emerald" /> Disponible por encargo</label>
             </div>

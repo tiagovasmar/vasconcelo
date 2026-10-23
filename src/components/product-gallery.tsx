@@ -8,7 +8,7 @@ const viewLabel: Record<string, string> = { front: "Frente", back: "Dorso", left
 
 /** Qué es lo que se está viendo: foto del fabricante o del stock real, y si es una exhibición abierta. */
 function describe(s: Slide) {
-  const origin = s.source === "store" ? "Foto real del stock de la tienda" : s.source === "supplier" ? "Foto de referencia del proveedor" : s.source === "illustration" ? "Imagen ilustrativa: no es una foto del stock real" : "Foto de referencia del fabricante";
+  const origin = s.source === "store" ? "Foto real del stock de la tienda" : s.source === "supplier" ? "Foto de referencia del proveedor" : s.source === "illustration" ? "Imagen ilustrativa de una unidad: no es una foto del stock real. Cada pack trae 5 unidades" : "Foto de referencia del fabricante";
   const open = s.view === "display-open";
   return { origin, view: s.view ? viewLabel[s.view] : undefined, open };
 }

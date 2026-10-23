@@ -300,8 +300,9 @@ export function AdminProductTable({ rows, rate10k, lowThreshold = 0 }: { rows: A
                   </p>
                 </div>
                 <div className="col-span-2 lg:col-span-1">
-                  <label htmlFor={`stock-${r.id}`} className={cap}>{r.packSize ? "Packs disponibles" : "Stock"}</label>
-                  <input id={`stock-${r.id}`} aria-label={`${r.packSize ? "Packs disponibles" : "Stock"}: ${r.title}`} name="stock" inputMode="numeric" autoComplete="off" value={r.orderOnly ? "" : d.stock} disabled={locked || r.orderOnly} onChange={(e) => set(r, { stock: e.target.value })} placeholder={r.orderOnly ? "por encargo" : "pendiente"} className={field} data-testid="input-stock" />
+                  <label htmlFor={`stock-${r.id}`} className={cap}>{r.packSize ? `Stock disponible — packs de ${r.packSize}` : "Stock"}</label>
+                  <input id={`stock-${r.id}`} aria-label={`${r.packSize ? `Stock disponible — packs de ${r.packSize}` : "Stock"}: ${r.title}`} name="stock" inputMode="numeric" autoComplete="off" value={r.orderOnly ? "" : d.stock} disabled={locked || r.orderOnly} onChange={(e) => set(r, { stock: e.target.value })} placeholder={r.orderOnly ? "por encargo" : "pendiente"} className={field} data-testid="input-stock" />
+                  {r.packSize && <p className="mt-1 text-xs text-ink/70" data-testid="ayuda-packs">1 pack = 5 protectores. Si tenés 100 protectores, cargá 20 packs.</p>}
                   {r.lowStock && lowThreshold > 0 && !dirty && <span className="mt-1 inline-block rounded-full bg-gold/40 px-2 py-0.5 text-[.7rem] font-semibold text-ink ring-1 ring-gold" data-testid="stock-bajo">Stock bajo</span>}
                 </div>
                 <div className="col-span-2 lg:col-span-1">

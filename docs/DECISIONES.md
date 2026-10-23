@@ -132,3 +132,10 @@
 - **Ventas con descuento por línea:** `sale_lines.discount_minor` (pesos enteros); al convertir una consulta el descuento se precarga y no se recalcula. Las filas históricas quedan igual (columnas con valor por defecto).
 - **Sugerencias deterministas** (sin aleatoriedad ni reordenamientos mientras el usuario interactúa), máximo 3, ocultables por sesión.
 - **Migración 0003 solo preparada**: no se aplica a Supabase sin aprobación; las pruebas usan bases locales descartables.
+
+## Adicionales en la ficha de la caja (22/10/2026)
+- **Una sola validación de servidor para el conjunto** (`previewAddons`, mismo `evaluateCart`/`priceCart` que el carrito): sirve para el desglose en vivo y como verificación final antes de agregar; si falla, no se agrega nada.
+- **El desglose es la diferencia contra el carrito actual**, no el carrito completo: así el ahorro incluye el efecto de agregar una caja sobre sobres que ya estaban en el carrito.
+- **Los «+» de la ficha se frenan en el cupo** (decisión de interfaz: no se ofrecen sobres sin descuento desde el selector; se pueden sumar luego desde el carrito).
+- **Sin cambios de esquema:** se reutilizan consultas, ventas y stock. Las opciones de la ficha dependen de la misma configuración de `/admin/promociones` (no se activó ni se eligió nada).
+- **Controles de 44 px** también dentro de las cápsulas (celular).

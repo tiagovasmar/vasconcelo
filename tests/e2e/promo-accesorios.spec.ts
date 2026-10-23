@@ -131,7 +131,7 @@ test.describe("accesorios en el catálogo, la ficha y el panel", () => {
     await expect(page.getByTestId("pack-info")).toContainText("Precio por pack de 5 unidades");
     await expect(page.getByTestId("accesorio-incluye")).toContainText("No incluye cartas");
     await expect(page.getByTestId("accesorio-incluye")).toContainText("ilustración generada");
-    await expect(page.getByTestId("galeria-etiqueta")).toContainText("Imagen ilustrativa: no es una foto del stock real");
+    await expect(page.getByTestId("galeria-etiqueta")).toContainText("Imagen ilustrativa de una unidad: no es una foto del stock real");
     await expect(page.getByRole("heading", { name: "Probabilidades" })).toHaveCount(0);
     await expect(page.getByTestId("fx-nota")).toHaveCount(0);
     await expect(page.getByTestId("promo-condicion")).toContainText("no cuentan como caja");
@@ -149,7 +149,7 @@ test.describe("accesorios en el catálogo, la ficha y el panel", () => {
     await expect(row.getByTestId("input-ars")).toHaveValue("1000");
     await expect(row.getByTestId("input-usd")).toHaveCount(0);
     await expect(row).toContainText("Pesos fijos: no cambia con el dólar");
-    await expect(row.getByLabel(/Packs disponibles/)).toHaveValue("20");
+    await expect(row.getByLabel(/Stock disponible — packs de 5/)).toHaveValue("20");
     await row.getByTestId("input-ars").fill("1200");
     await row.getByTestId("guardar-fila").click();
     await expect(row.getByTestId("mensaje")).toHaveText("Guardado.");
@@ -174,7 +174,7 @@ test.describe("accesorios en el catálogo, la ficha y el panel", () => {
     // la ficha del editor muestra «Precio fijo (ARS)» y «Packs disponibles»
     await go(page, `/admin/productos/${SLEEVES}`);
     await expect(page.getByTestId("editor-ars")).toHaveValue("1000");
-    await expect(page.getByText("Packs disponibles (cada pack trae 5 unidades)")).toBeVisible();
+    await expect(page.getByText("Stock disponible — packs de 5")).toBeVisible();
     await expect(page.getByText("Imagen ilustrativa generada: NO es una foto del stock real", { exact: false })).toBeVisible();
   });
 });
@@ -342,6 +342,200 @@ test.describe("carrito lateral: combo, importes y recomendaciones", () => {
     expect(manipulada.status()).toBe(201);
     expect((await manipulada.json()).message).toContain("Descuento combo caja + sobres: -$ 1.900");
   });
+});
+
+const FICHA = "/productos/storm-emeralda-caja";
+const cap = (page: Page, id: string) => page.getByTestId(`adicional-${id}`);
+const addToCart = (page: Page) => page.getByTestId("agregar");
+const waitFicha = async (page: Page) => { await go(page, FICHA); await page.locator("html[data-hydrated='true']").waitFor(); };
+
+test.describe("ficha de la caja: sobres con 10% OFF y protección", () => {
+  test("bloque de sobres y de protección: opciones compactas, sin nada elegido por defecto y con una sola explicación", async ({ page }) => {
+    await waitFicha(page);
+    const sobres = page.getByTestId("adicionales-sobres");
+    await expect(sobres.getByRole("heading", { name: "Sumá sobres con 10% OFF" })).toBeVisible();
+    await expect(sobres).toContainText("Hasta 5 sobres con descuento por cada caja");
+    await expect(sobres).toContainText("no reemplazan ni modifican los de la caja");
+    await expect(sobres.locator("li")).toHaveCount(2); // solo participantes con stock y precio: storm-sobre y parcial-sobre (ejemplo-sobre no participa)
+    await expect(cap(page, "ejemplo-sobre")).toHaveCount(0);
+    await expect(page.getByTestId("adicional-precio-parcial-sobre")).toContainText("11.000");
+    await expect(page.getByTestId("adicional-precio-parcial-sobre")).toContainText("9.900");
+    await expect(page.getByTestId("adicional-precio-parcial-sobre").locator("s")).toHaveText(/11\.000/);
+    await expect(page.getByTestId("adicionales-cupos")).toContainText("0 elegidos · te quedan 5 cupos");
+    for (const id of ["storm-sobre", "parcial-sobre", SLEEVES, TOP]) await expect(cap(page, id)).toHaveAttribute("data-selected", "false");
+    await expect(page.getByTestId("adicionales-desglose")).toHaveCount(0);
+    await expect(addToCart(page)).toHaveText("Agregar al carrito");
+    // protección: los dos productos existentes, con imagen, presentación de 5 unidades y precio fijo; la explicación se dice una vez
+    const prot = page.getByTestId("adicionales-proteccion");
+    await expect(prot.getByRole("heading", { name: "Protegé tus cartas" })).toBeVisible();
+    await expect(prot).toContainText("top loader se usa junto con una sleeve");
+    await expect(cap(page, SLEEVES)).toContainText("Pack de 5 unidades");
+    await expect(page.getByTestId(`adicional-precio-${SLEEVES}`)).toHaveText(/\$\s?1\.000/);
+    await expect(page.getByTestId(`adicional-precio-${TOP}`)).toHaveText(/\$\s?3\.500/);
+    await expect(cap(page, SLEEVES).locator("img")).toHaveCount(1);
+    // el orden en la ficha: sobres → protección → cantidad y botón
+    const y = async (id: string) => (await page.getByTestId(id).boundingBox())!.y;
+    expect(await y("adicionales-sobres")).toBeLessThan(await y("adicionales-proteccion"));
+    expect(await y("adicionales-proteccion")).toBeLessThan(await y("agregar"));
+    // no se anuncia el 10% OFF en otros lugares de la ficha ni se reserva nada: abrir la ficha no agrega al carrito
+    expect(await page.evaluate((k) => JSON.parse(localStorage.getItem(k) ?? "{\"items\":[]}").items.length, KEY)).toBe(0);
+  });
+
+  test("elegir sobres y protección: cupos, desglose del servidor y agregar todo junto abre el carrito lateral con el descuento", async ({ page }) => {
+    await waitFicha(page);
+    await cap(page, "storm-sobre").getByTestId("adicional-elegir-storm-sobre").click();
+    await expect(cap(page, "storm-sobre")).toHaveAttribute("data-selected", "true");
+    await page.getByTestId("adicional-mas-storm-sobre").click();
+    await page.getByTestId("adicional-mas-storm-sobre").click();
+    await expect(page.getByTestId("adicional-cantidad-storm-sobre")).toHaveText("3");
+    await expect(page.getByTestId("adicionales-cupos")).toContainText("3 elegidos · te quedan 2 cupos");
+    await page.getByTestId(`adicional-elegir-${SLEEVES}`).click();
+    await expect(addToCart(page)).toHaveText("Agregar caja y adicionales");
+    const d = page.getByTestId("adicionales-desglose");
+    await expect(d.getByTestId("desglose-caja")).toHaveText(/185\.000/);
+    await expect(d.getByTestId("desglose-sobres")).toHaveText(/28\.500/);
+    await expect(d.getByTestId("desglose-proteccion")).toHaveText(/1\.000/);
+    await expect(d.getByTestId("desglose-ahorro")).toHaveText(/−\s?\$\s?2\.850/);
+    await expect(d.getByTestId("desglose-total")).toHaveText(/211\.650/); // 185.000 + 28.500 + 1.000 − 2.850
+    // sin reservar nada hasta ahora
+    expect(await page.evaluate((k) => JSON.parse(localStorage.getItem(k) ?? "{\"items\":[]}").items.length, KEY)).toBe(0);
+    await addToCart(page).dblclick(); // un doble clic no duplica
+    await expect(drawer(page)).toBeVisible();
+    await expect(drawer(page).getByTestId("drawer-linea-storm-caja")).toBeVisible();
+    await expect(drawer(page).getByTestId("drawer-cantidad-storm-caja")).toHaveValue("1");
+    await expect(drawer(page).getByTestId("drawer-cantidad-storm-sobre")).toHaveValue("3");
+    await expect(drawer(page).getByTestId(`drawer-cantidad-${SLEEVES}`)).toHaveValue("1");
+    await expect(drawer(page).getByTestId("drawer-descuento-combo")).toHaveText(/−\s?\$\s?2\.850/);
+    await expect(drawer(page).getByTestId("drawer-subtotal")).toContainText("211.650");
+    await expect(drawer(page).getByTestId(`reco-${SLEEVES}`)).toHaveCount(0); // ya está en el carrito: no se recomienda
+    await page.keyboard.press("Escape");
+    // la selección se limpió: no queda nada elegido y el botón vuelve a «Agregar al carrito»
+    await expect(cap(page, "storm-sobre")).toHaveAttribute("data-selected", "false");
+    await expect(addToCart(page)).toHaveText("Agregar al carrito");
+    await expect(page.getByTestId("adicionales-desglose")).toHaveCount(0);
+  });
+
+  test("los cupos tienen en cuenta el carrito y la selección: no se puede elegir más de lo que cubre la promoción", async ({ page }) => {
+    await seed(page, [caja(1), sobre(4)]);
+    await go(page, FICHA);
+    await page.locator("html[data-hydrated='true']").waitFor();
+    // 1 caja en el carrito + la de esta ficha = 10 cupos; 4 usados por los sobres del carrito
+    await expect(page.getByTestId("adicionales-cupos")).toContainText("0 elegidos · te quedan 6 cupos");
+    await cap(page, "parcial-sobre").getByTestId("adicional-elegir-parcial-sobre").click();
+    for (let n = 1; n < 6; n++) await page.getByTestId("adicional-mas-parcial-sobre").click();
+    await expect(page.getByTestId("adicional-cantidad-parcial-sobre")).toHaveText("6");
+    await expect(page.getByTestId("adicionales-cupos")).toContainText("6 elegidos · sin cupos libres");
+    await expect(page.getByTestId("adicional-mas-parcial-sobre")).toBeDisabled();
+    await expect(page.getByTestId("adicional-elegir-storm-sobre")).toBeDisabled(); // sin cupos libres no se pueden elegir más sobres
+  });
+
+  test("agregar caja + adicionales vuelve a validar en el servidor: si algo cambió se informa y NO se agrega nada", async ({ page }) => {
+    await waitFicha(page);
+    await cap(page, "storm-sobre").getByTestId("adicional-elegir-storm-sobre").click();
+    await page.getByTestId(`adicional-elegir-${SLEEVES}`).click();
+    await expect(page.getByTestId("desglose-total")).toBeVisible();
+    await page.route("**/api/cart/adicionales", async (route) => {
+      const body = {
+        ok: false,
+        problems: [{ productId: "storm-sobre", title: "Storm Emeralda · Sobre", status: "out_of_stock", room: 0, unitPriceMinor: 950000, message: "Storm Emeralda · Sobre se quedó sin stock." }],
+        breakdown: { boxMinor: 0, boxUnits: 0, boostersListMinor: 0, boostersUnits: 0, boostersDiscountedUnits: 0, protectionMinor: 0, protectionUnits: 0, savingMinor: 0, totalMinor: 0 },
+        combo: { enabled: true, boxes: 0, slots: 0, usedSlots: 0, freeSlots: 0 },
+      };
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
+    });
+    await addToCart(page).click();
+    const alerta = page.getByTestId("adicionales-problemas");
+    await expect(alerta).toContainText("Revisá tu selección");
+    await expect(alerta).toContainText("Storm Emeralda · Sobre se quedó sin stock.");
+    await expect(drawer(page)).toHaveCount(0); // no se abrió el carrito
+    expect(await page.evaluate((k) => JSON.parse(localStorage.getItem(k) ?? "{\"items\":[]}").items.length, KEY)).toBe(0); // y no se agregó un conjunto incompleto
+    await expect(cap(page, "storm-sobre")).toHaveAttribute("data-selected", "false"); // el sobre sin stock salió de la selección
+    await expect(cap(page, SLEEVES)).toHaveAttribute("data-selected", "true"); // el resto se conserva para revisar
+  });
+
+  test("servidor: valida precios, cupos, límites y stock con lo que hay en el carrito; no confía en el navegador y no toca el stock", async ({ page }) => {
+    const post = async (cart: object[], add: object[]) => (await page.request.post(`${BASE}/api/cart/adicionales`, { data: { cart, add }, headers: { Origin: BASE } })).json();
+    const ok = await post([], [{ productId: "storm-caja", quantity: 1, expectedPriceMinor: 18500000 }, { productId: "storm-sobre", quantity: 2, expectedPriceMinor: 950000 }]);
+    expect(ok.ok).toBe(true);
+    expect(ok.breakdown).toMatchObject({ savingMinor: 190000, totalMinor: 18500000 + 1900000 - 190000 });
+    const caro = await post([], [{ productId: "storm-caja", quantity: 1, expectedPriceMinor: 1 }]);
+    expect(caro.problems[0]).toMatchObject({ status: "price_changed" });
+    const limite = await post([{ productId: "storm-sobre", quantity: 6 }], [{ productId: "storm-sobre", quantity: 8, expectedPriceMinor: 950000 }]);
+    expect(limite.problems[0]).toMatchObject({ status: "over_limit", room: 4 });
+    const mal = await page.request.post(`${BASE}/api/cart/adicionales`, { data: { cart: [], add: [] }, headers: { Origin: BASE } });
+    expect(mal.status()).toBe(400);
+    const ajeno = await page.request.post(`${BASE}/api/cart/adicionales`, { data: { cart: [], add: [{ productId: "storm-sobre", quantity: 1 }] }, headers: { Origin: "https://otro.example" } });
+    expect(ajeno.status()).toBe(403);
+    // validar no reserva ni descuenta: el máximo comprable del sleeve sigue igual
+    const v = await (await page.request.post(`${BASE}/api/cart/validate`, { data: { items: [{ productId: SLEEVES, quantity: 1 }] }, headers: { Origin: BASE } })).json();
+    expect(v.lines[0].maxQuantity).toBe(20);
+  });
+
+  test("caja que no participa o promoción apagada: no se anuncia el 10% OFF (la protección sí); un sobre no tiene selector", async ({ page }) => {
+    // «Set de ejemplo · Caja» no participa (el resto de las pruebas puede haberle fijado el stock, así que solo se verifica que no anuncie el 10%).
+    await go(page, "/productos/set-de-ejemplo-caja");
+    await expect(page.getByTestId("adicionales-sobres")).toHaveCount(0);
+    await expect(page.locator("main")).not.toContainText("Sumá sobres con 10% OFF");
+    await go(page, "/productos/storm-emeralda-sobre");
+    await expect(page.getByTestId("adicionales")).toHaveCount(0);
+    // promoción apagada por el dueño: la caja participante deja de anunciar el descuento y ofrece solo protección
+    await ownerSession(page);
+    await go(page, "/admin/promociones");
+    await page.getByTestId("combo-activada").uncheck();
+    await page.getByTestId("combo-guardar").click();
+    await expect(page.getByTestId("combo-mensaje")).toContainText("desactivada");
+    await go(page, FICHA);
+    await expect(page.getByTestId("adicionales-sobres")).toHaveCount(0);
+    await expect(page.locator("main")).not.toContainText("10% OFF por cada caja");
+    await expect(page.locator("main")).not.toContainText("Sumá sobres con 10% OFF");
+    await expect(page.getByTestId("adicionales-proteccion")).toBeVisible();
+    // se vuelve a encender para el resto de las pruebas
+    await go(page, "/admin/promociones");
+    await page.getByTestId("combo-activada").check();
+    await page.getByTestId("combo-guardar").click();
+    await expect(page.getByTestId("combo-mensaje")).toContainText("ACTIVADA");
+  });
+
+  test("accesibilidad: nombres claros, estado anunciado y manejo con teclado", async ({ page }) => {
+    test.setTimeout(90_000);
+    await waitFicha(page);
+    const elegir = page.getByTestId("adicional-elegir-parcial-sobre");
+    await expect(elegir).toHaveAccessibleName(/Elegir sobre /);
+    await elegir.focus();
+    await page.keyboard.press("Enter");
+    await expect(cap(page, "parcial-sobre")).toHaveAttribute("data-selected", "true");
+    await expect(page.getByRole("group", { name: /Cantidad de/ })).toBeVisible();
+    await expect(page.getByTestId("adicionales-cupos")).toHaveAttribute("aria-live", "polite");
+    const res = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
+    expect(res.violations.map((v) => `${v.id} → ${v.nodes.slice(0, 2).map((n) => n.target.join(" ") + " [" + (n.any[0]?.message ?? "") + "]").join(" | ")}`)).toEqual([]);
+  });
+
+  for (const width of [360, 390, 430]) {
+    test(`móvil ${width} px: las cápsulas no desbordan ni se superponen, los botones son tocables y la barra inferior sigue accesible`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 800 });
+      await waitFicha(page);
+      await cap(page, "storm-sobre").getByTestId("adicional-elegir-storm-sobre").click();
+      await page.getByTestId(`adicional-elegir-${SLEEVES}`).click();
+      await expect(page.getByTestId("desglose-total")).toBeVisible();
+      const m = await page.evaluate(() => {
+        const rect = (sel: string) => Array.from(document.querySelectorAll(sel)).map((e) => { const r = e.getBoundingClientRect(); return { l: r.left, r: r.right, t: r.top, b: r.bottom, h: r.height, w: r.width }; });
+        return { overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth, caps: rect("[data-testid^=adicional-][data-selected]"), btns: rect("[data-testid^=adicional-mas-], [data-testid^=adicional-menos-], [data-testid^=adicional-elegir-]"), vw: window.innerWidth };
+      });
+      expect(m.overflow).toBeLessThanOrEqual(1);
+      for (const c of m.caps) { expect(c.l).toBeGreaterThanOrEqual(0); expect(c.r).toBeLessThanOrEqual(m.vw + 1); }
+      for (let i = 1; i < m.caps.length; i++) expect(m.caps[i].t).toBeGreaterThanOrEqual(m.caps[i - 1].b - 1); // no se superponen
+      for (const b of m.btns) { expect(b.h).toBeGreaterThanOrEqual(43); expect(b.w).toBeGreaterThanOrEqual(43); }
+      // con el botón principal fuera de la vista aparece la barra inferior con el total y «Agregar todo»
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await expect(page.getByTestId("barra-compra")).toBeVisible();
+      await expect(page.getByTestId("barra-compra").getByRole("button", { name: "Agregar caja y adicionales" })).toBeVisible();
+      await expect(page.getByTestId("barra-precio")).toContainText("$"); // el total del conjunto, no solo el precio de la caja
+      await page.getByTestId("barra-compra").getByRole("button", { name: "Agregar caja y adicionales" }).click();
+      await expect(drawer(page).getByTestId("drawer-linea-storm-caja")).toBeVisible();
+      await expect(drawer(page).getByTestId("drawer-linea-storm-sobre")).toBeVisible();
+      await expect(drawer(page).getByTestId(`drawer-linea-${SLEEVES}`)).toBeVisible();
+    });
+  }
 });
 
 test.describe("accesibilidad y móvil", () => {
