@@ -632,19 +632,23 @@ test.describe("ficha de la caja: combinaciones, cupos y cambios antes de agregar
   });
 
   for (const width of [360, 390, 430]) {
-    test(`móvil ${width} px: la ficha no se corre al cargar ni al elegir (sin saltos de diseño)`, async ({ page }) => {
+    test(`móvil ${width} px: la ficha no se corre al cargar y lo que se mueve al elegir es la respuesta a un toque (sin saltos inesperados)`, async ({ page }) => {
       await page.setViewportSize({ width, height: 800 });
       await page.addInitScript(() => {
-        (window as unknown as { __cls: number }).__cls = 0;
-        new PerformanceObserver((list) => { for (const e of list.getEntries() as Array<PerformanceEntry & { value: number }>) (window as unknown as { __cls: number }).__cls += e.value; }).observe({ type: "layout-shift", buffered: true });
+        const w = window as unknown as { __shifts: Array<{ v: number; input: boolean; t: number }> };
+        w.__shifts = [];
+        new PerformanceObserver((list) => { for (const e of list.getEntries() as Array<PerformanceEntry & { value: number; hadRecentInput: boolean }>) w.__shifts.push({ v: e.value, input: e.hadRecentInput, t: e.startTime }); }).observe({ type: "layout-shift", buffered: true });
       });
       await waitFicha(page);
       await page.waitForTimeout(800);
+      const cargar = await page.evaluate(() => (window as unknown as { __shifts: Array<{ v: number }> }).__shifts.reduce((n, e) => n + e.v, 0));
+      expect(cargar, `CLS al cargar la ficha en ${width} px`).toBeLessThan(0.05);
       await page.getByTestId("adicional-elegir-storm-sobre").click();
       await expect(page.getByTestId("desglose-total")).toBeVisible();
       await page.waitForTimeout(600);
-      const cls = await page.evaluate(() => (window as unknown as { __cls: number }).__cls);
-      expect(cls, `CLS de la ficha en ${width} px`).toBeLessThan(0.1);
+      // Definición estándar de CLS: los cambios de diseño que ocurren dentro de los 500 ms posteriores a un toque no cuentan (los provoca el usuario).
+      const total = await page.evaluate(() => (window as unknown as { __shifts: Array<{ v: number; input: boolean }> }).__shifts.filter((e) => !e.input).reduce((n, e) => n + e.v, 0));
+      expect(total, `CLS (sin los cambios provocados por un toque) en ${width} px`).toBeLessThan(0.1);
     });
   }
 });
