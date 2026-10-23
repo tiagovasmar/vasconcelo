@@ -40,7 +40,7 @@ function Capsule({ o, qty, max, onChange, kind }: { o: AddonOption; qty: number;
   const blocked = !on && max < 1;
   return (
     <li
-      className={`flex items-center gap-3 rounded-2xl border-2 px-2.5 py-2 transition-colors ${on ? "border-emerald bg-emerald/10 shadow-[0_0_0_1px_var(--color-emerald)]" : "border-ink/25 bg-white/80"} ${blocked ? "opacity-60" : ""}`}
+      className={`flex min-w-0 items-center gap-3 rounded-2xl border-2 px-2.5 py-2 transition-colors ${on ? "border-emerald bg-emerald/10 shadow-[0_0_0_1px_var(--color-emerald)]" : "border-ink/25 bg-white/80"} ${blocked ? "opacity-60" : ""}`}
       data-testid={`adicional-${o.productId}`}
       data-selected={on ? "true" : "false"}
     >
@@ -48,8 +48,9 @@ function Capsule({ o, qty, max, onChange, kind }: { o: AddonOption; qty: number;
       <span className="min-w-0 flex-1">
         <span className="block text-sm font-bold leading-tight">{o.shortTitle}</span>
         <span className="block text-xs text-ink/70">{kind === "booster" ? (o.language ?? "Sobre") : o.presentation}</span>
-        <span className="mt-0.5 block text-sm" data-testid={`adicional-precio-${o.productId}`}>
-          {o.comboPriceMinor !== null ? <><s className="mr-1.5 text-xs font-semibold text-ink/75">{formatARS(o.listPriceMinor)}</s><b className="text-base text-emerald">{formatARS(o.comboPriceMinor)}</b></> : <b className="text-base">{formatARS(o.listPriceMinor)}</b>}
+        {/* Los precios pueden pasar a otra línea: con importes de 5 cifras en 360 px no deben ensanchar la columna. */}
+        <span className="mt-0.5 flex flex-wrap items-baseline gap-x-1.5 text-sm" data-testid={`adicional-precio-${o.productId}`}>
+          {o.comboPriceMinor !== null ? <><s className="text-xs font-semibold text-ink/75">{formatARS(o.listPriceMinor)}</s><b className="text-base text-emerald">{formatARS(o.comboPriceMinor)}</b></> : <b className="text-base">{formatARS(o.listPriceMinor)}</b>}
         </span>
       </span>
       {on ? (
@@ -73,11 +74,14 @@ function Capsule({ o, qty, max, onChange, kind }: { o: AddonOption; qty: number;
 
 export function BoxAddons({ catalog, sel, setSel, cart, boxQty }: { catalog: AddonCatalog; sel: Selection; setSel: (s: Selection) => void; cart: CartItem[]; boxQty: number }) {
   const [more, setMore] = useState(false);
+  // Una opción que se eligió estando la lista contraída queda visible aunque se vuelva a 0: no desaparece bajo el dedo; se limpia al expandir o contraer.
+  const [pinned, setPinned] = useState<string[]>([]);
   const qtyIn = (id: string) => cart.find((i) => i.productId === id && i.mode === "buy")?.quantity ?? 0;
   const set = (id: string, n: number) => {
     const next = { ...sel };
     if (n <= 0) delete next[id];
     else next[id] = n;
+    if (n > 0 && !pinned.includes(id)) setPinned([...pinned, id]);
     setSel(next);
   };
 
@@ -90,7 +94,7 @@ export function BoxAddons({ catalog, sel, setSel, cart, boxQty }: { catalog: Add
   const boosterMax = (o: AddonOption) => Math.max(0, Math.min(o.maxQuantity - qtyIn(o.productId), (sel[o.productId] ?? 0) + free));
   const protMax = (o: AddonOption) => Math.max(0, o.maxQuantity - qtyIn(o.productId));
 
-  const shown = more ? catalog.boosters : catalog.boosters.filter((o, i) => i < VISIBLE || (sel[o.productId] ?? 0) > 0);
+  const shown = more ? catalog.boosters : catalog.boosters.filter((o, i) => i < VISIBLE || (sel[o.productId] ?? 0) > 0 || pinned.includes(o.productId));
   const hidden = catalog.boosters.length - shown.length;
 
   return (
@@ -102,11 +106,11 @@ export function BoxAddons({ catalog, sel, setSel, cart, boxQty }: { catalog: Add
           <p className="mt-1 text-sm font-semibold text-emerald" role="status" aria-live="polite" data-testid="adicionales-cupos">
             {picked} {picked === 1 ? "elegido" : "elegidos"} · {free === 0 ? "sin cupos libres" : `te ${free === 1 ? "queda" : "quedan"} ${free} ${free === 1 ? "cupo" : "cupos"}`}
           </p>
-          <ul className="mt-2 grid gap-2 sm:grid-cols-1">
+          <ul className="mt-2 grid grid-cols-[minmax(0,1fr)] gap-2">
             {shown.map((o) => <Capsule key={o.productId} o={o} qty={sel[o.productId] ?? 0} max={boosterMax(o)} onChange={(n) => set(o.productId, n)} kind="booster" />)}
           </ul>
           {catalog.boosters.length > VISIBLE && (
-            <button type="button" onClick={() => setMore(!more)} aria-expanded={more} className="mt-2 min-h-11 text-sm font-semibold underline" data-testid="adicionales-ver-mas">
+            <button type="button" onClick={() => { setPinned([]); setMore(!more); }} aria-expanded={more} className="mt-2 min-h-11 text-sm font-semibold underline" data-testid="adicionales-ver-mas">
               {more ? "Ver menos" : `Ver ${hidden > 0 ? `${hidden} más` : "menos"}`}
             </button>
           )}
@@ -116,7 +120,7 @@ export function BoxAddons({ catalog, sel, setSel, cart, boxQty }: { catalog: Add
         <section aria-labelledby="adic-prot" className="rounded-2xl border border-ink/25 bg-white/60 p-3" data-testid="adicionales-proteccion">
           <h3 id="adic-prot" className="text-base font-extrabold">Protegé tus cartas</h3>
           <p className="mt-0.5 text-xs text-ink/75">Cada opción es un pack de 5 unidades. El top loader se usa junto con una sleeve. No incluyen cartas.</p>
-          <ul className="mt-2 grid gap-2">
+          <ul className="mt-2 grid grid-cols-[minmax(0,1fr)] gap-2">
             {catalog.protection.map((o) => <Capsule key={o.productId} o={o} qty={sel[o.productId] ?? 0} max={protMax(o)} onChange={(n) => set(o.productId, n)} kind="protection" />)}
           </ul>
         </section>

@@ -95,4 +95,25 @@ export const products: Product[] = [
   },
   // Los dos accesorios reales (mismos ids, precio fijo en pesos y portadas), pero con packs de ejemplo en stock para probar carrito, recomendaciones y ventas.
   ...accesoriosReales.map((a, i): Product => ({ ...a, isDemo: true, stockQuantity: i === 0 ? 20 : 12 })),
+  ...extraBoosters(),
 ];
+
+/**
+ * Sobres de prueba EXTRA (DEMO_EXTRA_BOOSTERS=N, solo en el servidor de pruebas «extra»): permiten probar el «Ver más» del selector de la ficha de una caja
+ * (más de 6 sobres elegibles). Sin la variable no existe ninguno, así que el resto de las pruebas y conteos no cambian.
+ */
+function extraBoosters(): Product[] {
+  const n = Math.min(40, Math.max(0, Number(process.env.DEMO_EXTRA_BOOSTERS || 0) || 0));
+  return Array.from({ length: n }, (_, i): Product => {
+    const k = String(i + 1).padStart(2, "0");
+    return {
+      id: `extra-sobre-${k}`, sku: `DEMO-EXTRA-${k}`, slug: `sobre-extra-${k}`, title: `Sobre extra ${k} · Sobre`,
+      kind: "booster", language: i % 2 === 0 ? "ja" : "en", region: i % 2 === 0 ? "JP" : "US", expansionIds: ["storm-emeralda"], currency: "ARS",
+      priceMinor: (8000 + 500 * i) * 100, stockQuantity: 10, maxPerOrder: 10, active: true, isDemo: true, createdAt: "2026-08-01",
+      images: imgs("DEMO-STORM-SOBRE", "Sobre extra"), fallbackTone: "mint",
+      description: "Sobre FICTICIO para probar el selector con muchas opciones.",
+      contents: [{ label: "Sobre sellado", quantity: 1 }],
+      guaranteeIds: [],
+    };
+  });
+}

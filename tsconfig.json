@@ -48,6 +48,8 @@
     ".next-build-check/dev/types/**/*.ts",
     ".next-e2e-consultas/types/**/*.ts",
     ".next-e2e-consultas/dev/types/**/*.ts",
+    ".next-e2e-extra/types/**/*.ts",
+    ".next-e2e-extra/dev/types/**/*.ts",
     ".next-preview-consultas/types/**/*.ts",
     ".next-preview-consultas/dev/types/**/*.ts",
     ".next-preview-combo/types/**/*.ts",
