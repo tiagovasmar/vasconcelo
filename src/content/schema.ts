@@ -120,6 +120,8 @@ export const ProductSchema = z.object({
   /** Estado del sellado del inventario de la tienda, si el dueño lo informa (las fotos del fabricante no lo acreditan). */
   ownerSealCondition: z.string().min(1).nullable().optional(),
   active: z.boolean(),
+  /** Se vende como adicional; no aparece en inicio, catálogo, búsqueda ni destacados. Sigue disponible en admin y carrito. */
+  addonOnly: z.boolean().optional(),
   isDemo: z.boolean(),
   /** Revisión de rarezas garantizadas (cajas, cajas especiales y kits). */
   rarityReview: RarityReviewSchema.optional(),

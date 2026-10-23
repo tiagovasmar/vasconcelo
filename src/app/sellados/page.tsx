@@ -87,7 +87,7 @@ export default async function Sellados({ searchParams }: { searchParams: Promise
                       <option value="kit">Kits de mazo</option>
                       <option value="especial">Cajas especiales</option>
                       <option value="ilustraciones">Sets de ilustraciones</option>
-                      <option value="accesorios">Accesorios</option>
+                      {activos.some((p) => p.kind === "accessory") && <option value="accesorios">Accesorios</option>}
                     </select>
                   </div>
                   <div>

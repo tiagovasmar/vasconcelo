@@ -35,7 +35,7 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const slug = (await params).slug;
   const p = await getProductBySlug(slug);
-  if (p) return { title: p.title, description: p.description };
+  if (p) return { title: p.title, description: p.description, ...(p.addonOnly ? { robots: { index: false, follow: true } } : {}) };
   if (getRetiredProductBySlug(slug)) return { title: "Producto retirado", robots: { index: false, follow: true } };
   return { title: "Producto no encontrado" };
 }

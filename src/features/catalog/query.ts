@@ -1,5 +1,6 @@
 import { languageLabel, languages, kindLabel, kindSlug, productKinds, type Expansion, type Product } from "@/content/schema";
 import { isInStock } from "./commercial";
+import { isListedProduct } from "./visibility";
 
 export type Sort = "nuevos" | "precio-asc" | "precio-desc";
 export type Availability = "todos" | "stock";
@@ -79,7 +80,7 @@ export function searchText(p: Product, expansions: Expansion[]): string {
 export function filterProducts(all: Product[], expansions: Expansion[], q: CatalogQuery): Product[] {
   const terms = norm(q.q).split(/\s+/).filter(Boolean);
   const out = all.filter((p) => {
-    if (!p.active) return false;
+    if (!isListedProduct(p)) return false;
     if (q.kind && p.kind !== q.kind) return false;
     if (q.language && p.language !== q.language) return false;
     if (q.expansion && !p.expansionIds.includes(q.expansion)) return false;

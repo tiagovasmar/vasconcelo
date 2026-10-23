@@ -23,7 +23,7 @@ export const TOPLOADERS_ID = "top-loaders-transparentes-pack-5";
 export const products: Product[] = [
   {
     id: SLEEVES_ID, sku: "ACC-SLEEVES-TRANSP-X5", slug: "sleeves-transparentes-pack-5", title: "Sleeves transparentes · Pack de 5 unidades",
-    kind: "accessory", language: "na", region: "No aplica", expansionIds: [], currency: "ARS",
+    kind: "accessory", addonOnly: true, language: "na", region: "No aplica", expansionIds: [], currency: "ARS",
     priceBase: "ars", fixedPriceMinor: 100000, priceMinor: 100000, packSize: 5, stockQuantity: null, active: true, isDemo: false, createdAt: "2026-10-22",
     images: [portada("sleeves-transparentes-pack-5.webp", "Ilustración de una sleeve transparente vacía (imagen ilustrativa; la compra incluye 5 unidades)")],
     fallbackTone: "paper",
@@ -33,7 +33,7 @@ export const products: Product[] = [
   },
   {
     id: TOPLOADERS_ID, sku: "ACC-TOPLOADERS-TRANSP-X5", slug: "top-loaders-transparentes-pack-5", title: "Top loaders transparentes · Pack de 5 unidades",
-    kind: "accessory", language: "na", region: "No aplica", expansionIds: [], currency: "ARS",
+    kind: "accessory", addonOnly: true, language: "na", region: "No aplica", expansionIds: [], currency: "ARS",
     priceBase: "ars", fixedPriceMinor: 350000, priceMinor: 350000, packSize: 5, stockQuantity: null, active: true, isDemo: false, createdAt: "2026-10-22",
     images: [portada("top-loaders-transparentes-pack-5.webp", "Ilustración de un top loader transparente vacío (imagen ilustrativa; la compra incluye 5 unidades)")],
     fallbackTone: "paper",

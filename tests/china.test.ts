@@ -202,8 +202,8 @@ describe("catálogo chino: búsqueda y filtros", () => {
     expect(f({ q: "ogerpon" })).toHaveLength(2);
     expect(f({ q: "storm" })).toHaveLength(2); // sigue encontrando las japonesas
   });
-  it("paginación: 52 fichas públicas (50 sellados + 2 accesorios) en 5 páginas de 12", () => {
-    expect(f({})).toHaveLength(52);
+  it("paginación: 50 sellados públicos, accesorios solo como adicionales, en 5 páginas de 12", () => {
+    expect(f({})).toHaveLength(50);
     expect(Math.ceil(f({}).length / 12)).toBe(5);
   });
 });

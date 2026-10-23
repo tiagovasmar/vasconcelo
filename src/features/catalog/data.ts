@@ -6,6 +6,7 @@ import type { Expansion, Product } from "@/content/schema";
 import type { EffectiveRate } from "@/features/fx/convert";
 import { currentRate } from "@/features/fx/service";
 import { isInStock } from "./commercial";
+import { isListedProduct } from "./visibility";
 import { applyOverrides, loadGalleries, loadOverrides } from "./overrides";
 
 /**
@@ -31,10 +32,11 @@ export async function listAllProducts(fx?: EffectiveRate, db?: Db): Promise<Prod
   return loadAllProducts(fx, db ?? getDb());
 }
 export async function listProducts(db?: Db): Promise<Product[]> {
-  return (await listAllProducts(undefined, db)).filter((p) => p.active);
+  return (await listAllProducts(undefined, db)).filter(isListedProduct);
 }
 export async function getProductBySlug(slug: string): Promise<Product | undefined> {
-  return (await listProducts()).find((p) => p.slug === slug);
+  // Un adicional conserva su ficha directa para los enlaces del carrito; no se lista públicamente.
+  return (await listAllProducts()).find((p) => p.active && p.slug === slug);
 }
 /** Producto retirado de la oferta pública (su ficha directa responde «retirado», no 404). */
 export function getRetiredProductBySlug(slug: string): Product | undefined {
