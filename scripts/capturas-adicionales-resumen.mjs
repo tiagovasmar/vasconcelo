@@ -23,10 +23,11 @@ for (const [tag, width, height, mobile] of [["escritorio", 1360, 1300, false], [
   await page.getByTestId("adicional-elegir-top-loaders-transparentes-pack-5").click();
   await page.getByTestId("desglose-total").waitFor();
   await page.waitForTimeout(2500);
+  const sy = await page.evaluate(() => window.scrollY);
   const a = await page.getByTestId("adicionales-sobres").boundingBox();
   const z = await page.getByTestId("agregar").boundingBox();
-  const top = Math.max(0, a.y - 70);
-  const clip = { x: 0, y: top, width, height: Math.min(z.y + z.height + 24 - top, 6000) };
+  const top = Math.max(0, a.y + sy - 70);
+  const clip = { x: 0, y: top, width, height: Math.min(z.y + sy + z.height + 24 - top, 6000) };
   if (mobile) {
     // en el celular: bloque completo en una sola imagen alta
     await page.screenshot({ path: `${OUT}/verificacion-${tag}.png`, fullPage: true, clip });
