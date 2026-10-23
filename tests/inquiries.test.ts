@@ -180,6 +180,26 @@ describe("idempotencia, privacidad y persistencia", () => {
     expect(await getInquiryFor(db, a.inquiry.reference, {})).toBeNull();
     expect((await getInquiryFor(db, a.inquiry.reference, owner))?.reference).toBe(a.inquiry.reference);
   });
+  describe("invitado sin cookie cuya respuesta se perdió (primera visita)", () => {
+    const nuevo = (n: string, extra: Record<string, unknown> = {}) => ({ sessionTokenHash: hashToken(n), sessionIsNew: true, ...extra });
+    it("el reintento con la misma clave y el mismo contenido recupera la MISMA consulta (no se duplica) y la asocia a la sesión nueva", async () => {
+      const a = await createInquiry(db, base(), { sessionTokenHash: owner.sessionTokenHash, sessionIsNew: true });
+      const b = await createInquiry(db, base(), nuevo("sesion-nueva-tras-corte"));
+      expect(b.replayed).toBe(true);
+      expect(b.inquiry.reference).toBe(a.inquiry.reference);
+      expect(await db.select().from(inquiries)).toHaveLength(1);
+      expect((await getInquiryFor(db, a.inquiry.reference, { sessionTokenHash: hashToken("sesion-nueva-tras-corte") }))?.reference).toBe(a.inquiry.reference);
+      expect(await getInquiryFor(db, a.inquiry.reference, owner)).toBeNull(); // la sesión anterior (la cookie que nunca llegó) ya no es la dueña
+    });
+    it("no aplica con otro contenido, pasada la ventana, con cuenta iniciada o si la petición YA traía una cookie distinta", async () => {
+      const a = await createInquiry(db, base(), { sessionTokenHash: owner.sessionTokenHash });
+      expect((await fail(async () => await createInquiry(db, base({ items: [{ productId: "storm-sobre", quantity: 3 }] }), nuevo("otra-1")))).code).toBe("idempotency_conflict");
+      expect((await fail(async () => await createInquiry(db, base(), nuevo("otra-2", { now: a.inquiry.createdAt + 31 * 60 * 1000 })))).code).toBe("idempotency_conflict");
+      expect((await fail(async () => await createInquiry(db, base(), nuevo("otra-3", { userId: "usuario-x" })))).code).toBe("idempotency_conflict");
+      expect((await fail(async () => await createInquiry(db, base(), { sessionTokenHash: hashToken("otra-4"), sessionIsNew: false }))).code).toBe("idempotency_conflict");
+      expect(await getInquiryFor(db, a.inquiry.reference, owner)).not.toBeNull(); // la dueña original sigue siéndolo
+    });
+  });
   it("la referencia no es secuencial ni adivinable", async () => {
     const refs = await Promise.all(Array.from({ length: 30 }, async (_, i) => (await createInquiry(db, base({ idempotencyKey: key(i + 10) }), { sessionTokenHash: owner.sessionTokenHash })).inquiry.reference));
     expect(new Set(refs).size).toBe(30);

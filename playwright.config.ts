@@ -19,7 +19,7 @@ if (!process.env.TEST_WORKER_INDEX) {
 // `fixture`: catálogo de PRUEBA ficticio (productos con precio y stock de ejemplo) para probar carrito y filtros.
 // Sin fixture, el servidor usa el catálogo REAL (16 productos con precio/stock pendientes).
 const PG_PORT = Number(process.env.PG_TEST_PORT || 54398);
-const pgServer = { command: "npx tsx scripts/pg-test-server.ts demo,live,real,admin,consultas,extra,resil", url: `http://127.0.0.1:${process.env.PG_TEST_READY_PORT || 54399}`, reuseExistingServer: false, timeout: 180_000, env: { PG_TEST_PORT: String(PG_PORT) } };
+const pgServer = { command: "npx tsx scripts/pg-test-server.ts demo,live,real,admin,consultas,extra,resil,layout", url: `http://127.0.0.1:${process.env.PG_TEST_READY_PORT || 54399}`, reuseExistingServer: false, timeout: 180_000, env: { PG_TEST_PORT: String(PG_PORT) } };
 const server = (port: number, tag: string, whatsapp: string, fixture = true, adminEmail = "", extraEnv: Record<string, string> = {}, reuseBuild = false) => ({
   // Se prueba el BUILD DE PRODUCCIÓN (sin compilación bajo demanda: tiempos estables y es lo que se entrega).
   // E2E_SKIP_BUILD=1 reutiliza el build anterior (solo para iterar localmente; la entrega siempre se prueba con build nuevo).
@@ -65,7 +65,9 @@ export default defineConfig({
     // «caído»: el mismo build que «resil» pero con una base que NO existe, para probar las pantallas de error de página con un fallo real del servidor.
     // Va después de «resil» (Playwright levanta los servidores en orden): reutiliza su build.
     // Sus páginas responden 500 a propósito: se espera el puerto, no una URL sana.
-    { ...server(3107, "caido", "", true, "", {}, true), url: undefined, port: 3107 }].filter((w) => !process.env.E2E_SERVERS || !(w.env as Record<string, string>).E2E_TAG || process.env.E2E_SERVERS.split(",").includes((w.env as Record<string, string>).E2E_TAG)),
+    { ...server(3107, "caido", "", true, "", {}, true), url: undefined, port: 3107 },
+    // «layout»: el mismo build, con el gancho de pruebas que hace fallar el diseño raíz mientras exista un archivo (comprueba global-error.tsx y su recuperación).
+    { ...server(3108, "layout", "", true, "", { E2E_LAYOUT_FAIL_FILE: path.resolve(`.local/data/e2e-${stamp}-layout.flag`) }, true), url: `http://localhost:3108/como-comprar` }].filter((w) => !process.env.E2E_SERVERS || !(w.env as Record<string, string>).E2E_TAG || process.env.E2E_SERVERS.split(",").includes((w.env as Record<string, string>).E2E_TAG)),
   projects: [
     { name: "escritorio", testIgnore: /whatsapp|colecciones|admin|promo-accesorios|ver-mas|resiliencia/, use: { baseURL: "http://localhost:3100", viewport: { width: 1440, height: 900 } } },
     { name: "movil", testIgnore: /whatsapp|colecciones|admin|promo-accesorios|ver-mas|resiliencia/, use: { baseURL: "http://localhost:3100", viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true } },
@@ -79,6 +81,8 @@ export default defineConfig({
     // Resiliencia (red lenta, cortes, HTTP 500/429, módulos e imágenes que fallan): servidor y base propios, en escritorio y en móvil.
     { name: "resil-escritorio", testMatch: /resiliencia.spec/, use: { baseURL: "http://localhost:3106", viewport: { width: 1440, height: 900 } } },
     { name: "resil-movil", testMatch: /resiliencia.spec/, use: { baseURL: "http://localhost:3106", viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true } },
+    // WebKit (el motor de Safari) como navegador de LABORATORIO en Windows, con viewport y táctil de celular: no es Safari/iOS real ni un iPhone físico. Opcional: npx playwright install webkit
+    ...(process.env.E2E_WEBKIT ? [{ name: "resil-webkit", testMatch: /resiliencia.spec/, use: { browserName: "webkit" as const, baseURL: "http://localhost:3106", viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true } }] : []),
     // Catálogo real (8 colecciones, 16 fichas): escritorio y móvil.
     { name: "real-escritorio", testMatch: /colecciones|resiliencia-imagenes/, use: { baseURL: "http://localhost:3102", viewport: { width: 1440, height: 900 } } },
     { name: "real-movil", testMatch: /colecciones|resiliencia-imagenes/, use: { baseURL: "http://localhost:3102", viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true } },

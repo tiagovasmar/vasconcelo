@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import postgres from "postgres";
+import { resilientPostgres } from "./resilient";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import * as schema from "./schema";
@@ -24,21 +24,31 @@ const isLocalHost = (url: string) => {
   }
 };
 
-export function createDb(url: string, opts: { max?: number } = {}) {
+/** Plazos (ver resilient.ts). Conexión: 8 s; consulta (espera + ejecución): 10 s, más 3 s para que el servidor confirme la cancelación. Se ajustan con variables de entorno. */
+const envNumber = (name: string, fallback: number) => {
+  const raw = process.env[name];
+  const n = Number(raw);
+  return raw !== undefined && raw.trim() !== "" && Number.isFinite(n) && n >= 0 ? n : fallback;
+};
+export const dbLimits = () => ({ connectTimeoutS: envNumber("DATABASE_CONNECT_TIMEOUT_S", 8), queryTimeoutMs: envNumber("DATABASE_QUERY_TIMEOUT_MS", 10_000) });
+
+/** `queryTimeoutMs`: plazo por consulta (0 o sin indicar = sin plazo: migraciones, respaldos y herramientas). La conexión de la aplicación (`getDb`) lo toma del entorno. */
+export function createDb(url: string, opts: { max?: number; queryTimeoutMs?: number; connectTimeoutS?: number; graceMs?: number } = {}) {
   // Salvaguarda de desarrollo: con ENTORNO_LOCAL=1 (solo en .env.local de esta computadora) jamás se conecta a un servidor remoto, ni por error de configuración.
   if (process.env.ENTORNO_LOCAL === "1" && !isLocalHost(url)) throw new Error("ENTORNO_LOCAL=1: se rechazó una conexión a un servidor que no es local. Usá la base de desarrollo (npm run dev:db).");
-  const ssl = process.env.DATABASE_SSL === "disable" || isLocalHost(url) ? false : "require";
-  const client = postgres(url, {
+  const ssl = process.env.DATABASE_SSL === "disable" || isLocalHost(url) ? false : ("require" as const);
+  const options = {
     prepare: false,
     max: opts.max ?? (Number(process.env.DATABASE_POOL_MAX) || 1),
     idle_timeout: 20,
-    connect_timeout: 15,
+    connect_timeout: opts.connectTimeoutS ?? 15,
     ssl,
     // Los mensajes informativos del servidor (NOTICE) no se imprimen: podrían incluir datos.
     onnotice: () => undefined,
     // Solo para mediciones locales (scripts/medir-rendimiento.mjs): con DB_QUERY_LOG=<archivo> cada consulta deja una línea. Sin esa variable no hace nada.
     ...(process.env.DB_QUERY_LOG ? { debug: (_c: number, q: string) => fs.appendFileSync(process.env.DB_QUERY_LOG!, `${Date.now()}\t${q.replace(/\s+/g, " ").slice(0, 140)}\n`) } : {}),
-  });
+  };
+  const client = resilientPostgres(url, options, { queryTimeoutMs: opts.queryTimeoutMs ?? 0, graceMs: opts.graceMs });
   return drizzle(client, { schema });
 }
 
@@ -65,5 +75,6 @@ const globalForDb = globalThis as unknown as { __tiendaDb?: Db };
 
 /** Conexión única del proceso (se reutiliza entre recargas en desarrollo). Es perezosa: no se conecta hasta la primera consulta. */
 export function getDb(): Db {
-  return (globalForDb.__tiendaDb ??= createDb(databaseUrl()));
+  const { connectTimeoutS, queryTimeoutMs } = dbLimits();
+  return (globalForDb.__tiendaDb ??= createDb(databaseUrl(), { connectTimeoutS, queryTimeoutMs }));
 }

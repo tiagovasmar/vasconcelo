@@ -129,6 +129,13 @@ export const cartDrawer = {
     drawerListeners.forEach((l) => l());
   },
   isOpen: () => drawerOpen,
+  /**
+   * Elemento al que corresponde devolver el foco al cerrar. NO se «consume»: el marco de carga y el panel completo pueden limpiarse uno detrás del otro cuando se cierra
+   * justo en el relevo entre los dos (Escape entre el dibujo del panel y sus efectos), y los dos deben devolver el foco al MISMO elemento. Se renueva en el próximo `open()`.
+   */
+  peekReturnFocus(): HTMLElement | null {
+    return returnFocusTo;
+  },
   /** Elemento al que corresponde devolver el foco (una sola vez). */
   takeReturnFocus(): HTMLElement | null {
     const el = returnFocusTo;

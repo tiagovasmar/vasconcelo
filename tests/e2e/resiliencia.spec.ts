@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import postgres from "postgres";
 import path from "node:path";
 import { expect, test as base, type Page, type Route } from "@playwright/test";
 import { go } from "./helpers";
@@ -329,10 +330,12 @@ test.describe("verificación del carrito y envío de la consulta", () => {
     await cta(page).click();
     await expect(T(page, "error-envio")).toContainText("No sabemos si llegó a guardarse");
     expect(referencias).toHaveLength(1);
+    // La respuesta perdida llevaba la cookie de sesión del invitado: tampoco llegó al navegador (en Playwright la guarda `route.fetch`, así que se borra).
+    await page.context().clearCookies();
     const segunda = page.waitForResponse((res) => res.url().endsWith("/api/inquiries"));
     await T(page, "reintentar-envio").click();
     const cuerpo = await (await segunda).json();
-    expect(cuerpo.replayed).toBe(true); // el servidor reconoció la clave de idempotencia
+    expect(cuerpo, JSON.stringify(cuerpo).slice(0, 300)).toMatchObject({ replayed: true }); // el servidor reconoció la clave de idempotencia
     expect(cuerpo.reference).toBe(referencias[0]); // la misma consulta
     await expect(page).toHaveURL(new RegExp(`/carrito/consulta/${referencias[0]}`));
     expect(intento).toBe(2); // y nunca hubo un reintento automático
@@ -481,6 +484,22 @@ test.describe("panel lateral del carrito mientras se descarga su módulo", () =>
     expect(await page.evaluate(() => performance.getEntriesByType("navigation").length)).toBe(1); // nunca se recargó la página
   });
 
+  test("Escape apenas aparece el panel (justo en el relevo del marco de carga al panel completo): el foco vuelve siempre al botón que se tocó", async ({ page }) => {
+    test.setTimeout(90_000);
+    for (let i = 0; i < 10; i++) {
+      await go(page, "/sellados"); // cada vuelta es una primera apertura: el módulo del panel se descarga de nuevo
+      const add = page.getByRole("button", { name: "Agregar Storm Emeralda · Sobre al carrito" });
+      await add.click();
+      await expect(T(page, "cart-drawer")).toBeVisible();
+      await page.keyboard.press("Escape"); // sin esperar a que el panel termine de montarse
+      await expect(T(page, "cart-drawer")).toHaveCount(0);
+      // Safari/WebKit no da foco a un botón al tocarlo con el mouse: no hay elemento de origen y el foco vuelve al ícono del carrito (respaldo previsto).
+      if (test.info().project.name === "resil-webkit") await expect(page.locator("[data-cart-trigger]"), `vuelta ${i + 1}`).toBeFocused();
+      else await expect(add, `vuelta ${i + 1}`).toBeFocused();
+      await page.evaluate((k) => localStorage.removeItem(k), KEY);
+    }
+  });
+
   test("falla la descarga y se cierra con Escape; al volver a abrir se vuelve a intentar", async ({ page }) => {
     const modulos = await armarModulos(page);
     modulos.modo = "fallar";
@@ -494,8 +513,14 @@ test.describe("panel lateral del carrito mientras se descarga su módulo", () =>
   });
 });
 
+/** PostgreSQL descartable de las pruebas (el mismo de scripts/pg-test-server.ts): permite quitar y devolver la base del servidor «caido» sin tocar nada real. */
+const adminPg = () => postgres(`postgres://postgres:postgres@127.0.0.1:${process.env.PG_TEST_PORT || 54398}/postgres`, { max: 1, onnotice: () => undefined });
+
 test.describe("pantalla de error de página", () => {
   test("con la base de datos caída: pantalla propia (no la genérica), con «Reintentar» y «Volver al catálogo»; no se muestra ningún precio", async ({ page }) => {
+    const pg = adminPg();
+    await pg.unsafe("drop database if exists e2e_caido with (force)"); // la base «se cae» (también corta las conexiones abiertas del servidor)
+    await pg.end({ timeout: 2 });
     await page.goto("http://localhost:3107/sellados");
     const pantalla = T(page, "pantalla-error");
     await expect(pantalla).toBeVisible();
@@ -506,5 +531,119 @@ test.describe("pantalla de error de página", () => {
     await expect(page.getByRole("link", { name: /Ver todos|Inicio|Vasconcelo/ }).first()).toBeVisible(); // el encabezado del sitio sigue
     await pantalla.getByRole("button", { name: "Reintentar" }).click(); // sigue caído: vuelve a mostrar la pantalla, sin romper
     await expect(pantalla).toBeVisible();
+  });
+
+  test("base caída: muchas solicitudes seguidas responden un error controlado en pocos segundos (sin quedar colgadas) y, al volver la base, la aplicación se recupera sin reiniciarse", async ({ request }) => {
+    test.setTimeout(120_000);
+    const pg = adminPg();
+    await pg.unsafe("drop database if exists e2e_caido with (force)");
+    const t0 = Date.now();
+    for (let i = 0; i < 12; i++) {
+      const t = Date.now();
+      const r = await request.get("http://localhost:3107/sellados", { timeout: 20_000 }); // antes: la 5.ª o 6.ª solicitud esperaba 20 s o más cada una
+      expect(r.status()).toBeGreaterThanOrEqual(500);
+      expect(Date.now() - t).toBeLessThan(12_000);
+    }
+    expect((await request.get("http://localhost:3107/api/health", { timeout: 20_000 })).status()).toBe(503);
+    expect(Date.now() - t0).toBeLessThan(60_000);
+    expect((await request.get("http://localhost:3107/como-comprar")).status()).toBe(200); // lo que no usa la base sigue respondiendo
+    // La base vuelve (copia de la plantilla migrada): la misma instancia de la aplicación responde sin reiniciar.
+    await pg.unsafe("create database e2e_caido template tienda_plantilla");
+    await pg.end({ timeout: 2 });
+    await expect.poll(async () => (await request.get("http://localhost:3107/api/health", { timeout: 20_000 })).status(), { timeout: 30_000, intervals: [500] }).toBe(200);
+    expect((await request.get("http://localhost:3107/sellados", { timeout: 20_000 })).status()).toBe(200);
+  });
+});
+
+/** Servidor «layout» (:3108): el mismo build, con el gancho de pruebas que hace fallar el diseño raíz mientras exista el archivo de bandera. */
+const FLAG = path.resolve(`.local/data/e2e-${stamp}-layout.flag`);
+const carritoGuardado = { items: [{ productId: "storm-sobre", quantity: 2, priceMinor: 950000, mode: "buy", title: "Storm Emeralda · Sobre" }], delivery: {}, payment: "efectivo", contactName: "Ana Pérez", idem: null };
+
+test.describe("global-error (falla del diseño raíz) y pestañas con una versión vieja", () => {
+  test.afterEach(() => fs.rmSync(FLAG, { force: true }));
+
+  test("global-error: pantalla propia sin información interna, el carrito se conserva, «Reintentar» recupera sin reiniciar el servidor", async ({ page }) => {
+    fs.mkdirSync(path.dirname(FLAG), { recursive: true });
+    await page.addInitScript(([k, v]) => { if (!localStorage.getItem(k as string)) localStorage.setItem(k as string, JSON.stringify(v)); }, [KEY, carritoGuardado]);
+    fs.writeFileSync(FLAG, "1");
+    const res = await page.goto("http://localhost:3108/sellados");
+    expect(res?.status()).toBeGreaterThanOrEqual(500);
+    const pantalla = T(page, "pantalla-error");
+    await expect(pantalla).toBeVisible();
+    await expect(pantalla.getByRole("heading", { level: 1 })).toHaveText("No pudimos cargar esta página.");
+    await expect(page.locator("header")).toHaveCount(0); // es el documento propio de global-error: sin el diseño del sitio
+    // Sin información interna: ni el texto del error, ni rutas, ni trazas, en la pantalla ni en el HTML recibido.
+    const html = await (await page.request.get("http://localhost:3108/sellados")).text();
+    for (const texto of [await page.locator("body").innerText(), html]) {
+      expect(texto).not.toMatch(/Fallo simulado|detalle interno|node_modules|\.next-e2e|at \w+ \(|stack/i);
+    }
+    await expect(pantalla).toContainText("Código para soporte"); // solo el código opaco (digest)
+    await page.screenshot({ path: `docs/capturas/resiliencia/10-global-error-${test.info().project.name}.png` });
+    await expect(pantalla.getByRole("link", { name: "Volver al catálogo" })).toHaveAttribute("href", "/sellados");
+    // El carrito está intacto.
+    expect((await cartItems(page)).map((i) => [i.productId, i.quantity])).toEqual([["storm-sobre", 2]]);
+    // «Reintentar» con el fallo todavía presente: vuelve a mostrar la pantalla, sin romper.
+    await pantalla.getByRole("button", { name: "Reintentar" }).click();
+    await expect(pantalla).toBeVisible();
+    // Se resuelve el fallo (sin reiniciar nada) y «Reintentar» trae la página.
+    fs.rmSync(FLAG, { force: true });
+    await pantalla.getByRole("button", { name: "Reintentar" }).dispatchEvent("click"); // la página se reemplaza al instante: no se espera «estabilidad» del botón
+    await expect(page.getByRole("heading", { level: 1, name: /Explorá tu próxima apertura/ })).toBeVisible({ timeout: 15_000 });
+    await expect(pantalla).toHaveCount(0);
+    await expect(T(page, "cart-count")).toHaveText("2"); // el carrito, ahora en el encabezado
+  });
+
+  test("pestaña abierta antes de un despliegue: el módulo del carrito viejo ya no existe → «Actualizar la página» trae la versión nueva, una sola vez y sin perder el carrito", async ({ page }) => {
+    const iniciales = new Set<string>();
+    let armado = false;
+    page.on("request", (rq) => { if (!armado && rq.url().includes("/_next/static/chunks/")) iniciales.add(rq.url()); });
+    await go(page, "/sellados");
+    armado = true;
+    // «Despliegue»: los archivos de código que esta pestaña todavía no tenía descargados ahora responden 404 (el sitio nuevo ya no los tiene con ese nombre).
+    await page.route("**/_next/static/chunks/**", (r) => (iniciales.has(r.request().url()) ? r.continue() : r.fulfill({ status: 404, contentType: "text/plain", body: "Not found" })));
+    await page.getByRole("button", { name: "Agregar Storm Emeralda · Sobre al carrito" }).click();
+    await expect(T(page, "cart-drawer-error")).toBeVisible();
+    await expect(T(page, "cart-drawer-actualizar")).toBeVisible();
+    await T(page, "cart-drawer-reintentar").click(); // reintentar no alcanza: el archivo viejo no vuelve
+    await expect(T(page, "cart-drawer-error")).toBeVisible();
+    // La versión nueva ya está sirviéndose: se quita el 404 y la persona actualiza.
+    await page.unroute("**/_next/static/chunks/**");
+    let navegaciones = 0; // documentos pedidos (los cambios de URL internos de Next no cuentan)
+    page.on("request", (rq) => { if (rq.resourceType() === "document") navegaciones++; });
+    await Promise.all([page.waitForLoadState("load"), T(page, "cart-drawer-actualizar").click()]);
+    await page.locator("html[data-hydrated='true']").waitFor();
+    await page.waitForTimeout(1500);
+    expect(navegaciones).toBe(1); // una sola recarga: nunca se recarga sola ni en bucle
+    expect((await cartItems(page)).map((i) => [i.productId, i.quantity])).toEqual([["storm-sobre", 1]]);
+    await T(page, "cart-count").waitFor();
+    await page.locator("[data-cart-trigger]").click();
+    await expect(T(page, "cart-drawer")).toBeVisible();
+  });
+
+  test("pestaña vieja: al navegar a una página cuyo código ya no existe se muestra «La tienda se actualizó»; «Actualizar la página» la recupera con una sola recarga y el carrito sigue", async ({ page }) => {
+    const iniciales = new Set<string>();
+    let armado = false;
+    page.on("request", (rq) => { if (!armado && rq.url().includes("/_next/static/")) iniciales.add(rq.url()); });
+    await page.addInitScript(([k, v]) => { if (!localStorage.getItem(k as string)) localStorage.setItem(k as string, JSON.stringify(v)); }, [KEY, carritoGuardado]);
+    await go(page, "/");
+    armado = true;
+    await page.route("**/_next/static/**", (r) => (iniciales.has(r.request().url()) ? r.continue() : r.fulfill({ status: 404, contentType: "text/plain", body: "Not found" })));
+    await page.evaluate(() => (document.querySelector("a[href='/sellados']") as HTMLElement).click()); // navegación interna de Next (en celular el menú está plegado)
+    const pantalla = page.locator("[data-testid=pantalla-error]");
+    await expect(pantalla).toHaveAttribute("data-tipo", "version-vieja");
+    await expect(pantalla.getByRole("heading", { level: 1 })).toHaveText("La tienda se actualizó.");
+    await expect(pantalla.getByRole("button", { name: "Actualizar la página" })).toBeVisible();
+    await expect(pantalla).not.toContainText(/chunk|module|undefined|Error:/i); // sin detalles internos
+    await page.screenshot({ path: `docs/capturas/resiliencia/11-version-vieja-${test.info().project.name}.png` });
+    expect((await cartItems(page)).map((i) => i.quantity)).toEqual([2]);
+    // Con la versión nueva ya disponible, la persona actualiza: una sola recarga y la página pedida.
+    await page.unroute("**/_next/static/**");
+    let documentos = 0;
+    page.on("request", (rq) => { if (rq.resourceType() === "document") documentos++; });
+    await pantalla.getByRole("button", { name: "Actualizar la página" }).click();
+    await expect(page.getByRole("heading", { level: 1, name: /Explorá tu próxima apertura/ })).toBeVisible({ timeout: 15_000 });
+    await page.waitForTimeout(1500);
+    expect(documentos).toBe(1);
+    await expect(T(page, "cart-count")).toHaveText("2");
   });
 });

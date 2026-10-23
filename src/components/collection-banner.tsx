@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Image from "next/image";
+import { SafeImage } from "./safe-image";
 import type { CSSProperties, ReactNode } from "react";
 import type { Banner } from "@/content/banners";
 import { ArrowIcon } from "./icons";
@@ -35,7 +35,10 @@ export function CollectionBanner({ banner: b, as: H = "h2", priority = false, lo
   const prod = productsHref ?? `/sellados?expansion=${b.expansionId}`;
   const gal = galleryHref ?? `/expansiones/${b.slug}#exp-cartas`;
   const flip = b.layout.flip;
-  const img = (i: typeof b.art | undefined, props: { className: string; sizes: string; style?: CSSProperties }) => i && loadImages ? <Image src={i.src} alt={i.alt} width={i.width} height={i.height} priority={priority} sizes={props.sizes} className={props.className} style={props.style} /> : null;
+  // Si una imagen no se puede descargar: el arte principal conserva su recuadro (fondo del banner) con el mismo texto alternativo; la caja y el sobre, que son adornos con posición absoluta, dejan solo su texto alternativo.
+  const img = (i: typeof b.art | undefined, props: { className: string; sizes: string; style?: CSSProperties }, principal = false) => i && loadImages
+    ? <SafeImage src={i.src} alt={i.alt} width={i.width} height={i.height} priority={priority} sizes={props.sizes} className={props.className} style={props.style} fallback={principal ? <div role="img" aria-label={i.alt} className={props.className} /> : <span className="sr-only">{i.alt}</span>} />
+    : null;
   // La caja se dimensiona por su forma: las cajas altas (p. ej. MEGA Dream ex) ocupan menos ancho para no tapar el arte.
   const boxWidth = b.box ? `${Math.round(Math.min(37, Math.max(22, (b.box.width / b.box.height) * 24)))}%` : undefined;
   return (
@@ -73,7 +76,7 @@ export function CollectionBanner({ banner: b, as: H = "h2", priority = false, lo
           <div className="hero-glow relative mx-auto w-full max-w-[640px] pb-4 max-sm:max-w-[80%] sm:pb-8">
             <div className={`hero-panel relative w-[88%] p-[3px] ${flip ? "hero-panel-flip mr-[6%] ml-auto" : "ml-[6%]"}`}>
               <div className={`hero-panel-in relative overflow-hidden bg-ink ${flip ? "hero-panel-flip" : ""}`} style={{ aspectRatio: `${b.art.width} / ${b.art.height}` }}>
-                {img(b.art, { className: "h-full w-full object-cover", sizes: "(min-width:1024px) 560px, 90vw" })}
+                {img(b.art, { className: "h-full w-full object-cover", sizes: "(min-width:1024px) 560px, 90vw" }, true)}
                 <div className="absolute inset-0 bg-[linear-gradient(100deg,rgba(3,8,12,.45),transparent_35%)]" aria-hidden="true" />
               </div>
             </div>

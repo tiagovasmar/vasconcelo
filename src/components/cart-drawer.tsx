@@ -63,6 +63,8 @@ function Marco({ failed, onRetry }: { failed: boolean; onRetry: () => void }) {
             <div className="mt-4 flex flex-wrap gap-3">
               <button type="button" onClick={onRetry} className="min-h-11 bg-ink px-5 font-bold text-paper hover:bg-emerald" data-testid="cart-drawer-reintentar">Reintentar</button>
               <Link href="/carrito" className="flex min-h-11 items-center border-2 border-ink px-5 font-bold hover:bg-gold" data-testid="cart-drawer-ir-pedido">Ir al pedido</Link>
+              {/* Si la pestaña quedó abierta antes de un despliegue, el archivo viejo ya no existe y reintentar no alcanza: recargar (a pedido de la persona, nunca solo) trae la versión nueva. El carrito está en el navegador y se conserva. */}
+              <button type="button" onClick={() => window.location.reload()} className="min-h-11 px-3 text-sm font-semibold underline" data-testid="cart-drawer-actualizar">Actualizar la página</button>
             </div>
           </div>
         ) : (

@@ -32,7 +32,7 @@ export function useDrawerShell(panelRef: RefObject<HTMLElement | null>, titleRef
       document.body.style.paddingRight = prevPad;
       // Relevo del marco al panel completo: el panel sigue abierto y toma el foco; el foco de origen se devuelve solo cuando de verdad se cierra.
       if (cartDrawer.isOpen()) return;
-      const el = cartDrawer.takeReturnFocus();
+      const el = cartDrawer.peekReturnFocus();
       // eslint-disable-next-line react-hooks/exhaustive-deps -- la marca se activa mientras el panel está abierto y se lee justo al cerrar
       if (skipRestore.current) return;
       const target = el && el.isConnected ? el : (document.querySelector("[data-cart-trigger]") as HTMLElement | null);

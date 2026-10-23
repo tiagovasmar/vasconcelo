@@ -115,16 +115,21 @@ test.describe("configuración de la promoción en el panel", () => {
 });
 
 test.describe("accesorios en el catálogo, la ficha y el panel", () => {
-  test("formato «Accesorios»: filtro, búsqueda y fichas con «Pack de 5 unidades», precio fijo, imagen ilustrativa y sin secciones de cartas", async ({ page }) => {
+  test("protectores solo como adicionales: fuera del catálogo, de la búsqueda y del filtro, pero con ficha directa («Pack de 5 unidades», precio fijo, imagen ilustrativa, sin secciones de cartas)", async ({ page }) => {
+    // No se listan públicamente (comportamiento aprobado en docs/ACCESORIOS-SOLO-ADICIONALES.md).
+    for (const q of ["sleeves", "top+loaders"]) {
+      await go(page, `/sellados?q=${q}`);
+      await expect(page.getByText("No encontramos productos con esos filtros.")).toBeVisible();
+      await expect(page.getByRole("link", { name: /Pack de 5 unidades/ })).toHaveCount(0);
+    }
     await go(page, "/sellados?formato=accesorios");
-    await expect(page.getByRole("status").filter({ hasText: "2 productos" })).toBeVisible();
-    await expect(page.getByRole("link", { name: /Sleeves transparentes · Pack de 5 unidades/ }).first()).toBeVisible();
-    await go(page, "/sellados?q=top+loaders");
-    await expect(page.getByRole("link", { name: /Top loaders transparentes · Pack de 5 unidades/ }).first()).toBeVisible();
+    await expect(page.getByRole("link", { name: /Pack de 5 unidades/ })).toHaveCount(0);
     await go(page, "/sellados");
-    await expect(page.locator("#f-formato option", { hasText: "Accesorios" })).toHaveCount(1);
+    await expect(page.locator("#f-formato option", { hasText: "Accesorios" })).toHaveCount(0); // el filtro público desaparece
+    await expect(page.locator("main")).not.toContainText(/sleeves|top loaders/i);
 
     await go(page, `/productos/${SLEEVES}`);
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/); // la ficha directa existe para el carrito pero no se indexa
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Sleeves transparentes · Pack de 5 unidades");
     await expect(page.getByTestId("precio")).toHaveText(/\$\s?1\.000/);
     await expect(page.getByTestId("precio-usd")).toHaveCount(0); // sin USD inventado

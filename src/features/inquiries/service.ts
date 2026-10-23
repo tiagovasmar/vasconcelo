@@ -115,6 +115,12 @@ function sameOwner(row: typeof inquiries.$inferSelect, ctx: { sessionTokenHash: 
   return ctx.userId ? row.userId === ctx.userId : row.userId === null && row.sessionTokenHash === ctx.sessionTokenHash;
 }
 
+/** Ventana para recuperar una consulta de invitado cuya respuesta se perdió (la cookie de sesión nueva nunca llegó al navegador). */
+export const GUEST_REBIND_WINDOW_MS = 30 * 60 * 1000;
+function canRebindGuest(row: typeof inquiries.$inferSelect, ctx: { userId?: string | null; sessionIsNew?: boolean; now?: number }) {
+  return Boolean(ctx.sessionIsNew) && !ctx.userId && row.userId === null && (ctx.now ?? Date.now()) - row.createdAt <= GUEST_REBIND_WINDOW_MS;
+}
+
 async function loadByKey(db: Db, key: string) {
   const [row] = await db.select().from(inquiries).where(eq(inquiries.idempotencyKey, key));
   if (!row) return null;
@@ -139,7 +145,7 @@ const describeIssue = (l: EvaluatedLine) => ({ productId: l.productId, status: l
 export async function createInquiry(
   db: Db,
   body: unknown,
-  ctx: { sessionTokenHash: string; userId?: string | null; products?: Product[]; fx?: EffectiveRate; now?: number; combo?: ComboConfig },
+  ctx: { sessionTokenHash: string; userId?: string | null; /** La petición NO traía una cookie de sesión válida: este token se acaba de generar. */ sessionIsNew?: boolean; products?: Product[]; fx?: EffectiveRate; now?: number; combo?: ComboConfig },
 ): Promise<{ inquiry: InquiryView; replayed: boolean }> {
   const parsed = CreateInquirySchema.safeParse(body);
   if (!parsed.success) {
@@ -154,6 +160,12 @@ export async function createInquiry(
   const hash = contentHash(input);
   const existing = await loadByKey(db, input.idempotencyKey);
   if (existing) {
+    if (existing.row.contentHash === hash && !sameOwner(existing.row, ctx) && canRebindGuest(existing.row, ctx)) {
+      // Un invitado sin cookie guardada (primera visita) mandó el pedido, la consulta SE GUARDÓ pero la respuesta —con la cookie nueva— se perdió. Al reintentar llega sin cookie y con otro token:
+      // quien repite la MISMA clave secreta con el MISMO contenido, poco después y sin cuenta, es quien la creó. Se le asocia la consulta a la sesión nueva (no se duplica ni se rechaza).
+      await db.update(inquiries).set({ sessionTokenHash: ctx.sessionTokenHash }).where(eq(inquiries.id, existing.row.id));
+      return { inquiry: toView({ ...existing.row, sessionTokenHash: ctx.sessionTokenHash }, existing.lines), replayed: true };
+    }
     if (existing.row.contentHash !== hash || !sameOwner(existing.row, ctx)) {
       throw new InquiryError({ status: 422, code: "idempotency_conflict", message: "Esa clave ya se usó con otro pedido. Volvé a intentarlo." });
     }

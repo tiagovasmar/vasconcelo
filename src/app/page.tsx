@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Image from "next/image";
+import { SafeImage } from "@/components/safe-image";
 import { ArrowIcon, CartIcon, ChatIcon, CubeIcon } from "@/components/icons";
 import { HomeCarousel } from "@/components/home-carousel";
 import { banners } from "@/content/banners";
@@ -169,7 +169,7 @@ export default async function Home() {
             {cards.map((c, i) => (
               <li key={c.id} className={`w-[31%] ${i === 1 ? "relative z-10 -translate-y-3" : ""}`}>
                 <Link href={showcase ? `/expansiones/${showcase.slug}` : "/expansiones"} aria-label={`${c.name}, carta ${c.number} de ${showcase?.name ?? ""}: ver la galería`} className={`card-zoom block overflow-hidden rounded-xl ${i === 0 ? "-rotate-6" : i === 2 ? "rotate-6" : ""}`}>
-                  <Image src={c.image.src} alt={c.image.alt} width={c.image.width} height={c.image.height} sizes="(min-width:1024px) 200px, 30vw" className="h-auto w-full" />
+                  <SafeImage src={c.image.src} alt={c.image.alt} width={c.image.width} height={c.image.height} sizes="(min-width:1024px) 200px, 30vw" className="h-auto w-full" fallback={<div role="img" aria-label={c.image.alt} className="w-full bg-ink/30" style={{ aspectRatio: `${c.image.width} / ${c.image.height}` }} />} />
                 </Link>
               </li>
             ))}

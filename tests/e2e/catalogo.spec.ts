@@ -6,7 +6,7 @@ const cards = (page: import("@playwright/test").Page) => page.locator("section[a
 test.describe("catálogo", () => {
   test("filtros combinados quedan en la URL y se recuperan al recargar", async ({ page, isMobile }) => {
     await go(page, "/sellados");
-    await expect(cards(page)).toHaveCount(10);
+    await expect(cards(page)).toHaveCount(8); // 8 productos listables del catálogo de prueba: los 2 protectores (sleeves y top loaders) son solo adicionales y no se listan
     if (isMobile) await page.getByRole("button", { name: /Filtros y orden/ }).click();
     await page.getByLabel("Formato").selectOption("caja");
     await page.getByLabel("Idioma").selectOption("en");
@@ -37,7 +37,7 @@ test.describe("catálogo", () => {
     await go(page, "/sellados?q=no-existe-xyz");
     await expect(page.getByText("No encontramos productos con esos filtros.")).toBeVisible();
     await page.getByRole("link", { name: /Limpiar filtros/ }).click();
-    await expect(cards(page)).toHaveCount(10);
+    await expect(cards(page)).toHaveCount(8); // 8 productos listables del catálogo de prueba: los 2 protectores (sleeves y top loaders) son solo adicionales y no se listan
   });
 
   test("agotado: no permite agregar y mantiene el acceso a la ficha", async ({ page }) => {

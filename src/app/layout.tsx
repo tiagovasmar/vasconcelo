@@ -7,6 +7,7 @@ import { Footer } from "@/components/footer";
 import { CartDrawer } from "@/components/cart-drawer";
 import { AccountProvider } from "@/components/account-provider";
 import { HydrationMarker } from "@/components/hydration-marker";
+import { failLayoutForTests } from "@/server/test-hooks";
 
 // Fuentes locales (licencia OFL, paquetes @fontsource) servidas por Next con precarga y un «fallback» del mismo tamaño:
 // evita el salto de diseño al cargarlas.
@@ -21,6 +22,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = { themeColor: "#121715", width: "device-width", initialScale: 1 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  failLayoutForTests(); // solo pruebas aisladas (sin la variable de entorno no hace nada)
   return (
     <html lang="es-AR" data-scroll-behavior="smooth" className={`${anton.variable} ${figtree.variable}`}>
       <body className="min-h-dvh overflow-x-hidden">

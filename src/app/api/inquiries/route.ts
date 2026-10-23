@@ -21,12 +21,13 @@ export async function POST(req: Request) {
 
   const jar = await cookies();
   const existing = jar.get(SESSION_COOKIE)?.value;
-  const token = existing && /^[A-Za-z0-9_-]{20,64}$/.test(existing) ? existing : newSessionToken();
+  const hadSession = Boolean(existing && /^[A-Za-z0-9_-]{20,64}$/.test(existing));
+  const token = hadSession ? existing! : newSessionToken();
 
   try {
     // El vínculo con una cuenta sale SIEMPRE de la sesión autenticada, nunca del body.
     const user = await userFromRequest(req);
-    const { inquiry, replayed } = await createInquiry(getDb(), body, { sessionTokenHash: hashToken(token), userId: user?.id ?? null });
+    const { inquiry, replayed } = await createInquiry(getDb(), body, { sessionTokenHash: hashToken(token), userId: user?.id ?? null, sessionIsNew: !hadSession });
     const number = getWhatsappNumber();
     const launch = launchFor(inquiry, number);
     const res = json({
