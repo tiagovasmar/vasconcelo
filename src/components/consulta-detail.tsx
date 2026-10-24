@@ -3,7 +3,7 @@ import { ConsultaActions } from "@/components/consulta-actions";
 import { getWhatsappNumber } from "@/features/inquiries/config";
 import { describeDelivery } from "@/features/inquiries/message";
 import { launchFor, type InquiryView } from "@/features/inquiries/service";
-import { languageLabel } from "@/content/schema";
+import { languageLabel } from "@/content/labels";
 import { formatARS } from "@/lib/format";
 import { formatRate, formatUSD } from "@/features/fx/convert";
 import { encargo } from "@/content/politicas";

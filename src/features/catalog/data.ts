@@ -5,6 +5,8 @@ import { getDb, type Db } from "@/db/client";
 import type { Expansion, Product } from "@/content/schema";
 import type { EffectiveRate } from "@/features/fx/convert";
 import { currentRate } from "@/features/fx/service";
+import { rateOncePerRequest } from "@/features/fx/request";
+import { pageDataOncePerRequest } from "./page-data";
 import { isInStock } from "./commercial";
 import { isListedProduct } from "./visibility";
 import { applyOverrides, loadGalleries, loadOverrides } from "./overrides";
@@ -15,7 +17,13 @@ import { applyOverrides, loadGalleries, loadOverrides } from "./overrides";
  * del panel se ve enseguida en el catálogo, las fichas y la validación del carrito, sin recompilar. Las páginas que los
  * muestran son dinámicas (no se prerenderizan con precios viejos).
  */
-async function loadAllProducts(fx: EffectiveRate | undefined, db: Db): Promise<Product[]> {
+async function loadAllProducts(fx: EffectiveRate | undefined, db: Db, perRequest = false): Promise<Product[]> {
+  // Página: una sola consulta trae valores del panel, galerías, cotización y umbral de «Bajo stock» (antes eran cuatro seguidas). La cotización se comparte con la nota de cotización.
+  if (perRequest) {
+    const data = await pageDataOncePerRequest();
+    const rate = await rateOncePerRequest();
+    return applyOverrides(catalog.products, data.overrides, rate, data.galleries);
+  }
   // Si la cotización venció, este pedido la renueva (con tiempo máximo corto); si falla, usa la guardada.
   const [rate, overrides, galleries] = await Promise.all([fx ? Promise.resolve(fx) : currentRate(db), loadOverrides(db), loadGalleries(db)]);
   return applyOverrides(catalog.products, overrides, rate, galleries);
@@ -26,7 +34,7 @@ async function loadAllProducts(fx: EffectiveRate | undefined, db: Db): Promise<P
  * (cotización, valores del panel y galerías). Dentro de UN mismo pedido de página se arma una sola vez (`cache` de React: vive lo que dura ese pedido,
  * nunca entre pedidos), así un cambio del panel se ve en el pedido siguiente igual que antes. Fuera de una página (rutas de API, scripts, pruebas) no memoriza nada.
  */
-const productsOncePerRequest = cache(() => loadAllProducts(undefined, getDb()));
+const productsOncePerRequest = cache(() => loadAllProducts(undefined, getDb(), true));
 export async function listAllProducts(fx?: EffectiveRate, db?: Db): Promise<Product[]> {
   if (!fx && !db) return productsOncePerRequest();
   return loadAllProducts(fx, db ?? getDb());

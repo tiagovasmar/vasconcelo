@@ -150,8 +150,9 @@ async function doRefresh(db: Db, fetchFn: FetchLike, now: number, timeoutMs: num
  * En serverless no se puede dejar trabajo «para después» (la función se congela al responder), por eso se espera. Nunca lanza ni demora más del
  * tiempo máximo: ante cualquier falla de la renovación se usa la cotización guardada.
  */
-export async function currentRate(db: Db, now = Date.now()): Promise<EffectiveRate> {
-  let row = await ensureRow(db, now);
+export async function currentRate(db: Db, now = Date.now(), preloaded?: FxRow | null): Promise<EffectiveRate> {
+  // `preloaded`: la fila ya leída en este mismo pedido junto con otros datos (una sola consulta); sin ella se lee acá.
+  let row = preloaded ?? (await ensureRow(db, now));
   if (autoRefreshEnabled() && (row.lastAttemptAt === null || now - row.lastAttemptAt >= REFRESH_INTERVAL_MS)) {
     try {
       const r = await refreshRate(db, { now, timeoutMs: INLINE_TIMEOUT_MS });

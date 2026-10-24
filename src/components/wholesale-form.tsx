@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { provinces } from "@/features/inquiries/schemas";
+import { provinces } from "@/features/inquiries/delivery";
 import type { WholesaleRequestView } from "@/features/wholesale/service";
 import { WholesaleStatusCard } from "./wholesale-status";
 

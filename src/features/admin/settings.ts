@@ -19,6 +19,11 @@ export type LowStockSetting = { threshold: number; custom: boolean; updatedAt: n
 
 export async function getLowStock(db: Db): Promise<LowStockSetting> {
   const [row] = await db.select().from(adminSettings).where(eq(adminSettings.key, LOW_STOCK_KEY));
+  return lowStockOf(row ?? null);
+}
+
+/** Interpreta la fila guardada del umbral (sin fila o con un valor inválido rige el predeterminado). */
+export function lowStockOf(row: typeof adminSettings.$inferSelect | null): LowStockSetting {
   const n = row ? Number(row.value) : NaN;
   if (!row || !Number.isInteger(n) || n < 0 || n > LOW_STOCK_MAX) return { threshold: LOW_STOCK_DEFAULT, custom: false, updatedAt: null, updatedByEmail: null };
   return { threshold: n, custom: true, updatedAt: row.updatedAt, updatedByEmail: row.updatedByEmail };

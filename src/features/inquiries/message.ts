@@ -2,8 +2,9 @@ import { formatRate, formatUSD } from "@/features/fx/convert";
 import { formatARS } from "@/lib/format";
 import { PICKUP_MESSAGE } from "@/content/checkout-options";
 import { encargo as politicaEncargo } from "@/content/politicas";
-import { languageLabel, type Language } from "@/content/schema";
-import type { Delivery } from "./schemas";
+import { languageLabel } from "@/content/labels";
+import type { Language } from "@/content/schema";
+import type { Delivery } from "./delivery";
 
 /** `unitPriceMinor` es null en las líneas por encargo (sin precio ni cotización todavía). */
 export type MessageLine = {

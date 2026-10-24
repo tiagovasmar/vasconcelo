@@ -156,3 +156,12 @@
 - **Foco del carrito lateral:** el elemento de origen no se consume al cerrar (marco y panel pueden limpiarse en seguidilla).
 - **Gancho de pruebas del diseño raíz** (`src/server/test-hooks.ts`): inactivo sin `E2E_LAYOUT_FAIL_FILE`; existe solo para probar `global-error`.
 - **LCP de la ficha:** limitado por ancho de banda; `fetchPriority="high"` probado y revertido por no poder medirse en el laboratorio (HTTP/1.1).
+
+
+## Velocidad de carga (23/10/2026)
+
+- **Una consulta por página** para ajustes, cotización, galerías y overrides (`page-data.ts`, `cache` de React: dura un pedido, nunca entre pedidos, así los cambios del panel se ven en el pedido siguiente).
+- **Validación de entrega sin `zod` en el navegador** (`delivery.ts`); el servidor sigue validando con `zod` y una prueba de paridad (21 mil casos) garantiza que ambas coinciden.
+- **Fotos diferidas con `IntersectionObserver` a 400 px**, salvo las prioritarias y las del carrusel. Se mide por A/B intercalado en la misma sesión: las comparaciones entre sesiones tuvieron más deriva que el efecto.
+- **No se aplica** AVIF (calidad no demostrada), `fetchPriority` (no medible en HTTP/1.1) ni más división de JS (<10 KB). `/carrito` sigue dinámica por `WHATSAPP_NUMBER`.
+- Conexión de producción sin cambios: pooler en sesión (5432), `prepare: false`.

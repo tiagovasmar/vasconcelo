@@ -1,9 +1,10 @@
 import { getDb } from "@/db/client";
+import { rateOncePerRequest } from "@/features/fx/request";
 import { describeRate } from "@/features/fx/describe";
 
 /** Explica brevemente la conversión y deja la cotización y su fecha a un toque (sin ocupar la tarjeta). Solo servidor. */
 export async function FxNote({ className = "" }: { className?: string }) {
-  const detail = await describeRate(getDb());
+  const detail = await describeRate(getDb(), undefined, await rateOncePerRequest());
   return (
     <details className={`text-xs text-ink/70 ${className}`} data-testid="fx-note">
       <summary className="cursor-pointer select-none underline-offset-2 hover:underline">Precios en pesos según el dólar blue (venta)</summary>

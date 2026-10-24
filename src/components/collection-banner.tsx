@@ -37,7 +37,7 @@ export function CollectionBanner({ banner: b, as: H = "h2", priority = false, lo
   const flip = b.layout.flip;
   // Si una imagen no se puede descargar: el arte principal conserva su recuadro (fondo del banner) con el mismo texto alternativo; la caja y el sobre, que son adornos con posición absoluta, dejan solo su texto alternativo.
   const img = (i: typeof b.art | undefined, props: { className: string; sizes: string; style?: CSSProperties }, principal = false) => i && loadImages
-    ? <SafeImage src={i.src} alt={i.alt} width={i.width} height={i.height} priority={priority} sizes={props.sizes} className={props.className} style={props.style} fallback={principal ? <div role="img" aria-label={i.alt} className={props.className} /> : <span className="sr-only">{i.alt}</span>} />
+    ? <SafeImage src={i.src} alt={i.alt} width={i.width} height={i.height} priority={priority} loading={priority ? undefined : "eager"} sizes={props.sizes} className={props.className} style={props.style} fallback={principal ? <div role="img" aria-label={i.alt} className={props.className} /> : <span className="sr-only">{i.alt}</span>} />
     : null;
   // La caja se dimensiona por su forma: las cajas altas (p. ej. MEGA Dream ex) ocupan menos ancho para no tapar el arte.
   const boxWidth = b.box ? `${Math.round(Math.min(37, Math.max(22, (b.box.width / b.box.height) * 24)))}%` : undefined;

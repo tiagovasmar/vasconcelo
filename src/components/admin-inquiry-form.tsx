@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
 import { paymentMethods } from "@/content/checkout-options";
-import { isFullName, normalizeName } from "@/features/inquiries/schemas";
+import { isFullName, normalizeName } from "@/features/inquiries/delivery";
 import { formatARS } from "@/lib/format";
 
 /**

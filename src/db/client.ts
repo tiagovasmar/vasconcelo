@@ -9,9 +9,10 @@ import * as schema from "./schema";
  * Conexión a PostgreSQL (Supabase). Todo el acceso a datos es ASÍNCRONO.
  *
  * Funciones serverless (Netlify): cada instancia abre pocas conexiones y las suelta enseguida. Por eso:
- *  - `DATABASE_URL` debe ser la cadena del POOLER de Supabase en modo transacción (puerto 6543);
- *  - `prepare: false` es obligatorio con ese modo (el pooler no conserva sentencias preparadas entre conexiones);
- *  - `max` = 1 por defecto (`DATABASE_POOL_MAX`; es lo que recomienda Supabase en serverless) para no agotar los límites del plan gratuito entre muchas instancias. Por eso, dentro de una transacción SIEMPRE se usa `tx`, nunca `db` (con una sola conexión se bloquearía).
+ *  - `DATABASE_URL` de este proyecto es la cadena del pooler de Supabase en modo SESIÓN (puerto 5432); NO se usa el modo transacción (6543). No se cambió;
+ *  - `prepare: false` se conserva: es compatible con los dos modos del pooler y evita depender de sentencias preparadas en una conexión compartida;
+ *  - `max` = 1 por defecto (`DATABASE_POOL_MAX`; es lo que recomienda Supabase en serverless) para no agotar los límites de conexiones entre muchas instancias. Por eso, dentro de una transacción SIEMPRE se usa `tx`, nunca `db` (con una sola conexión se bloquearía).
+ *  - Plazos y recuperación ante una base caída o muda: ver `resilient.ts` (conexión 8 s, consulta 10 s, sin reintentos).
  * Las migraciones usan `DIRECT_URL` (conexión directa o pooler en modo sesión, puerto 5432) y nunca corren solas en el servidor web.
  */
 export type Db = ReturnType<typeof createDb>;
@@ -39,6 +40,8 @@ export function createDb(url: string, opts: { max?: number; queryTimeoutMs?: num
   const ssl = process.env.DATABASE_SSL === "disable" || isLocalHost(url) ? false : ("require" as const);
   const options = {
     prepare: false,
+    // El esquema no usa columnas de tipo arreglo ni tipos propios: no hace falta la consulta inicial de tipos (una ida y vuelta de más en cada conexión nueva, es decir, en cada arranque en frío).
+    fetch_types: false,
     max: opts.max ?? (Number(process.env.DATABASE_POOL_MAX) || 1),
     idle_timeout: 20,
     connect_timeout: opts.connectTimeoutS ?? 15,

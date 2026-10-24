@@ -1,6 +1,7 @@
 import { ArtSlot } from "./slot";
 import { BoxArt, PackArt } from "./art";
-import { kindLabel, wideKinds, type Product } from "@/content/schema";
+import { kindLabel, wideKinds } from "@/content/labels";
+import type { Product } from "@/content/schema";
 import { hasAsset } from "./slot";
 import { toneBg } from "./tones";
 

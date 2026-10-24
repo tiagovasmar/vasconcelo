@@ -44,6 +44,9 @@ test("inicio: las colecciones (8 japonesas y 4 chinas) enlazan a sus productos y
 
 test("inicio: Cajas y Sobres con colecciones distintas, mismo peso y sin deformar; Packs como franja sin enlace", async ({ page }) => {
   await go(page, "/");
+  // las fotos se piden de forma diferida: se acerca la sección y se espera a que carguen
+  await page.getByTestId("categoria-cajas").scrollIntoViewIfNeeded();
+  await expect.poll(() => page.locator("[data-testid=categoria-cajas] img, [data-testid=categoria-sobres] img").evaluateAll((l) => l.length > 0 && l.every((i) => (i as HTMLImageElement).complete && (i as HTMLImageElement).naturalWidth > 0))).toBe(true);
   // las dos categorías muestran colecciones distintas y no se repiten entre sí
   const cols = async (id: string) => (await page.getByTestId(id).locator("img").evaluateAll((l) => l.map((i) => decodeURIComponent((i as HTMLImageElement).currentSrc)))).map((x) => x.match(/products\/([a-z0-9-]+)\//)?.[1]);
   const cajas = await cols("categoria-cajas");

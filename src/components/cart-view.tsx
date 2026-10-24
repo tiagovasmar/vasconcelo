@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { cartActions, useCart, type DeliveryDraft } from "@/features/cart/store";
 import { pricingFor, useCartValidation, type ServerLine } from "@/features/cart/validation";
-import { CONTACT_NAME_MESSAGE, DeliverySchema, isFullName, normalizeName, provinces } from "@/features/inquiries/schemas";
+import { CONTACT_NAME_MESSAGE, isFullName, normalizeName, provinces, validateDelivery } from "@/features/inquiries/delivery";
 import { buildMessage } from "@/features/inquiries/message";
 import { paymentMethods, PICKUP_ADDRESS, PICKUP_NOTICE } from "@/content/checkout-options";
 import { encargo as politicaEncargo, promo } from "@/content/politicas";
@@ -137,7 +137,7 @@ export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }
   const delivery = cart.delivery;
   /** Con retiro no hay envío; con Andreani, moto o sin elegir sigue «A coordinar». */
   const envioTexto = delivery.method === "retiro" ? "No aplica: retiro" : "A coordinar";
-  const parsed = useMemo(() => (delivery.method ? DeliverySchema.safeParse(deliveryPayload(delivery)) : null), [delivery]);
+  const parsed = useMemo(() => (delivery.method ? validateDelivery(deliveryPayload(delivery)) : null), [delivery]);
   const errors = useMemo(() => {
     const out: Record<string, string> = {};
     if (!isFullName(cart.contactName)) out.contactName = CONTACT_NAME_MESSAGE;
