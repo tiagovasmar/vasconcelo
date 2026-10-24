@@ -25,6 +25,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   failLayoutForTests(); // solo pruebas aisladas (sin la variable de entorno no hace nada)
   return (
     <html lang="es-AR" data-scroll-behavior="smooth" className={`${anton.variable} ${figtree.variable}`}>
+      <head>
+        {/* Sin JavaScript las fotos diferidas llegan dentro de <noscript>: se oculta el recuadro que las reservaba con JavaScript. */}
+        <noscript>
+          <style>{"[data-foto-diferida]{display:none!important}noscript[data-foto-sin-js]{display:contents}"}</style>
+        </noscript>
+      </head>
       <body className="min-h-dvh overflow-x-hidden">
         <a
           href="#principal"

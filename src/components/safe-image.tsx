@@ -50,7 +50,17 @@ export function SafeImage({ fallback, onError, ...props }: ImageProps & { fallba
   }, [src]);
   if (src && failedFor === src) return <>{fallback}</>;
   if (!near) {
-    return <span ref={box} role="img" aria-label={props.alt} className={`block ${props.className ?? ""}`} style={{ ...props.style, aspectRatio: `${props.width} / ${props.height}` }} />;
+    // Sin JavaScript no hay observador: el `<noscript>` trae la misma foto optimizada con las mismas dimensiones y el recuadro se oculta (ver `app/layout.tsx`).
+    // Con JavaScript el navegador no interpreta el contenido de `<noscript>`: no crea la imagen ni la descarga, y al acercarse la foto reemplaza ambos elementos.
+    return (
+      <>
+        <span ref={box} data-foto-diferida role="img" aria-label={props.alt} className={`block ${props.className ?? ""}`} style={{ ...props.style, aspectRatio: `${props.width} / ${props.height}` }} />
+        <noscript data-foto-sin-js>
+          {/* eslint-disable-next-line jsx-a11y/alt-text -- el texto alternativo llega en `props` (ImageProps lo exige) */}
+          <Image {...props} loading="lazy" />
+        </noscript>
+      </>
+    );
   }
   return (
     // eslint-disable-next-line jsx-a11y/alt-text -- el texto alternativo llega en `props` (ImageProps lo exige)

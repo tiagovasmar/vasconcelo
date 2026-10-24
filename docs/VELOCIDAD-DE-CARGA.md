@@ -57,9 +57,9 @@ Lecturas moderadas del sitio publicado (`.local/perf/prod-curl.txt`, sin generar
 ## Verificación
 
 - `npm run verify`: tipos, lint, catálogo y 543 pruebas OK (1 omitida).
-- Playwright completo con WebKit (`E2E_WEBKIT=1`): **619 OK, 9 omitidas por diseño, 0 fallas**. En la primera corrida fallaron 2 pruebas (4 con el proyecto móvil) por las imágenes diferidas: se corrigieron (carrusel con `loading="eager"`; espera de carga en la prueba del inicio).
+- Playwright completo con WebKit (`E2E_WEBKIT=1`): **625 OK, 9 omitidas por diseño, 0 fallas** (incluye las 6 pruebas nuevas de fotos sin JavaScript). En una primera corrida fallaron 2 pruebas (4 con el proyecto móvil) por las imágenes diferidas: se corrigieron (carrusel con `loading="eager"`; espera de carga en la prueba del inicio).
 - Anchos 360 / 390 / 430 / 1366 px: 0 desbordes horizontales (`docs/mediciones/velocidad-anchos.json`). Capturas en `docs/capturas/velocidad/`.
-- Sin `<noscript>`: sin JavaScript las fotos diferidas no se piden (la tienda ya necesita JavaScript para el carrito y la cuenta). Queda anotado como limitación.
+- **Fotos sin JavaScript**: cada foto diferida lleva, junto a su recuadro, la misma foto optimizada (`next/image`, mismo `srcset`, mismas dimensiones) dentro de `<noscript>`; un estilo en `<noscript>` del `<head>` oculta el recuadro y vuelve transparente el `<noscript>` para el diseño (`display: contents`; sin eso, dentro de un contenedor flex la foto perdía su altura definida). Con JavaScript el navegador no interpreta el contenido de `<noscript>`: no crea la imagen ni la descarga, y al acercarse la foto reemplaza el recuadro. Probado (`tests/e2e/resiliencia-imagenes-sin-js.spec.ts`, escritorio y móvil, catálogo real): con JavaScript, inicio y catálogo piden cada foto una sola vez y no hay `<img>` dentro de `<noscript>` en el DOM; sin JavaScript, `/sellados` muestra las fotos por el optimizador, el recuadro queda oculto, las seis primeras tarjetas miden igual que con JavaScript (p. ej. 290×210 y 296×224 px en escritorio) y no hay desborde horizontal. La alternativa no se midió en velocidad (no cambia lo que se descarga con JavaScript). Las fotos prioritarias y las del carrusel no usan este mecanismo.
 
 ## Cómo repetir
 
