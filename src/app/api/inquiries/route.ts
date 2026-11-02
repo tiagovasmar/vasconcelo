@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { getDb } from "@/db/client";
+import { openTracking } from "@/features/pedidos/service";
 import { getWhatsappNumber } from "@/features/inquiries/config";
 import { createInquiry, hashToken, InquiryError, launchFor, newSessionToken } from "@/features/inquiries/service";
 import { SESSION_COOKIE, errorJson, json, readJson, rateLimited, sameOrigin } from "@/server/http";
@@ -28,6 +29,8 @@ export async function POST(req: Request) {
     // El vínculo con una cuenta sale SIEMPRE de la sesión autenticada, nunca del body.
     const user = await userFromRequest(req);
     const { inquiry, replayed } = await createInquiry(getDb(), body, { sessionTokenHash: hashToken(token), userId: user?.id ?? null, sessionIsNew: !hadSession });
+    // Un encargo es una solicitud: nace con su seguimiento en «Solicitud recibida». Si esto fallara, la consulta ya está guardada y el dueño puede abrirlo desde el panel.
+    if (!replayed && inquiry.lines.some((l) => l.fulfillment === "encargo")) await openTracking(getDb(), inquiry.reference).catch(() => undefined);
     const number = getWhatsappNumber();
     const launch = launchFor(inquiry, number);
     const res = json({
