@@ -35,7 +35,7 @@ export default async function Solicitar() {
     <AuthCard
       eyebrow="Mayoristas"
       title={existing ? "Tu solicitud." : "Solicitá tu cuenta mayorista."}
-      intro="El 30% sobre el precio minorista está sujeto a condiciones que la tienda todavía define: la solicitud queda pendiente y no activa ningún descuento."
+      intro="La tienda revisa y aprueba cada cuenta a mano. La solicitud queda pendiente y no activa precios por sí sola."
       footer={<p><Link href="/cuenta" className="font-semibold underline">Volver a mi cuenta</Link> · <Link href="/mayoristas" className="font-semibold underline">Cómo funciona</Link></p>}
     >
       {existing ? <WholesaleStatusCard request={existing} /> : <WholesaleRequestForm userName={user.name} />}

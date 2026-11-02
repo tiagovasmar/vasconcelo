@@ -8,7 +8,7 @@ import { provinces } from "@/features/inquiries/schemas";
 import type { WholesaleStatus } from "@/features/politicas/mayorista";
 
 /**
- * Solicitudes de cuenta mayorista. Guardar una solicitud NO activa ningún beneficio: queda «pendiente» y ningún usuario tiene precio
+ * Solicitudes de cuenta mayorista. Guardar una solicitud NO activa ningún beneficio: queda «pendiente» hasta que el dueño la apruebe a mano; ningún usuario tiene precio
  * mayorista mientras `mayorista.activationEnabled` sea false (el dueño todavía define compra mínima, acumulación con otros descuentos
  * y si la aprobación es manual o automática). Todo lo decide el servidor: el navegador no manda ni el estado ni el porcentaje.
  */
@@ -104,7 +104,7 @@ export async function listWholesaleRequests(db: Db): Promise<AdminWholesaleView[
 }
 
 /**
- * Mecanismo de revisión (aprobar / rechazar), listo pero APAGADO: mientras `mayorista.activationEnabled` sea false responde 409
+ * Revisión (aprobar / rechazar) a mano por el dueño. Si `mayorista.activationEnabled` se apagara responde 409
  * `policy_pending` y no cambia nada. Quien lo llame debe haber verificado antes que es el administrador (`adminFromRequest`).
  */
 export async function reviewWholesaleRequest(

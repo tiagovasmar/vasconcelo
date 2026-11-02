@@ -14,6 +14,7 @@ import { AdminError, writeStock, type Actor } from "@/features/catalog/overrides
 import { listAllProducts } from "@/features/catalog/data";
 import { defaultStock } from "@/features/catalog/commercial";
 import { currentRate } from "@/features/fx/service";
+import { snapshotSaleCosts } from "@/features/costos/service";
 import type { EffectiveRate } from "@/features/fx/convert";
 
 /**
@@ -200,6 +201,7 @@ export async function registerSale(db: Db, body: unknown, actor: Actor, ctx: { f
           discountMinor: it.discountMinor, baseCurrency: (live?.priceUsdMinor ?? null) !== null ? "USD" : "ARS", packSize: p.packSize ?? null,
           discountKind: it.discountMinor === 0 ? null : (() => { const q = inquiryLinesByProduct.get(p.id); return q && q.comboDiscountMinor + q.transferDiscountMinor === it.discountMinor ? discountKindOf(q) : "manual"; })() });
       }
+      await snapshotSaleCosts(tx, id, now); // congela el costo promedio vigente de cada línea: reposiciones o cambios de cotización posteriores no lo alteran
       if (inquiry) await attachSale(tx, { inquiry, saleId: id, kind: "convertida", totalMinor: total, actor, now });
     });
   } catch (e) {

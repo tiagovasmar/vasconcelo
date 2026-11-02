@@ -3,8 +3,8 @@ import type { WholesaleRequestView } from "@/features/wholesale/service";
 const fmt = (ms: number) => new Intl.DateTimeFormat("es-AR", { dateStyle: "long", timeStyle: "short", timeZone: "America/Argentina/Buenos_Aires" }).format(new Date(ms));
 
 export const wholesaleStatusText = {
-  pendiente: { label: "Pendiente de revisión", body: "Recibimos tu solicitud. Todavía no tenés precios mayoristas: se habilitan cuando la tienda defina las condiciones mayoristas y revise tu cuenta." },
-  aprobada: { label: "Aprobada", body: "Tu cuenta fue aprobada. Los beneficios se aplican según las condiciones mayoristas vigentes, que se confirman con la tienda." },
+  pendiente: { label: "Pendiente de revisión", body: "Recibimos tu solicitud. La tienda la revisa a mano; hasta que la apruebe no ves precios mayoristas." },
+  aprobada: { label: "Aprobada", body: "Tu cuenta fue aprobada. Los precios mayoristas se ven en el catálogo mayorista cuando la tienda lo habilita (compra mínima y demoras a definir por la tienda)." },
   rechazada: { label: "No aprobada", body: "La tienda no aprobó esta solicitud. Si querés más información, consultá con la tienda por WhatsApp." },
 } as const;
 

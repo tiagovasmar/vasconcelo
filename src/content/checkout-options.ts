@@ -24,4 +24,4 @@ export const paymentMethods = [
 export type PaymentMethodId = (typeof paymentMethods)[number]["id"];
 
 /** Opciones que existieron antes y ya no se ofrecen. Solo sirven para mostrar consultas viejas; el servidor NO las acepta. */
-export const legacyPaymentLabels: Record<string, string> = { coordinar: "A coordinar por WhatsApp (opción anterior)" };
+export const legacyPaymentLabels: Record<string, string> = { coordinar: "A coordinar por WhatsApp (opción anterior)", mayorista: "Transferencia o efectivo · sin descuento adicional (pedido mayorista)" };

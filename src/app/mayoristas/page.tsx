@@ -2,21 +2,21 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowIcon } from "@/components/icons";
 import { encargo, mayorista } from "@/content/politicas";
-import { ENCARGO_EXPLICACION } from "@/features/politicas/encargos";
 
 export const metadata: Metadata = {
   title: "Mayoristas",
-  description: `Cuenta mayorista con ${mayorista.discountPercent}% de descuento sobre el precio minorista de catálogo, sujeto a condiciones por definir. Solicitá cotizar pedidos mayoristas y por encargo.`,
+  description: "Catálogo mayorista por pedido, con precios según la cantidad, para cuentas que la tienda aprueba. Solicitá tu cuenta.",
 };
 
+/** Lo que el dueño todavía no definió: se muestra tal cual, sin inventar valores. */
 const pendientes = [
-  "La compra mínima (por importe o por unidades).",
-  "Si el 30% se acumula con el 10% OFF por transferencia o con las cuotas sin interés.",
-  "Si las cuentas se aprueban de forma manual o automática.",
+  "La compra mínima.",
+  "Si se pueden combinar productos para alcanzar el mínimo o cada tramo de precio.",
+  "Las cantidades y los precios de cada tramo.",
+  "Las demoras estimadas.",
 ];
 
 export default function Mayoristas() {
-  const pct = mayorista.discountPercent;
   return (
     <>
       <section className="relative isolate overflow-hidden bg-ink text-paper" aria-labelledby="may-title">
@@ -24,11 +24,11 @@ export default function Mayoristas() {
         <div className="grid-lines absolute inset-0 -z-10 opacity-60" aria-hidden="true" />
         <div className="mx-auto max-w-[1440px] px-4 py-10 sm:px-8 sm:py-14">
           <p className="eyebrow text-vermilion-bright">Mayoristas</p>
-          <h1 id="may-title" className="display mt-3 text-[clamp(2.4rem,8vw,5.4rem)]">{pct}% sobre el precio minorista <span className="text-gold">para tu cuenta mayorista.</span></h1>
-          <p className="mt-4 max-w-2xl text-paper/85">El beneficio es del {pct}% de descuento sobre el precio minorista de catálogo, <b>sujeto a las condiciones mayoristas que la tienda todavía está definiendo</b>. Solicitar la cuenta no lo activa al instante: la solicitud queda pendiente de revisión.</p>
+          <h1 id="may-title" className="display mt-3 text-[clamp(2.4rem,8vw,5.4rem)]">Pedidos por cantidad, <span className="text-gold">con precio por tramo.</span></h1>
+          <p className="mt-4 max-w-2xl text-paper/85">Catálogo mayorista <b>exclusivamente por pedido</b> para cuentas que la tienda aprueba a mano. El precio unitario baja según la cantidad que pidas. Solicitar la cuenta no la activa al instante: queda pendiente de revisión.</p>
           <div className="mt-7 flex flex-wrap gap-3">
             <Link href="/mayoristas/solicitar" className="inline-flex min-h-12 items-center gap-3 bg-gold px-6 py-3 font-bold text-ink hover:bg-paper" data-testid="solicitar-cuenta-mayorista">Solicitar cuenta mayorista <ArrowIcon /></Link>
-            <Link href="/cuenta/ingresar?next=%2Fmayoristas%2Fsolicitar" className="inline-flex min-h-12 items-center border border-paper/60 px-6 py-3 font-semibold hover:bg-paper hover:text-ink" data-testid="mayorista-ya-tengo-cuenta">Ya tengo cuenta</Link>
+            <Link href="/mayoristas/catalogo" className="inline-flex min-h-12 items-center border border-paper/60 px-6 py-3 font-semibold hover:bg-paper hover:text-ink" data-testid="mayorista-catalogo-link">Ir al catálogo mayorista</Link>
           </div>
         </div>
       </section>
@@ -36,39 +36,41 @@ export default function Mayoristas() {
       <div className="paper-texture">
         <div className="mx-auto max-w-[1440px] space-y-14 px-4 py-12 sm:px-8 sm:py-16">
           <section aria-labelledby="may-que" className="max-w-3xl">
-            <p className="eyebrow text-vermilion">01 / Beneficio</p>
+            <p className="eyebrow text-vermilion">01 / Cómo funciona</p>
             <h2 id="may-que" className="display mt-2 text-4xl normal-case sm:text-5xl">Qué incluye</h2>
             <ul className="mt-5 space-y-4 text-base leading-relaxed">
-              <li><b>{pct}% de descuento</b> sobre el precio minorista de catálogo. La base de comparación es el precio de lista publicado en la tienda.</li>
-              <li><b>Todo el catálogo publicado.</b> Podés pedir cotización por los artículos que ves en la tienda, sujeto a disponibilidad. Cada ficha indica si tiene precio y stock confirmados.</li>
-              <li><b>Pedidos por encargo.</b> Podés consultar que se traigan artículos del catálogo. El proveedor, la variante, el contenido, la disponibilidad, la cotización y la fecha se confirman antes de comprometer el pedido. Consultar no reserva mercadería.</li>
+              <li><b>Solo por pedido.</b> El stock que ves en la tienda minorista no es stock mayorista: la tienda confirma la disponibilidad y el importe de cada pedido antes de pedirte la seña.</li>
+              <li><b>Cuenta aprobada por la tienda.</b> Solicitás la cuenta y la tienda la revisa y la aprueba manualmente. Los precios mayoristas solo se muestran a cuentas aprobadas.</li>
+              <li><b>Precio según la cantidad.</b> Cada producto tiene tramos de cantidad con su precio unitario. Si todavía no llegás al primer tramo, o no hay precio, figura «A cotizar».</li>
+              <li><b>Pago.</b> {mayorista.paymentNote} No se aplican el 10% OFF por transferencia ni las 3 cuotas sin interés de la venta minorista.</li>
+              <li><b>Seña y saldo.</b> Después de confirmar disponibilidad e importe, se abona una seña del {mayorista.senaPercent}%. El resto se paga al retirar o antes del despacho, cuando la mercadería ya llegó a Argentina. Si el paquete se pierde o un problema impide cumplir el pedido, se reintegra la seña.</li>
+              <li><b>Seguimiento.</b> Ves cada etapa de tu pedido en <Link href="/cuenta/consultas" className="underline">Mi cuenta</Link>, con fechas reales, y recibís avisos por correo cuando hay novedades. Los pedidos pueden llegar y entregarse en partes.</li>
+              <li><b>Financiación.</b> Podés consultar la financiación de mercadería a 3 o 6 meses. Es solo una consulta: no se promete aprobación, cuotas ni tasas.</li>
             </ul>
           </section>
 
-          <section aria-labelledby="may-encargo" className="max-w-3xl">
-            <p className="eyebrow text-vermilion">02 / Encargos</p>
-            <h2 id="may-encargo" className="display mt-2 text-4xl normal-case sm:text-5xl">Consultar por encargo</h2>
-            <p className="mt-4 text-base leading-relaxed">{ENCARGO_EXPLICACION}</p>
-            <p className="mt-3 text-sm text-ink/75">Todavía no está definido si el {pct}% o las promociones aplican a un encargo, ni los plazos, la devolución de la seña o la vigencia de la cotización: se informan cuando estén confirmados. Hoy ninguna de esas condiciones se da por sentada.</p>
-            <Link href="/sellados" className="mt-5 inline-flex items-center gap-3 bg-ink px-6 py-3.5 font-bold text-paper hover:bg-emerald">Ver el catálogo <ArrowIcon /></Link>
-            <p className="mt-2 text-xs text-ink/60">En cada ficha, «Consultar por encargo» arma la consulta (la seña del {encargo.senaPercent}% se informa recién con la cotización confirmada).</p>
-          </section>
-
           <section aria-labelledby="may-pend" className="max-w-3xl border-l-4 border-gold bg-white/70 p-5" data-testid="mayorista-pendiente">
-            <p className="eyebrow text-vermilion">03 / Condiciones por definir</p>
+            <p className="eyebrow text-vermilion">02 / Condiciones por definir</p>
             <h2 id="may-pend" className="display mt-2 text-3xl normal-case sm:text-4xl">Lo que todavía no está definido</h2>
             <ul className="mt-3 list-disc space-y-1 pl-5 text-sm">
               {pendientes.map((p) => <li key={p}>{p}</li>)}
             </ul>
-            <p className="mt-3 text-sm text-ink/75">Hasta que se definan, las solicitudes quedan en estado «pendiente», no se aplica ningún precio mayorista y no se acumulan descuentos.</p>
+            <p className="mt-3 text-sm text-ink/75">Hasta que la tienda las defina y abra el catálogo, no hay precios mayoristas publicados ni demoras prometidas. La demora estimada se informa antes de pagar la seña, indicando desde qué momento se cuenta; no hay fechas garantizadas.</p>
+          </section>
+
+          <section aria-labelledby="may-encargo" className="max-w-3xl">
+            <p className="eyebrow text-vermilion">03 / Encargos minoristas</p>
+            <h2 id="may-encargo" className="display mt-2 text-4xl normal-case sm:text-5xl">¿Querés un producto puntual?</h2>
+            <p className="mt-4 text-base leading-relaxed">Para una unidad o pocas, podés <b>traer a pedido</b> productos del catálogo con una seña del {encargo.senaPercent}% del importe confirmado. En cada ficha, «Consultar por encargo» arma la consulta.</p>
+            <Link href="/sellados" className="mt-5 inline-flex items-center gap-3 bg-ink px-6 py-3.5 font-bold text-paper hover:bg-emerald">Ver el catálogo <ArrowIcon /></Link>
           </section>
 
           <section aria-labelledby="may-pasos" className="max-w-3xl">
             <p className="eyebrow text-vermilion">04 / Cómo solicitarla</p>
             <h2 id="may-pasos" className="display mt-2 text-4xl normal-case sm:text-5xl">Tres pasos</h2>
             <ol className="mt-5 list-decimal space-y-2 pl-5 text-base">
-              <li>Ingresá con tu cuenta o creá una (es gratis; confirmás tu correo).</li>
-              <li>Completá el nombre comercial o actividad, tu localidad y, si querés, qué artículos o volumen te interesan.</li>
+              <li>Ingresá con tu cuenta (también con Google) o creá una.</li>
+              <li>Completá el nombre comercial o actividad, tu localidad y, si querés, qué volumen te interesa.</li>
               <li>Guardamos tu solicitud y ves su estado en <Link href="/cuenta" className="underline">Mi cuenta</Link>.</li>
             </ol>
             <Link href="/mayoristas/solicitar" className="mt-6 inline-flex min-h-12 items-center gap-3 bg-gold px-6 py-3 font-bold hover:bg-ink hover:text-paper">Solicitar cuenta mayorista <ArrowIcon /></Link>

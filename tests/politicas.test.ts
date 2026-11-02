@@ -3,7 +3,6 @@ import { catalog } from "@/content/catalog";
 import { encargo, mayorista, promo } from "@/content/politicas";
 import { evaluateCart } from "@/features/inquiries/pricing";
 import { senaYSaldo } from "@/features/politicas/encargos";
-import { wholesalePriceFor, wholesalePriceMinor } from "@/features/politicas/mayorista";
 import { boxCount, isBoxKind, paymentAllowed, qualifiesForBoxPromo, transferDiscountMinor, type PromoLine } from "@/features/politicas/promociones";
 import { percentOf, percentOff, roundToPeso } from "@/lib/money";
 
@@ -67,34 +66,13 @@ describe("criterio monetario único", () => {
   });
 });
 
-describe("mayorista: 30% sobre el precio minorista de catálogo", () => {
-  it("precio = minorista × 0,70 con el mismo redondeo", () => {
-    expect(mayorista.discountPercent).toBe(30);
-    expect(wholesalePriceMinor(950000)).toBe(665000);
-    expect(wholesalePriceMinor(18500000)).toBe(12950000);
-    expect(wholesalePriceMinor(1234500)).toBe(864100); // 12.345 × 0,70 = 8.641,5: el descuento (3.703,5) se redondea al peso → 3.704
-  });
-  it("las políticas pendientes siguen sin definirse (no se inventan)", () => {
-    expect(mayorista.minimumPurchase).toBeNull();
-    expect(mayorista.stacksWithTransferDiscount).toBeNull();
-    expect(mayorista.approval).toBeNull();
-    expect(mayorista.activationEnabled).toBe(false);
-  });
-  it("con la activación apagada nadie tiene precio mayorista, ni siquiera con una solicitud aprobada", () => {
-    expect(wholesalePriceFor("aprobada", 950000)).toBeNull();
-    expect(wholesalePriceFor("pendiente", 950000)).toBeNull();
-    expect(wholesalePriceFor(null, 950000)).toBeNull();
-  });
-  it("con la activación habilitada (solo en esta prueba), exige solicitud aprobada y precio minorista; sin precio no inventa uno", () => {
-    try {
-      (mayorista as { activationEnabled: boolean }).activationEnabled = true;
-      expect(wholesalePriceFor("aprobada", 950000)).toBe(665000);
-      expect(wholesalePriceFor("pendiente", 950000)).toBeNull();
-      expect(wholesalePriceFor("rechazada", 950000)).toBeNull();
-      expect(wholesalePriceFor("aprobada", null)).toBeNull(); // «Precio a confirmar»
-    } finally {
-      (mayorista as { activationEnabled: boolean }).activationEnabled = false;
-    }
+describe("mayorista: lo confirmado y lo que sigue sin definirse", () => {
+  it("aprobación manual, recargo de referencia de 50% sobre costo (no un descuento sobre el minorista) y seña del 20%", () => {
+    expect(mayorista.approval).toBe("manual");
+    expect(mayorista.referenceMarkupOverCostPercent).toBe(50);
+    expect(mayorista.senaPercent).toBe(20);
+    expect(mayorista).not.toHaveProperty("discountPercent");
+    expect(mayorista).not.toHaveProperty("stacksWithTransferDiscount");
   });
 });
 

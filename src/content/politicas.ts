@@ -20,22 +20,22 @@ export const promo = {
   discountScope: "order-products" as "order-products" | "boxes-only",
 };
 
-/** Cuenta mayorista. Lo único definido es el 30%; todo lo demás lo define el dueño después. */
+/**
+ * Cuenta y catálogo mayorista. Confirmado por el dueño (02/11/2026): la cuenta se solicita y el dueño la aprueba A MANO; es exclusivamente POR PEDIDO (el stock minorista no cuenta);
+ * pago por transferencia o efectivo SIN descuento adicional ni beneficios minoristas; seña del 20% después de confirmar disponibilidad e importe, y el resto al retirar o antes del despacho,
+ * con la mercadería ya en Argentina; los precios dependen de la cantidad. La referencia interna de precio es costo final × 1,5 (recargo del 50% sobre costo, NO un descuento sobre el minorista).
+ * SIGUE SIN DEFINIR (y vive en el panel, vacío hasta que el dueño decida; el catálogo no se abre sin esto): compra mínima, si los productos se combinan para alcanzar el mínimo y cada tramo,
+ * las cantidades y precios de los tramos y las demoras estimadas. La financiación a 3 o 6 meses solo se puede CONSULTAR: no se promete aprobación, cuotas ni tasas.
+ */
 export const mayorista = {
-  /** Descuento sobre el precio minorista de catálogo (interpretación de trabajo: la base de comparación es el precio de lista). */
-  discountPercent: 30,
-  /**
-   * Habilitar la revisión y el uso de los beneficios. Mientras sea `false`: las solicitudes quedan «pendiente», ningún usuario
-   * tiene precio mayorista y el servidor rechaza cambiar estados. Pasar a `true` solo cuando el dueño defina las políticas de abajo.
-   */
-  activationEnabled: false,
-  /** Compra mínima (importe o unidades). PENDIENTE de definir por el dueño. */
-  minimumPurchase: null as null | { minor?: number; units?: number },
-  /** ¿El 30% se acumula con el 10% por transferencia? PENDIENTE (hoy no se aplica ningún acumulado). */
-  stacksWithTransferDiscount: null as null | boolean,
-  /** Aprobación de cuentas: manual o automática. PENDIENTE (hoy toda solicitud queda pendiente de revisión). */
-  approval: null as null | "manual" | "automatic",
-};
+  approval: "manual" as const,
+  /** La revisión (aprobar / rechazar) está habilitada: la hace el dueño a mano. */
+  activationEnabled: true,
+  /** Recargo interno sobre el costo final (referencia de trabajo para proponer precios; el dueño fija cada tramo). */
+  referenceMarkupOverCostPercent: 50,
+  senaPercent: 20,
+  paymentNote: "Transferencia o efectivo, sin descuento adicional.",
+} as const;
 
 /** Encargos (confirmado el 13/10/2026: seña del 20%). El resto de las condiciones sigue sin definir. */
 export const encargo = {

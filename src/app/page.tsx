@@ -8,7 +8,6 @@ import { FxNote } from "@/components/fx-note";
 import { ProductImage } from "@/components/product-image";
 import { featuredProducts, inStockProducts, listProducts, listExpansions } from "@/features/catalog/data";
 import { PaymentBenefits, PromoStrip } from "@/components/payment-benefits";
-import { mayorista } from "@/content/politicas";
 import { hasAsset } from "@/components/slot";
 
 import { kindSlug, type Expansion, type Product } from "@/content/schema";
@@ -195,8 +194,8 @@ export default async function Home() {
         <div className="mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-x-8 gap-y-4 px-4 py-8 sm:px-8 sm:py-10">
           <div className="max-w-2xl">
             <p className="eyebrow kicker text-emerald">Mayoristas</p>
-            <h2 id="may-home-title" className="title-rule mt-3 text-xl font-semibold leading-tight tracking-tight sm:text-2xl">¿Comprás por mayor? {mayorista.discountPercent}% sobre el precio minorista.</h2>
-            <p className="mt-3 text-sm text-ink/70">Solicitá tu cuenta mayorista y pedí cotización por el catálogo o por encargo. Beneficio sujeto a condiciones que la tienda todavía define; la solicitud queda pendiente de revisión.</p>
+            <h2 id="may-home-title" className="title-rule mt-3 text-xl font-semibold leading-tight tracking-tight sm:text-2xl">¿Comprás por mayor? Pedidos por cantidad, con precio por tramo.</h2>
+            <p className="mt-3 text-sm text-ink/70">Solicitá tu cuenta mayorista: la tienda la aprueba a mano y los precios dependen de la cantidad. Los pedidos son siempre por encargo; las condiciones (compra mínima y demoras) las define la tienda.</p>
           </div>
           <ArrowLink href="/mayoristas">Ver mayoristas</ArrowLink>
         </div>

@@ -167,11 +167,12 @@ describe("solicitudes de cuenta mayorista", () => {
     expect(await getWholesaleRequest(db, "beto")).toBeNull();
     expect((await db.select().from(wholesaleRequests))[0]!.userId).toBe("ana");
   });
-  it("revisar (aprobar/rechazar) está APAGADO hasta que el dueño defina las políticas: 409 y no cambia nada", async () => {
+  it("el dueño aprueba a mano: la aprobación cambia el estado, es la única forma de tener acceso y se puede revocar", async () => {
     const { request } = await createWholesaleRequest(db, "ana", datos);
-    const err = await fail(async () => await reviewWholesaleRequest(db, request.reference, "aprobada", "dueno@example.com"));
-    expect(err).toMatchObject({ status: 409, code: "policy_pending" });
     expect(await wholesaleStatusFor(db, "ana")).toBe("pendiente");
+    expect((await reviewWholesaleRequest(db, request.reference, "aprobada", "dueno@example.com")).status).toBe("aprobada");
+    expect(await wholesaleStatusFor(db, "ana")).toBe("aprobada");
+    expect((await reviewWholesaleRequest(db, request.reference, "rechazada", "dueno@example.com")).status).toBe("rechazada");
   });
   it("el mecanismo de revisión está listo: con la activación habilitada cambia el estado y deja constancia", async () => {
     const { request } = await createWholesaleRequest(db, "ana", datos);
