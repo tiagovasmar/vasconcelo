@@ -6,28 +6,29 @@ import { go } from "./helpers";
 const datos = { businessName: "Cartas del Oeste", locality: "Ramos Mejía", province: "Buenos Aires", note: "Cajas de las ediciones chinas" };
 
 test.describe("página informativa", () => {
-  test("presenta el 30% sujeto a condiciones por definir, el catálogo, los encargos y las pendientes, sin prometer stock, plazos ni descuento activo", async ({ page }) => {
+  test("presenta el catálogo por pedido con precios por tramo, las condiciones por definir y nada del 30%, sin prometer stock, plazos ni descuento activo", async ({ page }) => {
     await go(page, "/mayoristas");
     const main = page.locator("main");
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("30% sobre el precio minorista");
-    await expect(main).toContainText("sujeto a las condiciones mayoristas que la tienda todavía está definiendo");
-    await expect(main).toContainText("Todo el catálogo publicado");
-    await expect(main).toContainText("Pedidos por encargo");
-    await expect(main).toContainText("sujeto a disponibilidad");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("Pedidos por cantidad");
+    await expect(main).toContainText("exclusivamente por pedido");
+    await expect(main).toContainText("aprueba a mano");
+    await expect(main).toContainText("sin descuento adicional");
+    await expect(main).toContainText("seña del 20%");
     await expect(page.getByTestId("mayorista-pendiente")).toContainText("La compra mínima");
-    await expect(page.getByTestId("mayorista-pendiente")).toContainText("se acumula con el 10% OFF por transferencia");
-    await expect(page.getByTestId("mayorista-pendiente")).toContainText("manual o automática");
-    // el beneficio no se desvirtúa ni se promete nada que el dueño no dio
-    await expect(main).not.toContainText(/hasta (el )?30|desde (el )?30/i);
-    await expect(main).not.toContainText(/stock garantizado|entrega garantizada|importación asegurada|plazo de \d/i);
-    await expect(main).toContainText("no lo activa al instante");
+    await expect(page.getByTestId("mayorista-pendiente")).toContainText("combinar productos");
+    await expect(page.getByTestId("mayorista-pendiente")).toContainText("Las demoras estimadas");
+    // el 30% ya no existe en ninguna parte y no se promete nada que el dueño no dio
+    await expect(main).not.toContainText(/30 ?%/);
+    await expect(main).not.toContainText(/stock garantizado|entrega garantizada|importación asegurada|plazo de d/i);
+    await expect(main).toContainText("no la activa al instante");
     await expect(page.getByTestId("solicitar-cuenta-mayorista")).toHaveAttribute("href", "/mayoristas/solicitar");
-    await expect(page.getByTestId("mayorista-ya-tengo-cuenta")).toHaveAttribute("href", "/cuenta/ingresar?next=%2Fmayoristas%2Fsolicitar");
+    await expect(page.getByTestId("mayorista-catalogo-link")).toHaveAttribute("href", "/mayoristas/catalogo");
   });
 
   test("hay acceso desde el pie, el menú y una llamada breve en el inicio", async ({ page, isMobile }) => {
     await go(page, "/");
-    await expect(page.getByTestId("llamada-mayoristas")).toContainText("30% sobre el precio minorista");
+    await expect(page.getByTestId("llamada-mayoristas")).toContainText("Pedidos por cantidad");
+    await expect(page.getByTestId("llamada-mayoristas")).not.toContainText(/30 ?%/);
     await expect(page.getByTestId("llamada-mayoristas").getByRole("link", { name: /Ver mayoristas/ })).toHaveAttribute("href", "/mayoristas");
     await expect(page.getByRole("contentinfo").getByRole("link", { name: "Mayoristas" })).toHaveAttribute("href", "/mayoristas");
     if (isMobile) {
@@ -66,7 +67,7 @@ test.describe("solicitud de cuenta mayorista", () => {
     const estado = page.getByTestId("estado-mayorista");
     await expect(estado).toBeVisible();
     await expect(page.getByTestId("estado-mayorista-texto")).toHaveText("Pendiente de revisión");
-    await expect(estado).toContainText("Todavía no tenés precios mayoristas");
+    await expect(estado).toContainText("no ves precios mayoristas");
     await expect(estado).toContainText(/MY-[A-Z2-9]{8}/);
     await expect(estado).not.toContainText(/descuento activo|30% activo/i);
     const ref = (await estado.textContent())!.match(/MY-[A-Z2-9]{8}/)![0];

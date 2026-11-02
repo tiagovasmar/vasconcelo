@@ -495,7 +495,8 @@ test.describe("el dueño administra precios, stock, fotos y cotización", () => 
     await ctxA.close();
 
     await go(owner, "/admin/mayoristas");
-    await expect(owner.getByTestId("mayoristas-politica")).toContainText("Todavía no se pueden aprobar ni rechazar");
+    await expect(owner.getByTestId("mayoristas-politica")).toContainText("la hacés vos");
+    await expect(owner.getByTestId("mayoristas-politica")).not.toContainText(/30 ?%/);
     const fila = owner.getByTestId("mayorista-fila").filter({ hasText: ref });
     await expect(fila).toContainText("Comercio E2E");
     await expect(fila).toContainText("Pendiente de revisión");
