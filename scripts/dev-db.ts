@@ -8,17 +8,17 @@ import { runMigrations } from "../src/db/client";
  * Base de DESARROLLO local, separada de producción: un PostgreSQL real (binario de `embedded-postgres`) con datos persistentes en `.local/dev-pg`.
  *   npm run dev:db        → la deja corriendo (Ctrl+C la detiene; los datos se conservan)
  *   npm run dev:db -- --reset   → borra los datos locales y empieza de cero
- * Escucha solo en 127.0.0.1:54400, base `vasconcelo_dev`. No lee `.env.local` ni ninguna credencial: no puede tocar Supabase.
+ * Escucha solo en 127.0.0.1:54400 (DEV_PG_PORT), base `vasconcelo_dev`. Una base NUEVA se crea en UTF-8 (las anteriores conservan su codificación); DEV_PG_DIR elige otra carpeta de datos (p. ej. para la vista previa de pedidos, sin tocar la base de siempre). No lee `.env.local` ni ninguna credencial: no puede tocar Supabase.
  */
 const PORT = Number(process.env.DEV_PG_PORT || 54400);
 const DB = "vasconcelo_dev";
-const dir = path.resolve(".local/dev-pg");
+const dir = path.resolve(process.env.DEV_PG_DIR || ".local/dev-pg");
 const url = `postgres://postgres:postgres@127.0.0.1:${PORT}/${DB}`;
 
 async function main() {
   if (process.argv.includes("--reset")) fs.rmSync(dir, { recursive: true, force: true });
   const fresh = !fs.existsSync(path.join(dir, "data", "PG_VERSION"));
-  const pg = new EmbeddedPostgres({ databaseDir: path.join(dir, "data"), user: "postgres", password: "postgres", port: PORT, persistent: true, postgresFlags: ["-c", "max_connections=100"], onLog: () => undefined, onError: () => undefined });
+  const pg = new EmbeddedPostgres({ databaseDir: path.join(dir, "data"), user: "postgres", password: "postgres", port: PORT, persistent: true, initdbFlags: ["--encoding=UTF8", "--locale=C"], postgresFlags: ["-c", "max_connections=100"], onLog: () => undefined, onError: () => undefined });
   if (fresh) await pg.initialise();
   await pg.start();
   const admin = postgres(`postgres://postgres:postgres@127.0.0.1:${PORT}/postgres`, { max: 1, ssl: false, onnotice: () => undefined });

@@ -43,7 +43,7 @@
     "dev:db": "tsx scripts/dev-db.ts",
     "dev:datos": "tsx scripts/dev-datos.ts",
     "dev:admin": "tsx scripts/dev-admin.ts",
-    "dev:pedidos": "tsx scripts/dev-pedidos.ts"
+    "dev:pedidos": "tsx --conditions=react-server scripts/dev-pedidos.ts"
   },
   "dependencies": {
     "@fontsource-variable/figtree": "^5.3.0",

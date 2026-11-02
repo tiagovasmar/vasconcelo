@@ -41,7 +41,9 @@ async function shot(page: import("@playwright/test").Page, name: string) {
 async function main() {
   const browser = await chromium.launch();
   const producto = realCatalog.products.filter((p) => p.active && !p.retired && !p.addonOnly)[0];
-  for (const [label, width] of [["escritorio", 1440], ["movil-360", 360], ["movil-390", 390], ["movil-430", 430]] as const) {
+  // ANCHOS=escritorio,movil-390 limita los anchos (por defecto todos); ADMIN=0 omite las capturas del panel.
+  const anchos = (process.env.ANCHOS ?? "escritorio,movil-360,movil-390,movil-430").split(",");
+  for (const [label, width] of ([["escritorio", 1440], ["movil-360", 360], ["movil-390", 390], ["movil-430", 430]] as const).filter(([l]) => anchos.includes(l))) {
     const { ctx, page } = await session(browser, "ana.prueba@example.com", pw, width);
     await page.goto("/cuenta/consultas");
     const refs = [...new Set((await page.content()).match(/TT-[A-Z0-9]{8}/g) ?? [])];
@@ -63,6 +65,7 @@ async function main() {
     if (label === "escritorio") { await m.page.goto("/mayoristas"); await shot(m.page, `mayorista-informacion-${label}`); }
     await m.ctx.close();
   }
+  if (process.env.ADMIN === "0") { await browser.close(); return; }
   const { ctx, page } = await session(browser, adminEmail, adminPw, 1440);
   await page.goto("/admin/pedidos");
   const refs = [...new Set((await page.content()).match(/TT-[A-Z0-9]{8}/g) ?? [])];
