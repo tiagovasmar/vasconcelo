@@ -183,7 +183,7 @@ describe("comprobantes de transferencia", () => {
     const base = { inquiryId: ref, viewer: { kind: "cuenta", userId: "ana" } as const };
     expect(await code(uploadReceipt(db, store, { ...base, file: Buffer.from("MZ\x90\x00 programa"), originalName: "factura.pdf" }))).toBe("unsupported");
     expect(await code(uploadReceipt(db, store, { ...base, file: Buffer.alloc(0) }))).toBe("invalid_input");
-    expect(await code(uploadReceipt(db, store, { ...base, file: Buffer.concat([Buffer.from("%PDF-1.4"), Buffer.alloc(5 * 1024 * 1024)]) }))).toBe("too_large");
+    expect(await code(uploadReceipt(db, store, { ...base, file: Buffer.concat([Buffer.from("%PDF-1.4"), Buffer.alloc(4 * 1024 * 1024)]) }))).toBe("too_large");
     expect(store.files.size).toBe(0);
     expect(sniffReceiptType(Buffer.from([0xff, 0xd8, 0xff, 0xe0]))).toBe("image/jpeg");
     expect(sniffReceiptType(Buffer.from("<html>"))).toBeNull();

@@ -33,6 +33,8 @@ const money = (m: number) => formatARS(m).replace(/[  ]/g, " ");
 export function describeDelivery(d: Delivery): string {
   if (d.method === "andreani") return `Andreani · ${d.locality}, ${d.province} (CP ${d.postalCode.toUpperCase()})`;
   if (d.method === "moto") return `Moto CABA/AMBA · ${d.locality} (CP ${d.postalCode.toUpperCase()}) · cobertura a confirmar`;
+  // Pedidos mayoristas: la entrega (retiro o envío al cliente) se coordina cuando la mercadería llega a Argentina.
+  if ((d as { method: string }).method === "a_coordinar") return "A coordinar con la tienda (retiro o envío al cliente)";
   return PICKUP_MESSAGE;
 }
 

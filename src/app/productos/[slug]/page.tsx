@@ -6,6 +6,7 @@ import { ProductGallery } from "@/components/product-gallery";
 import { ProductTags } from "@/components/product-tags";
 import { PaymentBenefits } from "@/components/payment-benefits";
 import { AddToCartPanel } from "@/components/cart-widgets";
+import { RestockNotify } from "@/components/restock-notify";
 import { FavoriteButton } from "@/components/favorite-button";
 import { GarantiasResumen } from "@/components/garantias-resumen";
 import { maxFor } from "@/features/inquiries/pricing";
@@ -132,6 +133,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
             <StockBadge product={product} size="page" className="mt-1.5 sm:mt-2" />
             <PaymentBenefits kind={product.kind} />
             <AddToCartPanel productId={product.id} title={product.title} imageSrc={product.images[0] && hasAsset(product.images[0].src) ? product.images[0].src : null} priceMinor={product.priceMinor ?? 0} max={maxFor(product)} state={state} stockKnown={isInStock(product)} orderOnly={Boolean(product.orderOnly)} packSize={product.packSize ?? null} addons={addons} />
+            {product.stockQuantity === 0 && !product.retired && <RestockNotify productId={product.id} title={product.title} />}
             <FavoriteButton productId={product.id} title={product.title} withLabel className="mt-2 min-h-11 sm:mt-3 border border-ink/40 bg-white px-4 text-sm font-semibold hover:bg-gold" />
             <p className="mt-3 text-sm text-ink/80 sm:mt-4" data-testid="entrega"><b>Entrega:</b> Andreani · moto en CABA y AMBA · retiro en Av. Rivadavia 14600. Costo, horario y dirección exacta de retiro por WhatsApp.</p>
 

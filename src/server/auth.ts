@@ -1,6 +1,3 @@
-import fs from "node:fs";
-import path from "node:path";
-import { randomBytes } from "node:crypto";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
@@ -8,21 +5,7 @@ import { getDb } from "../db/client";
 import * as schema from "../db/schema";
 import { sendMail } from "./mail";
 import { googleCredentials } from "./google";
-
-/** Secreto de firma: variable de entorno; en desarrollo se genera una vez en `.local/auth-secret` (ignorado por Git). */
-function authSecret(): string {
-  if (process.env.BETTER_AUTH_SECRET) return process.env.BETTER_AUTH_SECRET;
-  if (process.env.NODE_ENV === "production") throw new Error("Falta BETTER_AUTH_SECRET en producción.");
-  const file = path.resolve(/*turbopackIgnore: true*/ process.env.AUTH_SECRET_FILE || ".local/auth-secret");
-  try {
-    return fs.readFileSync(/*turbopackIgnore: true*/ file, "utf8").trim();
-  } catch {
-    fs.mkdirSync(/*turbopackIgnore: true*/ path.dirname(file), { recursive: true });
-    const secret = randomBytes(32).toString("hex");
-    fs.writeFileSync(/*turbopackIgnore: true*/ file, secret, { mode: 0o600 });
-    return secret;
-  }
-}
+import { authSecret } from "./secret";
 
 /** URL pública del sitio. En Netlify, si falta BETTER_AUTH_URL se usa la dirección que la plataforma informa (`URL`, o `DEPLOY_PRIME_URL` en vistas previas). */
 const baseURL = process.env.BETTER_AUTH_URL || process.env.URL || "http://localhost:3000";

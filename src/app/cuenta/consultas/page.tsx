@@ -3,7 +3,10 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { AccountHeader, AccountNav } from "@/components/account-shell";
 import { ClaimGuestCard } from "@/components/auth-forms";
+import { inArray } from "drizzle-orm";
 import { getDb } from "@/db/client";
+import { orderTracks } from "@/db/schema";
+import { STAGE_LABEL, type Stage } from "@/features/pedidos/etapas";
 import { countGuestInquiries, hashToken, listInquiriesForUser } from "@/features/inquiries/service";
 import { formatARS } from "@/lib/format";
 import { SESSION_COOKIE } from "@/server/http";
@@ -13,12 +16,13 @@ export const metadata: Metadata = { title: "Mis consultas", robots: { index: fal
 export const dynamic = "force-dynamic";
 
 const fmt = (ms: number) => new Intl.DateTimeFormat("es-AR", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Argentina/Buenos_Aires" }).format(new Date(ms));
-const statusLabel: Record<string, string> = { consulta_preparada: "Consulta preparada" };
+const statusLabel: Record<string, string> = { consulta_preparada: "Consulta preparada", consulta_mayorista: "Pedido mayorista", consulta_manual: "Consulta" };
 
 export default async function MisConsultas() {
   const user = await requireUser("/cuenta/consultas");
   const db = getDb();
   const items = await listInquiriesForUser(db, user.id);
+  const tracks = items.length ? await db.select().from(orderTracks).where(inArray(orderTracks.inquiryId, items.map((q) => q.reference))) : [];
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   const guest = token && /^[A-Za-z0-9_-]{20,64}$/.test(token) ? await countGuestInquiries(db, hashToken(token)) : 0;
 
@@ -48,6 +52,7 @@ export default async function MisConsultas() {
                     </span>
                     <span className="text-right">
                       <span className="inline-block border border-ink/40 bg-paper px-2 py-0.5 text-xs font-bold uppercase tracking-wide">{statusLabel[q.status] ?? q.status}</span>
+                      {(() => { const t = tracks.find((x) => x.inquiryId === q.reference); return t ? <span className="ml-1 inline-block bg-emerald px-2 py-0.5 text-xs font-bold text-paper" data-testid="etapa-pedido">{t.cancelledAt ? "Pedido cancelado" : STAGE_LABEL[t.stage as Stage] ?? t.stage}</span> : null; })()}
                       <span className="mt-1 block text-sm">{q.encargoLines > 0 && q.subtotalMinor === 0 ? <b>Por encargo · sin cotizar</b> : <>Subtotal de productos <b>{formatARS(q.subtotalMinor)}</b>{q.encargoLines > 0 && <> · más {q.encargoLines} por encargo</>}</>}</span>
                     </span>
                   </Link>

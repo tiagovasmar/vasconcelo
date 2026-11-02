@@ -25,6 +25,7 @@ export function AuthCard({ eyebrow, title, intro, children, footer }: { eyebrow:
 const tabs = [
   { id: "resumen", href: "/cuenta", label: "Resumen" },
   { id: "consultas", href: "/cuenta/consultas", label: "Mis consultas" },
+  { id: "avisos", href: "/cuenta/avisos", label: "Mis avisos" },
   { id: "favoritos", href: "/cuenta/favoritos", label: "Favoritos" },
   { id: "perfil", href: "/cuenta/perfil", label: "Perfil" },
 ] as const;

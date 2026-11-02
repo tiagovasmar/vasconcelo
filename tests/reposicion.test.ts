@@ -60,6 +60,7 @@ describe("cancelar y contar", () => {
     const a = await subscribeRestock(db, { productId: AGOTADO, consent: true, email: "a@b.com" }, guest, 1);
     await subscribeRestock(db, { productId: AGOTADO, consent: true }, account("ana"), 2);
     expect(await cancelRestock(db, { token: "token-equivocado" })).toEqual({ changed: false, found: false });
+    expect(await cancelRestock(db, { token: `${(await db.select().from(restockAlerts))[0].id}.firma-falsa` })).toEqual({ changed: false, found: false }); // con el id correcto pero sin la firma, no se puede cancelar el aviso de otra persona
     expect(await cancelRestock(db, { token: a.cancelToken! }, 5)).toEqual({ changed: true, found: true });
     expect(await cancelRestock(db, { token: a.cancelToken! }, 6)).toEqual({ changed: false, found: true });
     const mine = (await listUserAlerts(db, "ana"))[0];

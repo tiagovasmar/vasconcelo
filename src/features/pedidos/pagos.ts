@@ -32,7 +32,8 @@ const PESOS = (label: string) => z.number({ error: `${label}: escribí un import
 
 /* ---------- Comprobantes ---------- */
 
-export const MAX_RECEIPT_BYTES = 5 * 1024 * 1024;
+/** 4 MB: deja margen bajo el límite de 6 MB de las funciones de Netlify para el cuerpo de la petición (con el formulario). */
+export const MAX_RECEIPT_BYTES = 4 * 1024 * 1024;
 export const MAX_PENDING_RECEIPTS = 6;
 export const RECEIPT_TYPES = { "application/pdf": "pdf", "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" } as const;
 export type ReceiptType = keyof typeof RECEIPT_TYPES;

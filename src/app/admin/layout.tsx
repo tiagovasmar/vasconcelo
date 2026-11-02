@@ -10,9 +10,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <ul className="mx-auto flex max-w-[1240px] flex-wrap gap-x-6 gap-y-2 px-4 py-3 text-sm font-semibold sm:px-8">
           <li><Link href="/admin" className="underline-offset-4 hover:underline">Productos</Link></li>
           <li><Link href="/admin/consultas" className="underline-offset-4 hover:underline">Consultas</Link></li>
+          <li><Link href="/admin/pedidos" className="underline-offset-4 hover:underline">Pedidos</Link></li>
+          <li><Link href="/admin/envios" className="underline-offset-4 hover:underline">Envíos</Link></li>
           <li><Link href="/admin/ventas" className="underline-offset-4 hover:underline">Ventas</Link></li>
           <li><Link href="/admin/promociones" className="underline-offset-4 hover:underline">Promociones</Link></li>
           <li><Link href="/admin/cotizacion" className="underline-offset-4 hover:underline">Cotización</Link></li>
+          <li><Link href="/admin/costos" className="underline-offset-4 hover:underline">Costos</Link></li>
+          <li><Link href="/admin/reposicion" className="underline-offset-4 hover:underline">Reposición</Link></li>
+          <li><Link href="/admin/avisos" className="underline-offset-4 hover:underline">Avisos</Link></li>
           <li><Link href="/admin/mayoristas" className="underline-offset-4 hover:underline">Mayoristas</Link></li>
           <li><Link href="/admin/historial" className="underline-offset-4 hover:underline">Historial de cambios</Link></li>
           <li className="ml-auto"><Link href="/" className="font-normal text-paper/80 underline-offset-4 hover:underline">Ver la tienda</Link></li>

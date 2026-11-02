@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { ConsultaDetail } from "@/components/consulta-detail";
+import { OrderTracking } from "@/components/order-tracking";
+import { getWhatsappNumber } from "@/features/inquiries/config";
+import { customerOrderView } from "@/features/pedidos/service";
 import { getDb } from "@/db/client";
 import { getInquiryFor, hashToken } from "@/features/inquiries/service";
 import { SESSION_COOKIE } from "@/server/http";
@@ -21,9 +24,11 @@ export default async function ConsultaPage({ params, searchParams }: { params: P
     userId: user?.id,
   });
   if (!inquiry) notFound();
+  const view = await customerOrderView(getDb(), ref);
 
   return (
     <ConsultaDetail
+      tracking={view ? <OrderTracking view={view} whatsappNumber={getWhatsappNumber()} /> : null}
       inquiry={inquiry}
       autoOpen={abrir === "1"}
       links={[

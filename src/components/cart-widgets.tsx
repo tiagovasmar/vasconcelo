@@ -343,7 +343,7 @@ function EncargoPanel({ productId, title, imageSrc, pending, stockKnown, orderOn
         {pending && stockKnown ? <>Hay unidades en stock, pero el <b>precio</b> está por confirmarse, así que todavía no se puede comprar con un importe.</> : pending ? <>El <b>precio</b> y la <b>disponibilidad</b> de este producto están por confirmarse, así que todavía no se puede comprar. La ficha muestra su contenido.</> : null}
         {pending ? <>{" "}{ENCARGO_EXPLICACION}</> : <>Una vez confirmadas la disponibilidad y la cotización, podés encargar abonando una seña del {encargoPolitica.senaPercent}%; el saldo restante es del {100 - encargoPolitica.senaPercent}%. No se cobra ninguna seña antes de esa confirmación.</>}
       </p>
-      <p className="mt-1 text-xs text-ink/65">Consultar no reserva mercadería ni compromete el pedido: la disponibilidad, la cotización y los plazos se confirman con la tienda; no se prometen fechas de reposición ni se envían avisos automáticos.</p>
+      <p className="mt-1 text-xs text-ink/65">Consultar no reserva mercadería ni compromete el pedido: la disponibilidad, la cotización y los plazos se confirman con la tienda; no se prometen fechas de reposición. Si el producto está agotado, podés pedir que te avisemos por correo cuando vuelva.</p>
       <p role="status" aria-live="polite" className="mt-1 min-h-5 text-sm font-semibold text-emerald">
         {msg} {msg && <Link href="/carrito" className="underline">Ver consulta</Link>}
       </p>

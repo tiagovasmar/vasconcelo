@@ -15,6 +15,7 @@ import { SaleError, type SaleErrorCode } from "@/features/sales/errors";
 import { wholesaleStatusFor } from "@/features/wholesale/service";
 import { ensureTrack, trackLock } from "@/features/pedidos/service";
 import { formatARS } from "@/lib/format";
+import { missingForOpening, quote, tierFor, type Quote, type Tier, type WholesaleRow, type WholesaleRules } from "./calc";
 
 /**
  * Catálogo y precios MAYORISTAS. Reglas:
@@ -33,24 +34,7 @@ function parseOr400<T>(schema: z.ZodType<T>, body: unknown): T {
 }
 const sha = (s: string) => createHash("sha256").update(s).digest("hex");
 
-/** Referencia interna: costo final × 1,5 (recargo del 50% sobre el costo). Entero, mitades hacia arriba. null si no hay costo. */
-export const suggestedFromCost = (costMinor: number | null | undefined): number | null => (costMinor && costMinor > 0 ? Math.floor((costMinor * 3 + 1) / 2) : null);
-
 /* ---------- Reglas comerciales (configurables; vacías hasta que el dueño decida) ---------- */
-
-export type WholesaleRules = {
-  /** Compra mínima en unidades (null = sin definir). */
-  minUnits: number | null;
-  /** Compra mínima en pesos (centavos; null = sin definir). */
-  minAmountMinor: number | null;
-  /** producto = cada producto llega a su propio tramo · pedido = las unidades de todos los productos suman para el tramo y el mínimo. null = sin definir. */
-  combine: "producto" | "pedido" | null;
-  /** Demora estimada y desde cuándo se cuenta, SIN fechas garantizadas (null = sin definir). */
-  delayText: string | null;
-  delayFrom: string | null;
-  /** Interruptor final del dueño. */
-  open: boolean;
-};
 
 const K = { minUnits: "wholesale.minUnits", minAmount: "wholesale.minAmountMinor", combine: "wholesale.combine", delayText: "wholesale.delayText", delayFrom: "wholesale.delayFrom", open: "wholesale.open" } as const;
 
@@ -92,16 +76,6 @@ export async function saveRules(db: Db, body: unknown, actor: Actor, now = Date.
     await put(K.open, v.open ? "1" : null);
   });
   return getRules(db);
-}
-
-/** Qué falta definir para abrir el catálogo (el mínimo puede ser en unidades o en importe, pero tiene que haber alguno). */
-export function missingForOpening(r: Pick<WholesaleRules, "minUnits" | "minAmountMinor" | "combine" | "delayText" | "delayFrom">, publishedTiers: number): string[] {
-  const out: string[] = [];
-  if (r.minUnits === null && r.minAmountMinor === null) out.push("la compra mínima");
-  if (r.combine === null) out.push("si los productos se combinan para alcanzar el mínimo y cada tramo");
-  if (!r.delayText || !r.delayFrom) out.push("la demora estimada y desde cuándo se cuenta");
-  if (publishedTiers === 0) out.push("al menos un tramo de precios publicado");
-  return out;
 }
 
 /* ---------- Tramos ---------- */
@@ -146,14 +120,6 @@ export async function publishTiers(db: Db, productId: string, actor: Actor, now 
 export const unpublishTiers = async (db: Db, productId: string, actor: Actor, now = Date.now()) =>
   (await db.update(wholesaleTiers).set({ state: "borrador", updatedAt: now, updatedByEmail: actor.email }).where(and(eq(wholesaleTiers.productId, productId), eq(wholesaleTiers.state, "publicado"))).returning({ p: wholesaleTiers.productId })).length;
 
-export type Tier = { minQty: number; unitPriceUsdMinor: number };
-/** Tramo que rige para una cantidad: el de mayor cantidad mínima que no la supere. null = «A cotizar» (no llega al primer tramo o no hay tramos). */
-export function tierFor(tiers: Tier[], qty: number): Tier | null {
-  let best: Tier | null = null;
-  for (const t of tiers) if (t.minQty <= qty && (!best || t.minQty > best.minQty)) best = t;
-  return best;
-}
-
 /* ---------- Catálogo para cuentas aprobadas ---------- */
 
 export type WholesaleAccess = { ok: true } | { ok: false; reason: "no_session" | "sin_solicitud" | "pendiente" | "rechazada" | "cerrado"; missing?: string[] };
@@ -172,12 +138,6 @@ export async function wholesaleAccess(db: Db, userId: string | null): Promise<Wh
   return { ok: true };
 }
 
-export type WholesaleRow = {
-  productId: string; slug: string; sku: string; title: string; language: string; kind: string; image: { src: string; alt: string } | null;
-  /** Precios por tramo en USD y en pesos (conversión única del sitio). */
-  tiers: Array<{ minQty: number; unitUsdMinor: number; unitArsMinor: number | null }>;
-};
-
 /** Productos con tramos PUBLICADOS. No incluye costos, stock minorista ni nada interno. Solo se llama tras `wholesaleAccess`. */
 export async function wholesaleCatalog(db: Db): Promise<{ rows: WholesaleRow[]; rules: WholesaleRules; rate10k: number | null }> {
   const [rules, tiers, products, fx] = await Promise.all([getRules(db), db.select().from(wholesaleTiers).where(eq(wholesaleTiers.state, "publicado")).orderBy(asc(wholesaleTiers.minQty)), listProducts(db), currentRate(db)]);
@@ -190,34 +150,6 @@ export async function wholesaleCatalog(db: Db): Promise<{ rows: WholesaleRow[]; 
     rows.push({ productId: p.id, slug: p.slug, sku: p.sku, title: p.title, language: p.language, kind: p.kind, image: img ? { src: img.src, alt: img.alt } : null, tiers: mine.map((t) => ({ minQty: t.minQty, unitUsdMinor: t.unitPriceUsdMinor, unitArsMinor: rate ? usdToArsMinor(t.unitPriceUsdMinor, rate) : null })) });
   }
   return { rows, rules, rate10k: rate };
-}
-
-export type QuoteLine = { productId: string; quantity: number };
-export type Quote = {
-  lines: Array<{ productId: string; title: string; quantity: number; tier: Tier | null; unitUsdMinor: number | null; unitArsMinor: number | null; totalArsMinor: number | null; status: "ok" | "a_cotizar" }>;
-  units: number; totalArsMinor: number; problems: string[]; ok: boolean;
-};
-
-/** Cotiza un pedido mayorista en el servidor: tramo por cantidad (según la regla de combinación), mínimos y «A cotizar». Los importes del navegador no cuentan. */
-export function quote(rows: WholesaleRow[], rules: WholesaleRules, lines: QuoteLine[], rate10k: number | null): Quote {
-  const units = lines.reduce((n, l) => n + l.quantity, 0);
-  const out: Quote["lines"] = [];
-  const problems: string[] = [];
-  for (const l of lines) {
-    const row = rows.find((r) => r.productId === l.productId);
-    if (!row) { problems.push("Hay productos que no están en el catálogo mayorista."); continue; }
-    const tiers = row.tiers.map((t) => ({ minQty: t.minQty, unitPriceUsdMinor: t.unitUsdMinor }));
-    const basis = rules.combine === "pedido" ? units : l.quantity;
-    const tier = tierFor(tiers, basis);
-    const usd = tier?.unitPriceUsdMinor ?? null;
-    const ars = usd !== null && rate10k ? usdToArsMinor(usd, rate10k) : null;
-    out.push({ productId: l.productId, title: row.title, quantity: l.quantity, tier, unitUsdMinor: usd, unitArsMinor: ars, totalArsMinor: ars === null ? null : ars * l.quantity, status: ars === null ? "a_cotizar" : "ok" });
-  }
-  const total = out.reduce((n, l) => n + (l.totalArsMinor ?? 0), 0);
-  if (rules.minUnits !== null && units < rules.minUnits) problems.push(`La compra mínima es de ${rules.minUnits} unidades (llevás ${units}).`);
-  if (rules.minAmountMinor !== null && total < rules.minAmountMinor) problems.push(`La compra mínima es de ${formatARS(rules.minAmountMinor)} (llevás ${formatARS(total)}).`);
-  if (out.some((l) => l.status === "a_cotizar")) problems.push("Hay productos «A cotizar»: no llegan al primer tramo de precios o no tienen precio. Subí la cantidad o consultanos.");
-  return { lines: out, units, totalArsMinor: total, problems, ok: problems.length === 0 && out.length === lines.length && lines.length > 0 };
 }
 
 /* ---------- Pedido mayorista ---------- */
@@ -277,3 +209,5 @@ export async function createWholesaleOrder(db: Db, userId: string, body: unknown
 export async function listTiersForAdmin(db: Db) {
   return db.select().from(wholesaleTiers).orderBy(asc(wholesaleTiers.productId), asc(wholesaleTiers.minQty));
 }
+
+export { missingForOpening, quote, suggestedFromCost, tierFor, type Quote, type QuoteLine, type Tier, type WholesaleRow, type WholesaleRules } from "./calc";

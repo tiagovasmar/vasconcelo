@@ -8,6 +8,8 @@ import { catalog } from "@/content/catalog";
 import { listAllProducts } from "@/features/catalog/data";
 import type { Actor } from "@/features/catalog/overrides";
 import { SaleError, type SaleErrorCode } from "@/features/sales/errors";
+import { signText, verifyText } from "@/server/secret";
+import { RESTOCK_CONSENT_TEXT } from "./consent";
 import { enqueueNotice, siteBaseUrl } from "./outbox";
 
 /**
@@ -17,9 +19,11 @@ import { enqueueNotice, siteBaseUrl } from "./outbox";
  *  - Se puede cancelar siempre: desde la cuenta, o con el enlace secreto que lleva el propio aviso.
  *  - El panel cuenta cuántas personas esperan cada producto y es el dueño quien dispara el aviso cuando repone.
  */
-export const RESTOCK_CONSENT_TEXT = "Acepto que Vasconcelo me envíe un único correo cuando este producto vuelva a estar disponible. El aviso no reserva stock ni garantiza el precio.";
+export { RESTOCK_CONSENT_TEXT };
 
 const fail = (status: number, code: SaleErrorCode, message: string, details?: unknown): never => { throw new SaleError(status, code, message, details); };
+/** Enlace secreto para cancelar un aviso: `id.firma`. Se puede volver a generar para el correo del aviso sin guardarlo en claro. */
+export const cancelTokenFor = (alertId: string): string => `${alertId}.${signText(`restock-cancel:${alertId}`)}`;
 const hash = (s: string) => createHash("sha256").update(s).digest("hex");
 const newId = () => `AV-${Array.from(randomBytes(8), (b) => "ABCDEFGHJKMNPQRSTUVWXYZ23456789"[b % 31]).join("")}`;
 
@@ -49,12 +53,12 @@ export async function subscribeRestock(db: Db, body: unknown, who: { userId: str
     if (!input.email) return fail(400, "invalid_input", "Escribí tu correo para que podamos avisarte.");
     email = input.email;
   }
-  const token = randomBytes(24).toString("base64url");
   return db.transaction(async (tx) => {
     await lockKey(tx, `restock:${input.productId}:${email}`);
     const [again] = await tx.select().from(restockAlerts).where(and(eq(restockAlerts.productId, input.productId), eq(restockAlerts.email, email), eq(restockAlerts.status, "activo")));
     if (again) return { id: again.id, status: "activo" as const, replayed: true, cancelToken: null };
     const id = newId();
+    const token = cancelTokenFor(id);
     await tx.insert(restockAlerts).values({ id, productId: input.productId, userId: who.userId, email, consentAt: now, consentText: RESTOCK_CONSENT_TEXT, status: "activo", cancelTokenHash: hash(token), createdAt: now });
     return { id, status: "activo" as const, replayed: false, cancelToken: token };
   });
@@ -62,8 +66,9 @@ export async function subscribeRestock(db: Db, body: unknown, who: { userId: str
 
 /** Cancela un aviso: por el enlace secreto (cualquiera) o por la cuenta que lo creó. Repetir no hace nada. */
 export async function cancelRestock(db: Db, by: { token?: string; id?: string; userId?: string | null }, now = Date.now()): Promise<{ changed: boolean; found: boolean }> {
+  const tokenId = by.token && by.token.includes(".") && verifyText(`restock-cancel:${by.token.slice(0, by.token.indexOf("."))}`, by.token.slice(by.token.indexOf(".") + 1)) ? by.token.slice(0, by.token.indexOf(".")) : null;
   const [row] = by.token
-    ? await db.select().from(restockAlerts).where(eq(restockAlerts.cancelTokenHash, hash(by.token)))
+    ? tokenId ? await db.select().from(restockAlerts).where(eq(restockAlerts.id, tokenId)) : []
     : by.id && by.userId
       ? await db.select().from(restockAlerts).where(and(eq(restockAlerts.id, by.id), eq(restockAlerts.userId, by.userId)))
       : [];
@@ -104,7 +109,6 @@ export async function notifyRestock(db: Db, productId: string, actor: Actor, now
     const waiting = await tx.select({ a: restockAlerts, name: user.name }).from(restockAlerts).leftJoin(user, eq(user.id, restockAlerts.userId)).where(and(eq(restockAlerts.productId, productId), eq(restockAlerts.status, "activo")));
     let notified = 0;
     for (const { a, name } of waiting) {
-      // El enlace para cancelar no se puede reconstruir (solo guardamos su hash): el aviso lleva el de la cuenta, o invita a escribir al correo de contacto si es un invitado.
       const slug = live.slug;
       const link = `${siteBaseUrl()}/productos/${slug}`;
       const body = `Hola${name ? ` ${name}` : ""}:\n\nPediste que te avisemos cuando volviera «${live.title}». Ya hay unidades cargadas.\n\nVer el producto: ${link}\n\nEste aviso no reserva stock ni garantiza el precio: se vende hasta agotar. Es el único correo que te vamos a mandar por este producto.`;

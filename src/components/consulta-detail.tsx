@@ -12,7 +12,7 @@ const fmt = (ms: number) =>
   new Intl.DateTimeFormat("es-AR", { dateStyle: "long", timeStyle: "short", timeZone: "America/Argentina/Buenos_Aires" }).format(new Date(ms));
 
 /** Detalle de una consulta (invitado o cuenta). Siempre «consulta preparada»: nunca una compra ni un pago. */
-export function ConsultaDetail({ inquiry, autoOpen, links }: { inquiry: InquiryView; autoOpen: boolean; links: Array<{ href: string; label: string }> }) {
+export function ConsultaDetail({ inquiry, autoOpen, links, tracking }: { inquiry: InquiryView; autoOpen: boolean; links: Array<{ href: string; label: string }>; tracking?: React.ReactNode }) {
   const number = getWhatsappNumber();
   const launch = launchFor(inquiry, number);
   const summary = launch.mode === "summary";
@@ -82,6 +82,8 @@ export function ConsultaDetail({ inquiry, autoOpen, links }: { inquiry: InquiryV
           {inquiry.fx && <p className="mt-3 text-xs text-ink/70" data-testid="fx-snapshot">Cotización usada: {inquiry.fx.mode === "manual" ? "valor fijado por la tienda" : "dólar blue (venta)"} {formatRate(inquiry.fx.rate10k)} por dólar, redondeado a múltiplos de $100. Queda guardada con esta consulta: si el dólar cambia, esta consulta no se modifica.</p>}
           <p className="mt-3 text-xs text-ink/60">Los precios son los vigentes al preparar la consulta. Estado: consulta preparada (no implica envío, pago ni reserva).</p>
         </section>
+
+        {tracking}
 
         <div className="mt-8 flex flex-wrap gap-4 text-sm font-semibold">
           {links.map((l) => (
