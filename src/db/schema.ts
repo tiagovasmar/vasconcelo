@@ -55,6 +55,8 @@ export const inquiries = pgTable(
     contactConfirmedAt: ms("contact_confirmed_at"),
     /** Motivo opcional de «No concretada». */
     lostReason: text("lost_reason"),
+    /** minorista (carrito) · mayorista (pedido del catálogo mayorista: siempre por pedido y sin tocar el stock minorista). */
+    orderKind: text("order_kind").notNull().default("minorista"),
   },
   (t) => [index("inquiries_session_idx").on(t.sessionTokenHash), index("inquiries_user_idx").on(t.userId), index("inquiries_created_idx").on(t.createdAt), index("inquiries_crm_idx").on(t.crmStatus)],
 );
@@ -385,3 +387,5 @@ export const inquirySales = pgTable(
   },
   (t) => [uniqueIndex("inquiry_sales_one_active").on(t.inquiryId).where(sql`${t.active}`), index("inquiry_sales_inquiry_idx").on(t.inquiryId)],
 );
+
+export * from "./schema-pedidos";

@@ -15,10 +15,10 @@ let dir: string;
 beforeAll(() => { dir = fs.mkdtempSync(path.join(os.tmpdir(), "esquema-")); });
 afterAll(() => { fs.rmSync(dir, { recursive: true, force: true }); });
 
-const NUEVAS = ["sales", "sale_lines", "stock_movements", "inquiry_events", "inquiry_sales"];
+const NUEVAS = ["sales", "sale_lines", "stock_movements", "inquiry_events", "inquiry_sales", "restock_alerts", "order_tracks", "order_events", "order_payments", "payment_receipts", "order_incidents", "order_refunds", "shipments", "shipment_items", "line_deliveries", "notification_outbox", "cost_purchases", "cost_purchase_items", "cost_expenses", "cost_expense_shares", "applied_costs", "sale_commissions", "wholesale_tiers"];
 // Columnas e índices que la consulta del dueño (migración 0002) agregó a `inquiries`: no existen en el SQLite original.
-const COLUMNAS_NUEVAS: Record<string, string[]> = { inquiries: ["contact_phone", "source", "crm_status", "contact_confirmed_at", "lost_reason", "combo_discount_minor"], inquiry_lines: ["base_currency", "combo_units", "combo_discount_minor", "transfer_discount_minor", "pack_size"], product_overrides: ["price_ars_minor"] };
-const NOT_NULL_NUEVAS: Record<string, string[]> = { inquiries: ["source", "crm_status", "combo_discount_minor"], inquiry_lines: ["combo_units", "combo_discount_minor", "transfer_discount_minor"] };
+const COLUMNAS_NUEVAS: Record<string, string[]> = { inquiries: ["contact_phone", "source", "crm_status", "contact_confirmed_at", "lost_reason", "combo_discount_minor", "order_kind"], inquiry_lines: ["base_currency", "combo_units", "combo_discount_minor", "transfer_discount_minor", "pack_size"], product_overrides: ["price_ars_minor"] };
+const NOT_NULL_NUEVAS: Record<string, string[]> = { inquiries: ["source", "crm_status", "combo_discount_minor", "order_kind"], inquiry_lines: ["combo_units", "combo_discount_minor", "transfer_discount_minor"] };
 const INDICES_NUEVOS: Record<string, string[]> = { inquiries: ["created_at", "crm_status"] };
 const sin = (todo: string[], quitar: string[] = []) => todo.filter((x) => !quitar.includes(x));
 
@@ -73,10 +73,10 @@ describe("esquema PostgreSQL equivalente al SQLite original", () => {
   it("los tiempos en milisegundos y los importes caben (bigint) y la identidad es por defecto (admite ids explícitos)", async () => {
     const db = await openTestDb();
     const types = ((await db.execute(sql`select table_name||'.'||column_name as c, data_type as t from information_schema.columns where table_schema='public' and (column_name like '%_at' or column_name like '%minor' or column_name like '%10k') and table_name not in ('user','session','account','verification')`)) as unknown as Array<{ c: string; t: string }>);
-    const bad = types.filter((x) => x.t !== "bigint" && !x.c.startsWith("inquiry_lines.unit_price_usd_minor") && !x.c.startsWith("product_overrides.price_usd_minor") && !x.c.startsWith("sale_lines.catalog_price_usd_minor"));
+    const bad = types.filter((x) => x.t !== "bigint" && !x.c.startsWith("inquiry_lines.unit_price_usd_minor") && !x.c.startsWith("product_overrides.price_usd_minor") && !x.c.startsWith("sale_lines.catalog_price_usd_minor") && !x.c.startsWith("wholesale_tiers.unit_price_usd_minor"));
     expect(bad).toEqual([]);
     const idt = ((await db.execute(sql`select table_name as t, is_identity as i, identity_generation as g from information_schema.columns where table_schema='public' and is_identity='YES' order by 1`)) as unknown as Array<{ t: string; g: string }>);
-    expect(idt.map((x) => x.t)).toEqual(["fx_log", "inquiry_events", "inquiry_lines", "inquiry_sales", "product_audit", "sale_lines", "stock_movements"]);
+    expect(idt.map((x) => x.t)).toEqual(["applied_costs", "cost_expenses", "cost_purchase_items", "fx_log", "inquiry_events", "inquiry_lines", "inquiry_sales", "line_deliveries", "notification_outbox", "order_events", "product_audit", "sale_commissions", "sale_lines", "shipment_items", "stock_movements"]);
     expect(idt.every((x) => x.g === "BY DEFAULT")).toBe(true);
   });
 });
