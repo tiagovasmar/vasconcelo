@@ -18,16 +18,21 @@ export type WholesaleRules = {
   /** Demora estimada y desde cuándo se cuenta, SIN fechas garantizadas (null = sin definir). */
   delayText: string | null;
   delayFrom: string | null;
+  /** Textos definidos por el dueño; null mientras sigan pendientes. */
+  refundPeriod: string | null;
+  cancellationPolicy: string | null;
   /** Interruptor final del dueño. */
   open: boolean;
 };
 
 /** Qué falta definir para abrir el catálogo (el mínimo puede ser en unidades o en importe, pero tiene que haber alguno). */
-export function missingForOpening(r: Pick<WholesaleRules, "minUnits" | "minAmountMinor" | "combine" | "delayText" | "delayFrom">, publishedTiers: number): string[] {
+export function missingForOpening(r: Pick<WholesaleRules, "minUnits" | "minAmountMinor" | "combine" | "delayText" | "delayFrom" | "refundPeriod" | "cancellationPolicy">, publishedTiers: number): string[] {
   const out: string[] = [];
   if (r.minUnits === null && r.minAmountMinor === null) out.push("la compra mínima");
   if (r.combine === null) out.push("si los productos se combinan para alcanzar el mínimo y cada tramo");
   if (!r.delayText || !r.delayFrom) out.push("la demora estimada y desde cuándo se cuenta");
+  if (!r.refundPeriod) out.push("el plazo de reintegro");
+  if (!r.cancellationPolicy) out.push("las condiciones de cancelación");
   if (publishedTiers === 0) out.push("al menos un tramo de precios publicado");
   return out;
 }

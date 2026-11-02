@@ -1,0 +1,15 @@
+/* One set of controls: cards on phones, native columns on wide screens. */
+.table { width: 100%; table-layout: fixed; }
+.table th, .table td { min-width: 0; overflow-wrap: anywhere; }
+.table thead th:first-child { width: 25%; }
+.label { display: none; }
+@media (max-width: 1023px) {
+  .table, .table tbody { display: block; }
+  .table thead { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; clip-path: inset(50%); overflow: hidden; }
+  .table tbody { display: grid; gap: 12px; }
+  .table tbody tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 8px; border: 1px solid #12171540; background: #ffffffcc; }
+  .table tbody th, .table tbody td { display: block; width: auto; }
+  .table tbody th, .wide, .table td[colspan] { grid-column: 1 / -1; }
+  .table tbody th { padding-bottom: 12px; }
+  .label { display: block; margin-bottom: 4px; font-size: .75rem; font-weight: 600; color: #121715; }
+}

@@ -61,7 +61,7 @@ test.beforeAll(async ({ browser }) => {
   // Dólar manual SINTÉTICO (1.500) para convertir los precios mayoristas en pesos.
   expect((await api(ownerPage.request, "/api/admin/fx", { action: "manual", rate: "1500" })).ok()).toBe(true);
 });
-test.afterAll(async () => { await ownerCtx.close(); });
+test.afterAll(async () => { await ownerCtx?.close(); });
 
 /** Una persona con cuenta crea un encargo (producto agotado `parcial-bundle`) y devuelve su referencia. */
 async function crearEncargo(page: Page, qty = 2): Promise<string> {
@@ -242,7 +242,7 @@ test("mayorista: solo cuentas aprobadas, precios por tramo validados en el servi
   expect(t1.ok(), await t1.text()).toBe(true);
   await api(ownerPage.request, "/api/admin/mayorista", { action: "tier", productId: "storm-sobre", minQty: 50, unitPriceUsdMinor: 800 });
   expect((await api(ownerPage.request, "/api/admin/mayorista", { action: "publish", productId: "storm-sobre" })).ok()).toBe(true);
-  const closed = await api(ownerPage.request, "/api/admin/mayorista", { action: "rules", rules: { minUnits: 10, minAmountMinor: null, combine: "producto", delayText: "entre 30 y 60 días (dato ficticio de prueba)", delayFrom: "la confirmación de la seña", open: true } });
+  const closed = await api(ownerPage.request, "/api/admin/mayorista", { action: "rules", rules: { minUnits: 10, minAmountMinor: null, combine: "producto", delayText: "entre 30 y 60 días (dato ficticio de prueba)", delayFrom: "la confirmación de la seña", refundPeriod: "Plazo FICTICIO de prueba, pendiente de definición real", cancellationPolicy: "Condición FICTICIA de prueba, pendiente de definición real", open: true } });
   expect(closed.ok(), await closed.text()).toBe(true);
 
   await go(page, "/mayoristas/catalogo");
@@ -255,6 +255,57 @@ test("mayorista: solo cuentas aprobadas, precios por tramo validados en el servi
   await fp.getByLabel(/Cantidad de/).fill("50");
   await expect(fp.getByTestId("precio-unitario")).toContainText("12.000");
   await expect(page.getByTestId("total-pedido")).toContainText("600.000"); // 50 u. × $12.000
+  // Nombre largo y precio grande configurados por el dueño, siempre en la base descartable.
+  const renamed = await api(ownerPage.request, "/api/admin/products/storm-sobre", { title: "Edición mayorista de prueba con nombre muy largo " + "ColeccionEspecial".repeat(6), expectedVersion: 0 }, "patch");
+  expect(renamed.ok(), await renamed.text()).toBe(true);
+  const version = (await renamed.json()).version as number;
+  expect((await api(ownerPage.request, "/api/admin/mayorista", { action: "tier", productId: "storm-sobre", minQty: 10, unitPriceUsdMinor: 9_999_999 })).ok()).toBe(true);
+  expect((await api(ownerPage.request, "/api/admin/mayorista", { action: "tier", productId: "storm-sobre", minQty: 50, unitPriceUsdMinor: 9_999_998 })).ok()).toBe(true);
+  expect((await api(ownerPage.request, "/api/admin/mayorista", { action: "publish", productId: "storm-sobre" })).ok()).toBe(true);
+  await go(page, "/mayoristas/catalogo");
+  await fp.getByLabel(/Cantidad de/).fill("50");
+  // Preservamos evidencia de la reproducción antes de corregir (546/390 en este fixture).
+  // Regresión: cuenta realmente aprobada, catálogo abierto y cantidades distintas de cero.
+  for (const width of [390, 360, 430, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await expect(fp.getByLabel(/Cantidad de/)).toHaveValue("50");
+    for (const qty of ["1", "10", "50", "100000"]) {
+      await fp.getByLabel(/Cantidad de/).fill(qty);
+      await expect(fp.getByLabel(/Cantidad de/)).toHaveValue(qty);
+      expect(await overflow(page), `${width}px, cantidad ${qty}`).toBeLessThanOrEqual(0);
+    }
+    await fp.getByLabel(/Cantidad de/).fill("51");
+    await expect(fp.getByLabel(/Cantidad de/)).toHaveValue("51");
+    await fp.getByLabel(/Cantidad de/).fill("50");
+    for (const control of [fp.getByLabel(/Cantidad de/), page.getByLabel("Buscar", { exact: true }), page.getByLabel("Nombre y apellido"), page.getByTestId("enviar-pedido-mayorista")]) {
+      await control.scrollIntoViewIfNeeded();
+      await expect(control).toBeInViewport();
+      const box = await control.boundingBox();
+      expect(box).not.toBeNull();
+      expect(box!.x).toBeGreaterThanOrEqual(0);
+      expect(box!.x + box!.width).toBeLessThanOrEqual(width);
+    }
+    if (width < 1024) {
+      const titleBox = await fp.locator("th").boundingBox();
+      expect(titleBox!.width, "El nombre debe ocupar el ancho de la tarjeta, sin quedar en una columna angosta").toBeGreaterThan(width - 84);
+    }
+    const geometry = await page.evaluate(() => ({
+      viewport: innerWidth, document: document.documentElement.scrollWidth,
+      offenders: [...document.querySelectorAll("main *")].filter((el) => el.getBoundingClientRect().right > innerWidth + 1).slice(0, 15).map((el) => ({ tag: el.tagName, class: el.className, right: el.getBoundingClientRect().right, width: el.getBoundingClientRect().width })),
+    }));
+    await test.info().attach(`catalogo-${width}-geometria`, { body: JSON.stringify(geometry, null, 2), contentType: "application/json" });
+    await page.screenshot({ path: `docs/capturas/pedidos/mayorista-regresion-${width}.png`, fullPage: true });
+    expect(geometry.document, JSON.stringify(geometry)).toBeLessThanOrEqual(width);
+  }
+  const a11y = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
+  expect(a11y.violations.map((v) => v.id)).toEqual([]);
+  // Volver a los importes pequeños antes de enviar el pedido de prueba.
+  expect((await api(ownerPage.request, "/api/admin/products/storm-sobre", { title: null, expectedVersion: version }, "patch")).ok()).toBe(true);
+  await api(ownerPage.request, "/api/admin/mayorista", { action: "tier", productId: "storm-sobre", minQty: 10, unitPriceUsdMinor: 1000 });
+  await api(ownerPage.request, "/api/admin/mayorista", { action: "tier", productId: "storm-sobre", minQty: 50, unitPriceUsdMinor: 800 });
+  await api(ownerPage.request, "/api/admin/mayorista", { action: "publish", productId: "storm-sobre" });
+  await go(page, "/mayoristas/catalogo");
+  await fp.getByLabel(/Cantidad de/).fill("50");
   await page.getByTestId("enviar-pedido-mayorista").click();
   await expect(page.getByTestId("pedido-mayorista-enviado")).toBeVisible();
   const ref = (await page.getByTestId("pedido-mayorista-enviado").innerText()).match(/TT-[A-Z0-9]{8}/)![0];

@@ -22,7 +22,7 @@ const code = async (p: Promise<unknown>) => { try { await p; } catch (e) { if (e
 let n = 0;
 const key = () => `clave-mayor-${String(++n).padStart(10, "0")}`;
 const datos = { businessName: "Kiosco Prueba", locality: "Haedo", province: "Buenos Aires" };
-const REGLAS = { minUnits: 10, minAmountMinor: null, combine: "producto" as const, delayText: "entre 30 y 60 días (dato ficticio de prueba)", delayFrom: "la confirmación de la seña", open: true };
+const REGLAS = { minUnits: 10, minAmountMinor: null, combine: "producto" as const, delayText: "entre 30 y 60 días (dato ficticio de prueba)", delayFrom: "la confirmación de la seña", refundPeriod: "Plazo FICTICIO de prueba, pendiente de definición real", cancellationPolicy: "Condición FICTICIA de prueba, pendiente de definición real", open: true };
 
 beforeEach(async () => {
   db = await openTestDb({ max: 4 });
@@ -61,12 +61,14 @@ describe("acceso: solo cuentas aprobadas por el dueño, validado en el servidor"
   });
 
   it("el catálogo no se puede abrir sin definir mínimo, combinación, demora y un tramo publicado; el borrador no llega al catálogo", async () => {
-    expect(missingForOpening({ minUnits: null, minAmountMinor: null, combine: null, delayText: null, delayFrom: null }, 0)).toHaveLength(4);
+    expect(missingForOpening({ minUnits: null, minAmountMinor: null, combine: null, delayText: null, delayFrom: null, refundPeriod: null, cancellationPolicy: null }, 0)).toHaveLength(6);
     expect(await code(saveRules(db, { ...REGLAS }, actor))).toBe("order_rule"); // sin tramos publicados
     await saveTier(db, { productId: "storm-sobre", minQty: 10, unitPriceUsdMinor: 1000 }, actor);
     expect((await wholesaleCatalog(db)).rows).toHaveLength(0); // borrador: invisible
     expect(await code(saveRules(db, { ...REGLAS, combine: null }, actor))).toBe("order_rule");
     await publishTiers(db, "storm-sobre", actor);
+    expect(await code(saveRules(db, { ...REGLAS, refundPeriod: null }, actor))).toBe("order_rule");
+    expect(await code(saveRules(db, { ...REGLAS, cancellationPolicy: null }, actor))).toBe("order_rule");
     expect((await saveRules(db, REGLAS, actor)).open).toBe(true);
     expect((await wholesaleCatalog(db)).rows.map((r) => r.productId)).toEqual(["storm-sobre"]);
   });
@@ -182,6 +184,6 @@ describe("pedido mayorista (siempre por pedido, reutiliza consultas y seguimient
 
   it("las reglas vacías vuelven a «sin definir» y no se inventan valores", async () => {
     const r = await getRules(db);
-    expect(r).toEqual({ minUnits: null, minAmountMinor: null, combine: null, delayText: null, delayFrom: null, open: false });
+    expect(r).toEqual({ minUnits: null, minAmountMinor: null, combine: null, delayText: null, delayFrom: null, refundPeriod: null, cancellationPolicy: null, open: false });
   });
 });

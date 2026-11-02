@@ -482,7 +482,7 @@ test.describe("el dueño administra precios, stock, fotos y cotización", () => 
     expect((await same.json()).changed).toEqual([]); // sin cambios reales no se escribe nada ni se registra
   });
 
-  test("solicitudes mayoristas: el dueño las ve (solo lectura) y revisarlas sigue apagado; un usuario común no entra", async ({ browser }) => {
+  test("solicitudes mayoristas: el dueño aprueba a mano; una cuenta común no revisa solicitudes y el catálogo sigue cerrado sin condiciones", async ({ browser }) => {
     const solicitante = newEmail("solic");
     const ctxA = await browser.newContext({ baseURL: ADMIN, extraHTTPHeaders: { "x-forwarded-for": randomIp() } });
     const a = await ctxA.newPage();
@@ -492,7 +492,6 @@ test.describe("el dueño administra precios, stock, fotos y cotización", () => 
     const ref = (await creada.json()).request.reference as string;
     expect((await a.goto(`${ADMIN}/admin/mayoristas`))?.status()).toBe(404);
     expect((await a.request.patch(`${ADMIN}/api/admin/mayoristas/${ref}`, { data: { status: "aprobada" }, headers: { Origin: ADMIN } })).status()).toBe(403);
-    await ctxA.close();
 
     await go(owner, "/admin/mayoristas");
     await expect(owner.getByTestId("mayoristas-politica")).toContainText("la hacés vos");
@@ -501,9 +500,16 @@ test.describe("el dueño administra precios, stock, fotos y cotización", () => 
     await expect(fila).toContainText("Comercio E2E");
     await expect(fila).toContainText("Pendiente de revisión");
     await expect(fila).toContainText(solicitante);
-    const r = await owner.request.patch(`${ADMIN}/api/admin/mayoristas/${ref}`, { data: { status: "aprobada" }, headers: { Origin: ADMIN } });
-    expect(r.status()).toBe(409);
-    expect((await r.json()).error.code).toBe("policy_pending");
+    owner.once("dialog", (dialog) => void dialog.accept());
+    await fila.getByRole("button", { name: "Aprobar cuenta" }).click();
+    await expect(fila).toContainText("Aprobada");
+    await go(owner, "/admin/mayoristas");
+    await expect(owner.getByTestId("mayorista-fila").filter({ hasText: ref })).toContainText("Aprobada");
+    // Aprobar la cuenta NO abre el catálogo: las condiciones se configuran por separado.
+    await go(a, `${ADMIN}/mayoristas/catalogo`);
+    await expect(a.getByTestId("mayorista-sin-acceso")).toContainText("todavía no está habilitado");
+    await expect(a.getByTestId("tabla-mayorista")).toHaveCount(0);
+    await ctxA.close();
   });
 
   test("sin stock: widget de encargo en la ficha, «Sin stock» en tarjetas, fuera de En stock; con stock vuelve la compra; precio por sobre de la caja", async ({ browser }) => {

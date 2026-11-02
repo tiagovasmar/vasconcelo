@@ -53,7 +53,13 @@
     ".next-preview-consultas/types/**/*.ts",
     ".next-preview-consultas/dev/types/**/*.ts",
     ".next-preview-combo/types/**/*.ts",
-    ".next-preview-combo/dev/types/**/*.ts"
+    ".next-preview-combo/dev/types/**/*.ts",
+    ".next-e2e-pedidos/types/**/*.ts",
+    ".next-e2e-pedidos/dev/types/**/*.ts",
+    ".next-preview-pedidos-continuidad/types/**/*.ts",
+    ".next-preview-pedidos-continuidad/dev/types/**/*.ts",
+    ".next-e2e-resil/types/**/*.ts",
+    ".next-e2e-resil/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

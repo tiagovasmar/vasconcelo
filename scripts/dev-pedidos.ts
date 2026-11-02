@@ -32,12 +32,12 @@ import { flushOutbox } from "../src/features/avisos/outbox";
 const DAY = 86_400_000;
 async function main() {
   const url = scriptUrl();
-  if (!isLocalTarget(url) || process.env.ENTORNO_LOCAL !== "1") { console.error(`Rechazado: ${describeTarget(url)} no es la base de desarrollo local.`); process.exit(1); }
+  if (!isLocalTarget(url) || new URL(url).port === "54400" || process.env.ENTORNO_LOCAL !== "1" || process.env.ENTORNO_DESCARTABLE !== "1") { console.error(`Rechazado: ${describeTarget(url)} no es la base de desarrollo local.`); process.exit(1); }
   const db = scriptDb();
   const actor = { id: "dev-pedidos", email: (process.env.ADMIN_EMAIL ?? "dueno@example.com").toLowerCase() };
   const T = Date.now();
   const at = (d: number) => T - d * DAY;
-  const pwFile = path.resolve(".local/dev-pedidos.txt");
+  const pwFile = path.resolve(process.env.DEV_PEDIDOS_PASSWORD_FILE || ".local/dev-pedidos.txt");
   const pw = fs.existsSync(pwFile) ? fs.readFileSync(pwFile, "utf8").trim() : randomBytes(9).toString("base64url");
   fs.mkdirSync(path.dirname(pwFile), { recursive: true });
   fs.writeFileSync(pwFile, pw);
@@ -129,7 +129,7 @@ async function main() {
     for (const [minQty, usd] of tiers) await saveTier(db, { productId: p.id, minQty, unitPriceUsdMinor: usd }, actor, at(9));
     await publishTiers(db, p.id, actor, at(9));
   }
-  await saveRules(db, { minUnits: 10, minAmountMinor: null, combine: "producto", delayText: "entre 30 y 60 días (DATO FICTICIO DE PRUEBA, no es una condición real)", delayFrom: "la confirmación de la seña", open: true }, actor, at(9));
+  await saveRules(db, { minUnits: 10, minAmountMinor: null, combine: "producto", delayText: "entre 30 y 60 días (DATO FICTICIO DE PRUEBA, no es una condición real)", delayFrom: "la confirmación de la seña", refundPeriod: "Plazo FICTICIO de prueba, pendiente de definición real", cancellationPolicy: "Condición FICTICIA de prueba, pendiente de definición real", open: true }, actor, at(9));
 
   // Avisos pendientes de los hechos anteriores: se "envían" al transporte LOCAL (archivos), nunca a nadie.
   await flushOutbox(db, { limit: 100 });

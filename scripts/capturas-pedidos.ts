@@ -8,12 +8,12 @@ import { realCatalog } from "../src/content/catalog";
  *   Terminal 3: npx tsx scripts/capturas-pedidos.ts            (BASE=http://localhost:3000 por defecto)
  * Cliente en escritorio y en celular (360, 390 y 430) y administración en escritorio. Falla si aparece desborde horizontal o un error de consola.
  */
-for (const f of [".env.local"]) if (fs.existsSync(f)) try { process.loadEnvFile(f); } catch { /* sin archivo */ }
+for (const f of process.env.SKIP_ENV_FILES === "1" ? [] : [".env.local"]) if (fs.existsSync(f)) try { process.loadEnvFile(f); } catch { /* sin archivo */ }
 const BASE = process.env.BASE ?? "http://localhost:3000";
 const OUT = "docs/capturas/pedidos";
 fs.mkdirSync(OUT, { recursive: true });
-const pw = fs.readFileSync(".local/dev-pedidos.txt", "utf8").trim();
-const adminPw = fs.readFileSync(".local/dev-admin.txt", "utf8").trim();
+const pw = fs.readFileSync(process.env.DEV_PEDIDOS_PASSWORD_FILE || ".local/dev-pedidos.txt", "utf8").trim();
+const adminPw = fs.readFileSync(process.env.DEV_ADMIN_PASSWORD_FILE || ".local/dev-admin.txt", "utf8").trim();
 const adminEmail = (process.env.ADMIN_EMAIL ?? "").trim().toLowerCase();
 const problems: string[] = [];
 
@@ -60,7 +60,8 @@ async function main() {
     const m = await session(browser, "marta.prueba@example.com", pw, width);
     await m.page.goto("/mayoristas/catalogo");
     const q = m.page.locator("input[id^='qty-']").first();
-    if (await q.count()) await q.fill("50");
+    await q.waitFor(); // Una pantalla sin acceso NO es una verificación del catálogo.
+    await q.fill("50");
     await shot(m.page, `mayorista-catalogo-${label}`);
     if (label === "escritorio") { await m.page.goto("/mayoristas"); await shot(m.page, `mayorista-informacion-${label}`); }
     await m.ctx.close();
@@ -76,13 +77,15 @@ async function main() {
     await page.goto(url);
     await shot(page, name);
   }
-  // Panel en celular.
-  const mob = await session(browser, adminEmail, adminPw, 390);
-  for (const [url, name] of [["/admin/pedidos", "admin-pedidos"], ["/admin/envios", "admin-envios"], ["/admin/costos", "admin-costos-y-ganancia"]] as const) {
-    await mob.page.goto(url);
-    await shot(mob.page, `${name}-movil-390`);
+  // Panel en los tres anchos de celular.
+  for (const width of [360, 390, 430]) {
+    const mob = await session(browser, adminEmail, adminPw, width);
+    for (const url of ["/admin/pedidos", ...(refs[0] ? [`/admin/pedidos/${refs[0]}`] : []), "/admin/envios", "/admin/costos", "/admin/mayoristas", "/admin/reposicion", "/admin/avisos"]) {
+      await mob.page.goto(url);
+      await shot(mob.page, `${url.replace(/\//g, "-").slice(1)}-movil-${width}`);
+    }
+    await mob.ctx.close();
   }
-  await mob.ctx.close();
   await ctx.close();
   await browser.close();
   fs.writeFileSync(`${OUT}/INFORME.txt`, problems.length ? problems.join("\n") : "Sin desborde horizontal, imágenes rotas ni errores de consola en las capturas.\n");

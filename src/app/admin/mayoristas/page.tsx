@@ -46,6 +46,8 @@ export default async function AdminMayoristas() {
             { name: "combine", label: "¿Se combinan productos?", type: "select", defaultValue: rules.combine ?? "", options: [{ value: "producto", label: "No: cada producto llega a su propio tramo" }, { value: "pedido", label: "Sí: las unidades de todo el pedido suman para el tramo y el mínimo" }] },
             { name: "delayText", label: "Demora estimada", defaultValue: rules.delayText ?? "", help: "Texto, sin fechas garantizadas. Ej.: «entre X y Y semanas»." },
             { name: "delayFrom", label: "Se cuenta desde…", defaultValue: rules.delayFrom ?? "", help: "Ej.: «la confirmación de la seña»." },
+            { name: "refundPeriod", label: "Plazo de reintegro de la seña", type: "textarea", maxLength: 500, defaultValue: rules.refundPeriod ?? "", help: "Dejar vacío hasta definirlo. Se reintegra la seña si el paquete se pierde o no se puede cumplir el pedido." },
+            { name: "cancellationPolicy", label: "Condiciones de cancelación voluntaria", type: "textarea", defaultValue: rules.cancellationPolicy ?? "", help: "Dejar vacío hasta definirlo. No se presupone pérdida ni devolución de la seña." },
             { name: "open", label: "Abrir el catálogo mayorista a las cuentas aprobadas", type: "checkbox", defaultValue: rules.open },
           ]} submit="Guardar condiciones" ok="Condiciones guardadas." testId="form-reglas" />
         </div>

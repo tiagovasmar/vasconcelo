@@ -19,7 +19,7 @@ if (!process.env.TEST_WORKER_INDEX) {
 // `fixture`: catálogo de PRUEBA ficticio (productos con precio y stock de ejemplo) para probar carrito y filtros.
 // Sin fixture, el servidor usa el catálogo REAL (16 productos con precio/stock pendientes).
 const PG_PORT = Number(process.env.PG_TEST_PORT || 54398);
-const pgServer = { command: "npx tsx scripts/pg-test-server.ts demo,live,real,admin,consultas,extra,resil,layout,pedidos", url: `http://127.0.0.1:${process.env.PG_TEST_READY_PORT || 54399}`, reuseExistingServer: false, timeout: 180_000, env: { PG_TEST_PORT: String(PG_PORT) } };
+const pgServer = { command: "npx tsx scripts/pg-test-server.ts demo,live,real,admin,consultas,extra,resil,layout,pedidos", url: `http://127.0.0.1:${process.env.PG_TEST_READY_PORT || 54399}`, reuseExistingServer: false, timeout: 180_000, env: { PG_TEST_PORT: String(PG_PORT), TEST_DATABASE_URL: "", SKIP_ENV_FILES: "1" } };
 const server = (port: number, tag: string, whatsapp: string, fixture = true, adminEmail = "", extraEnv: Record<string, string> = {}, reuseBuild = false) => ({
   // Se prueba el BUILD DE PRODUCCIÓN (sin compilación bajo demanda: tiempos estables y es lo que se entrega).
   // E2E_SKIP_BUILD=1 reutiliza el build anterior (solo para iterar localmente; la entrega siempre se prueba con build nuevo).
@@ -29,6 +29,11 @@ const server = (port: number, tag: string, whatsapp: string, fixture = true, adm
   timeout: 300_000,
   env: {
     E2E_TAG: tag,
+    SKIP_ENV_FILES: "1", DIRECT_URL: "", TEST_DATABASE_URL: "",
+    GOOGLE_CLIENT_ID: "", GOOGLE_CLIENT_SECRET: "", SUPABASE_URL: "", SUPABASE_SECRET_KEY: "",
+    MAIL_PROVIDER: "", MAIL_API_KEY: "", MAIL_FROM: "",
+    CIRCLE_NODE_TOTAL: "3", // dos workers estáticos por build, sin saturar la máquina local
+
     NEXT_DIST_DIR: `.next-e2e-${reuseBuild ? "resil" : tag}`,
     DATABASE_URL: `postgres://postgres:postgres@127.0.0.1:${PG_PORT}/e2e_${tag}`,
     STORAGE_DRIVER: "local", // sin Supabase en las pruebas de recorrido: las fotos subidas van a una carpeta local

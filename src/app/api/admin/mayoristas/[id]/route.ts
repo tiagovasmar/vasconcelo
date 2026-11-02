@@ -9,8 +9,8 @@ export const runtime = "nodejs";
 const Body = z.object({ status: z.enum(["aprobada", "rechazada"]) });
 
 /**
- * Revisión de una solicitud mayorista (aprobar o rechazar). Solo el dueño configurado. Mecanismo listo pero APAGADO: mientras la
- * política comercial no esté definida (`mayorista.activationEnabled`) responde 409 `policy_pending` y no cambia nada.
+ * Revisión manual de una solicitud mayorista (aprobar o rechazar). Solo el dueño configurado.
+ * Aprobar una cuenta no abre el catálogo: wholesaleAccess valida por separado las condiciones y el interruptor de apertura.
  */
 export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
   if (!sameOrigin(req)) return errorJson(403, "forbidden", "Origen no permitido.");

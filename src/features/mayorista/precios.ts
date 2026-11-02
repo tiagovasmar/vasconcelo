@@ -36,14 +36,14 @@ const sha = (s: string) => createHash("sha256").update(s).digest("hex");
 
 /* ---------- Reglas comerciales (configurables; vacías hasta que el dueño decida) ---------- */
 
-const K = { minUnits: "wholesale.minUnits", minAmount: "wholesale.minAmountMinor", combine: "wholesale.combine", delayText: "wholesale.delayText", delayFrom: "wholesale.delayFrom", open: "wholesale.open" } as const;
+const K = { minUnits: "wholesale.minUnits", minAmount: "wholesale.minAmountMinor", combine: "wholesale.combine", delayText: "wholesale.delayText", delayFrom: "wholesale.delayFrom", refundPeriod: "wholesale.refundPeriod", cancellationPolicy: "wholesale.cancellationPolicy", open: "wholesale.open" } as const;
 
 export async function getRules(db: Db): Promise<WholesaleRules> {
   const rows = await db.select().from(adminSettings).where(inArray(adminSettings.key, Object.values(K)));
   const g = (k: string) => rows.find((r) => r.key === k)?.value ?? null;
   const int = (v: string | null) => (v !== null && /^\d+$/.test(v) ? Number(v) : null);
   const combine = g(K.combine);
-  return { minUnits: int(g(K.minUnits)), minAmountMinor: int(g(K.minAmount)), combine: combine === "producto" || combine === "pedido" ? combine : null, delayText: g(K.delayText), delayFrom: g(K.delayFrom), open: g(K.open) === "1" };
+  return { minUnits: int(g(K.minUnits)), minAmountMinor: int(g(K.minAmount)), combine: combine === "producto" || combine === "pedido" ? combine : null, delayText: g(K.delayText), delayFrom: g(K.delayFrom), refundPeriod: g(K.refundPeriod), cancellationPolicy: g(K.cancellationPolicy), open: g(K.open) === "1" };
 }
 
 export const RulesSchema = z.object({
@@ -52,6 +52,8 @@ export const RulesSchema = z.object({
   combine: z.enum(["producto", "pedido"]).nullable(),
   delayText: z.string().trim().min(3).max(200).nullable(),
   delayFrom: z.string().trim().min(3).max(120).nullable(),
+  refundPeriod: z.string().trim().min(3).max(500).nullable().default(null),
+  cancellationPolicy: z.string().trim().min(3).max(1000).nullable().default(null),
   open: z.boolean(),
 });
 
@@ -73,6 +75,8 @@ export async function saveRules(db: Db, body: unknown, actor: Actor, now = Date.
     await put(K.combine, v.combine);
     await put(K.delayText, v.delayText);
     await put(K.delayFrom, v.delayFrom);
+    await put(K.refundPeriod, v.refundPeriod);
+    await put(K.cancellationPolicy, v.cancellationPolicy);
     await put(K.open, v.open ? "1" : null);
   });
   return getRules(db);

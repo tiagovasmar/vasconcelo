@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import styles from "./wholesale-catalog.module.css";
 import { useMemo, useRef, useState } from "react";
 import { quote, type WholesaleRow, type WholesaleRules } from "@/features/mayorista/calc";
 import { formatUSD } from "@/features/fx/convert";
@@ -64,7 +65,7 @@ export function WholesaleCatalog({ rows, rules, rate10k, defaultName }: { rows: 
     );
   }
 
-  const inp = "min-h-11 rounded-md border border-ink/40 bg-white px-3 text-base";
+  const inp = "min-w-0 max-w-full min-h-11 rounded-md border border-ink/40 bg-white px-3 text-base";
   return (
     <div>
       <div className="grid gap-3 sm:grid-cols-[2fr_1fr_1fr]" role="search" aria-label="Buscar en el catálogo mayorista">
@@ -74,8 +75,8 @@ export function WholesaleCatalog({ rows, rules, rate10k, defaultName }: { rows: 
       </div>
       <p role="status" className="mt-3 text-sm text-ink/70">{shown.length} {shown.length === 1 ? "producto" : "productos"} · precios por tramo de cantidad{rules.combine === "pedido" ? " (las unidades de todo el pedido suman para el tramo)" : " (cada producto llega a su propio tramo)"}.</p>
 
-      <div className="mt-3 overflow-x-auto border border-ink/25 bg-white/80">
-        <table className="w-full min-w-[820px] text-sm" data-testid="tabla-mayorista">
+      <div className="relative mt-3">
+        <table className={`${styles.table} text-sm`} data-testid="tabla-mayorista">
           <caption className="sr-only">Pedido mayorista: producto, idioma, presentación, cantidad, precio unitario y total</caption>
           <thead><tr className="bg-paper-2 text-left text-xs uppercase tracking-wide"><th scope="col" className="p-2">Producto</th><th scope="col" className="p-2">Idioma / edición</th><th scope="col" className="p-2">Presentación</th><th scope="col" className="p-2">Tramos (desde)</th><th scope="col" className="p-2">Cantidad</th><th scope="col" className="p-2 text-right">Precio unitario</th><th scope="col" className="p-2 text-right">Total</th></tr></thead>
           <tbody>
@@ -84,13 +85,13 @@ export function WholesaleCatalog({ rows, rules, rate10k, defaultName }: { rows: 
               const id = `qty-${r.productId}`;
               return (
                 <tr key={r.productId} className="border-t border-ink/10 align-top" data-testid="fila-mayorista">
-                  <th scope="row" className="p-2 text-left font-semibold"><span className="flex items-center gap-2">{r.image && <SafeImage src={r.image.src} alt="" width={48} height={48} sizes="48px" className="h-12 w-12 shrink-0 object-contain" fallback={<span className="block h-12 w-12 bg-paper-2" aria-hidden="true" />} />}<span>{r.title}<span className="block text-xs font-normal text-ink/75">SKU {r.sku}</span></span></span></th>
-                  <td className="p-2">{languageLabel[r.language as Language] ?? r.language}</td>
-                  <td className="p-2">{kindLabel[r.kind as ProductKind] ?? r.kind}</td>
-                  <td className="p-2 text-xs">{r.tiers.map((t) => <span key={t.minQty} className="block">{t.minQty}+ u.: {t.unitArsMinor ? formatARS(t.unitArsMinor) : "A cotizar"} <span className="text-ink/75">({formatUSD(t.unitUsdMinor)})</span></span>)}</td>
-                  <td className="p-2"><label htmlFor={id} className="sr-only">Cantidad de {r.title}</label><input id={id} inputMode="numeric" value={qty[r.productId] ?? ""} onChange={(e) => setQty((s) => ({ ...s, [r.productId]: e.target.value.replace(/\D/g, "").slice(0, 6) }))} placeholder="0" className={`${inp} w-24`} /></td>
-                  <td className="p-2 text-right font-semibold" data-testid="precio-unitario">{!l ? "—" : l.status === "ok" ? formatARS(l.unitArsMinor!) : <span title="Subí la cantidad hasta el primer tramo o consultanos">A cotizar</span>}</td>
-                  <td className="p-2 text-right font-extrabold" data-testid="total-linea">{l && l.totalArsMinor !== null ? formatARS(l.totalArsMinor) : "—"}</td>
+                  <th scope="row" className="p-2 text-left font-semibold"><span className="flex min-w-0 items-center gap-2">{r.image && <SafeImage src={r.image.src} alt="" width={48} height={48} sizes="48px" className="h-12 w-12 shrink-0 object-contain" fallback={<span className="block h-12 w-12 bg-paper-2" aria-hidden="true" />} />}<span className="min-w-0 [overflow-wrap:anywhere]">{r.title}<span className="block text-xs font-normal text-ink/75">SKU {r.sku}</span></span></span></th>
+                  <td className="p-2"><span className={styles.label}>Idioma / edición</span>{languageLabel[r.language as Language] ?? r.language}</td>
+                  <td className="p-2"><span className={styles.label}>Presentación</span>{kindLabel[r.kind as ProductKind] ?? r.kind}</td>
+                  <td className={`${styles.wide} p-2 text-xs`}><span className={styles.label}>Tramos (desde)</span>{r.tiers.map((t) => <span key={t.minQty} className="block">{t.minQty}+ u.: {t.unitArsMinor ? formatARS(t.unitArsMinor) : "A cotizar"} <span className="text-ink/75">({formatUSD(t.unitUsdMinor)})</span></span>)}</td>
+                  <td className={`${styles.wide} relative p-2`}><span className={styles.label}>Cantidad</span><label htmlFor={id} className="sr-only">Cantidad de {r.title}</label><input id={id} inputMode="numeric" value={qty[r.productId] ?? ""} onChange={(e) => setQty((s) => ({ ...s, [r.productId]: e.target.value.replace(/\D/g, "").slice(0, 6) }))} placeholder="0" className={`${inp} w-24`} /></td>
+                  <td className="p-2 text-right font-semibold"><span className={styles.label}>Precio unitario</span><span data-testid="precio-unitario">{!l ? "—" : l.status === "ok" ? formatARS(l.unitArsMinor!) : <span title="Subí la cantidad hasta el primer tramo o consultanos">A cotizar</span>}</span></td>
+                  <td className="p-2 text-right font-extrabold" data-testid="total-linea"><span className={styles.label}>Subtotal</span>{l && l.totalArsMinor !== null ? formatARS(l.totalArsMinor) : "—"}</td>
                 </tr>
               );
             })}
@@ -99,7 +100,7 @@ export function WholesaleCatalog({ rows, rules, rate10k, defaultName }: { rows: 
         </table>
       </div>
 
-      <section className="mt-6 border border-ink/25 bg-white/80 p-5" aria-labelledby="resumen-mayorista" data-testid="resumen-mayorista">
+      <section className="mt-6 min-w-0 border border-ink/25 bg-white/80 p-5 [overflow-wrap:anywhere]" aria-labelledby="resumen-mayorista" data-testid="resumen-mayorista">
         <h2 id="resumen-mayorista" className="display text-3xl normal-case">Tu pedido</h2>
         <p className="mt-2 text-sm"><b data-testid="unidades-total">{quoted.units}</b> unidades · total estimado <b data-testid="total-pedido">{formatARS(quoted.totalArsMinor)}</b></p>
         {rules.minUnits !== null && <p className="text-xs text-ink/70">Compra mínima: {rules.minUnits} unidades.</p>}
@@ -108,13 +109,15 @@ export function WholesaleCatalog({ rows, rules, rate10k, defaultName }: { rows: 
         <ul className="mt-3 list-disc space-y-1 pl-5 text-xs text-ink/75">
           <li>Es un pedido, no una compra: la tienda confirma disponibilidad e importe y después se paga la seña del 20%. El resto se paga al retirar o antes del despacho, con la mercadería ya en Argentina.</li>
           <li>Pago por transferencia o efectivo, sin descuento adicional ni cuotas sin interés. Podés consultar financiación a 3 o 6 meses: no se promete aprobación, cuotas ni tasas.</li>
+          <li>Si el paquete se pierde o no se puede cumplir el pedido, se reintegra la seña.{rules.refundPeriod ? ` Plazo: ${rules.refundPeriod}` : ""}</li>
+          {rules.cancellationPolicy && <li>Cancelación voluntaria: {rules.cancellationPolicy}</li>}
           {rules.delayText && <li>Demora estimada: {rules.delayText}. Se cuenta desde {rules.delayFrom}. No son fechas garantizadas.</li>}
         </ul>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <div><label htmlFor="may-nombre" className="block text-[.7rem] font-bold uppercase tracking-[.12em] text-ink/70">Nombre y apellido</label><input id="may-nombre" value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" className={`${inp} mt-1 w-full`} /></div>
           <div><label htmlFor="may-tel" className="block text-[.7rem] font-bold uppercase tracking-[.12em] text-ink/70">Teléfono (opcional)</label><input id="may-tel" value={phone} onChange={(e) => setPhone(e.target.value)} autoComplete="tel" inputMode="tel" className={`${inp} mt-1 w-full`} /></div>
         </div>
-        <button type="button" onClick={send} disabled={busy} className="mt-4 min-h-12 bg-ink px-6 font-bold text-paper hover:bg-emerald disabled:opacity-50" data-testid="enviar-pedido-mayorista">{busy ? "Enviando…" : "Enviar pedido mayorista"}</button>
+        <button type="button" onClick={send} disabled={busy} className="mt-4 max-w-full min-h-12 bg-ink px-6 font-bold text-paper hover:bg-emerald disabled:opacity-50" data-testid="enviar-pedido-mayorista">{busy ? "Enviando…" : "Enviar pedido mayorista"}</button>
         {msg && <p role="alert" className="mt-2 text-sm font-semibold text-vermilion">{msg.text}</p>}
       </section>
     </div>

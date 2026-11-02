@@ -15,7 +15,7 @@ async function main() {
   if (!isLocalTarget(url)) { console.error(`Rechazado: ${describeTarget(url)} no es una base local.`); process.exit(1); }
   const email = (process.env.ADMIN_EMAIL ?? "").trim().toLowerCase();
   if (!email) { console.error("Falta ADMIN_EMAIL en .env.local."); process.exit(1); }
-  const file = path.resolve(".local/dev-admin.txt");
+  const file = path.resolve(process.env.DEV_ADMIN_PASSWORD_FILE || ".local/dev-admin.txt");
   const pw = fs.existsSync(file) ? fs.readFileSync(file, "utf8").trim() : randomBytes(12).toString("base64url");
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, pw);
