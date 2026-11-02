@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { randomBytes } from "node:crypto";
 
-export type Mail = { to: string; subject: string; text: string; kind: "verificacion" | "recuperacion"; link: string };
+export type Mail = { to: string; subject: string; text: string; kind: "verificacion" | "recuperacion" | "aviso"; link?: string };
 
 /**
  * ¿Está activo el transporte LOCAL (archivos)? Siempre en desarrollo y pruebas. En un build de producción solo si se pide

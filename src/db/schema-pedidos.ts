@@ -236,9 +236,11 @@ export const notificationOutbox = pgTable(
     body: text("body").notNull(),
     /** Enlace del aviso (ver el pedido, cancelar el aviso de reposición). */
     link: text("link"),
-    /** pendiente | enviado | fallido */
+    /** pendiente | enviando | enviado | fallido */
     status: text("status").notNull().default("pendiente"),
     attempts: integer("attempts").notNull().default(0),
+    /** Reclamo atómico del envío (ms): evita que dos reintentos simultáneos manden el mismo correo. */
+    claimedAt: ms("claimed_at"),
     lastError: text("last_error"),
     createdAt: ms("created_at").notNull(),
     sentAt: ms("sent_at"),

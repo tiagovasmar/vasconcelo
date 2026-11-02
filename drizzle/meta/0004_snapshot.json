@@ -1,5 +1,5 @@
 {
-  "id": "7e365b12-3df7-4a19-bf72-42034706b244",
+  "id": "43a1a480-42a6-467c-ac42-6a8c390949fc",
   "prevId": "1d9dc16d-3791-4813-b4db-d73f135a62e5",
   "version": "7",
   "dialect": "postgresql",
@@ -2905,6 +2905,12 @@
           "primaryKey": false,
           "notNull": true,
           "default": 0
+        },
+        "claimed_at": {
+          "name": "claimed_at",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
         },
         "last_error": {
           "name": "last_error",

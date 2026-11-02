@@ -80,6 +80,7 @@ CREATE TABLE "notification_outbox" (
 	"link" text,
 	"status" text DEFAULT 'pendiente' NOT NULL,
 	"attempts" integer DEFAULT 0 NOT NULL,
+	"claimed_at" bigint,
 	"last_error" text,
 	"created_at" bigint NOT NULL,
 	"sent_at" bigint,
