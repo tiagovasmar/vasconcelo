@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { store } from "@/content/store";
 import { SafeImage } from "@/components/safe-image";
 import { ArrowIcon, CartIcon, ChatIcon, CubeIcon } from "@/components/icons";
 import { HomeCarousel } from "@/components/home-carousel";
@@ -81,6 +82,22 @@ export default async function Home() {
     <>
       <h1 className="sr-only">Productos sellados de Pokémon TCG en ediciones japonesas y chinas</h1>
       <HomeCarousel banners={slides} />
+
+      <section aria-labelledby="whatsapp-group-title" className="border-y border-gold/30 bg-emerald text-paper" data-testid="grupo-whatsapp">
+        <div className="mx-auto flex max-w-[1440px] flex-col gap-4 px-4 py-5 sm:px-8 lg:flex-row lg:items-center lg:justify-between lg:gap-8">
+          <div className="flex min-w-0 items-start gap-3">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-paper/10 text-gold" aria-hidden="true"><ChatIcon /></span>
+            <div className="min-w-0">
+              <h2 id="whatsapp-group-title" className="text-xl font-semibold leading-tight tracking-tight sm:text-2xl">Sumate al grupo de Vasconcelo</h2>
+              <p className="mt-1.5 text-sm leading-relaxed text-paper/85">Enterate de ofertas limitadas, sorteos, cupones y novedades.</p>
+            </div>
+          </div>
+          <a href={store.whatsappGroupUrl} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" className="relative inline-flex min-h-12 max-w-full items-center justify-center gap-2 rounded-lg bg-gold px-4 py-3 text-center text-sm font-bold text-ink transition hover:bg-paper focus-visible:outline-paper lg:shrink-0" data-testid="unirse-grupo-whatsapp">
+            Unirme al grupo de WhatsApp<ArrowIcon className="h-4 w-4 shrink-0" />
+            <span className="sr-only"> (se abre en una pestaña nueva)</span>
+          </a>
+        </div>
+      </section>
 
       {enStock.length > 0 ? (
         <section aria-labelledby="stock-title" className="border-b border-ink/10 bg-white" data-testid="home-en-stock">

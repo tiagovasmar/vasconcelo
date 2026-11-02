@@ -1,5 +1,7 @@
 # Estado del proyecto
 
+> **02/11/2026 — Invitación al grupo de WhatsApp en el inicio (local, sin publicar):** bloque compacto debajo del carrusel, enlace nativo independiente de atención/pedidos, pestaña nueva con protecciones y sin apertura automática. Playwright selectivo 14/14; typecheck y lint sin errores (cuatro advertencias previas); capturas a 360/390/430/1440. Detalles y alcance de esta verificación en [GRUPO-WHATSAPP.md](GRUPO-WHATSAPP.md).
+
 > **Continuidad en Codex — 02/11/2026:** el trabajo reciente se encontró en `vasconcelo-publicacion`, rama `feature/cuentas-pedidos-mayorista` (`e6b24c1` al comenzar). `kit-claude-pokemon` conserva una implementación anterior y no se modificó ni mezcló. Se reprodujo el desborde mayorista con una cuenta aprobada y cantidades: 546/390 en el fixture; 552/390 al reconstruir la geometría anterior con el catálogo real y datos ficticios. Causa: las etiquetas accesibles absolutas escapaban del contenedor de la tabla. Corregido con contención local y tarjetas móviles. Los resultados y límites de la continuación se registran en [CONTINUIDAD-PEDIDOS.md](CONTINUIDAD-PEDIDOS.md). Las afirmaciones anteriores de «sin desborde» no cubrían el catálogo autorizado en móvil. Verificación propia final: verify 592 correctas/1 omitida; Playwright completo más repetición del bloque admin, 634 escenarios cubiertos/9 omitidos; 48 capturas y cuatro casos extremos. Una expectativa antigua de aprobación se corrigió y el bloque admin pasó 19/19; los detalles y la falla original están en el informe.
 
 

@@ -1,0 +1,43 @@
+{
+  "base": "http://localhost:3010",
+  "capturedAt": "2026-11-02T23:24:29.538Z",
+  "note": "Vista previa con datos ficticios. No se pulsa ni se contacta el grupo para las capturas.",
+  "results": [
+    {
+      "width": 360,
+      "documentWidth": 360,
+      "overflow": 0,
+      "externalRequests": 0,
+      "href": "https://chat.whatsapp.com/J36bbxgvyLvAP1G54N5R5x",
+      "target": "_blank",
+      "rel": "noopener noreferrer"
+    },
+    {
+      "width": 390,
+      "documentWidth": 390,
+      "overflow": 0,
+      "externalRequests": 0,
+      "href": "https://chat.whatsapp.com/J36bbxgvyLvAP1G54N5R5x",
+      "target": "_blank",
+      "rel": "noopener noreferrer"
+    },
+    {
+      "width": 430,
+      "documentWidth": 430,
+      "overflow": 0,
+      "externalRequests": 0,
+      "href": "https://chat.whatsapp.com/J36bbxgvyLvAP1G54N5R5x",
+      "target": "_blank",
+      "rel": "noopener noreferrer"
+    },
+    {
+      "width": 1440,
+      "documentWidth": 1440,
+      "overflow": 0,
+      "externalRequests": 0,
+      "href": "https://chat.whatsapp.com/J36bbxgvyLvAP1G54N5R5x",
+      "target": "_blank",
+      "rel": "noopener noreferrer"
+    }
+  ]
+}

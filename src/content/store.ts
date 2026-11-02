@@ -14,6 +14,8 @@ export const store = {
    * También puede definirse con la variable de entorno WHATSAPP_NUMBER (tiene prioridad).
    */
   whatsappNumber: "",
+  /** Invitación al grupo; independiente del número para atención y pedidos. */
+  whatsappGroupUrl: "https://chat.whatsapp.com/J36bbxgvyLvAP1G54N5R5x",
   delivery: {
     andreani: "Andreani a todo el país",
     moto: "Moto en CABA y AMBA",

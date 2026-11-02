@@ -1,5 +1,7 @@
 # Continuidad de pedidos y mayoristas — 02/11/2026
 
+**Agregado posterior al cierre `ab20b00`:** invitación al grupo de WhatsApp en el inicio. Sus cambios, 14 verificaciones selectivas y capturas están en [GRUPO-WHATSAPP.md](GRUPO-WHATSAPP.md). Los resultados completos documentados debajo corresponden al cierre anterior y no se atribuyen al agregado como una ejecución nueva.
+
 ## Repositorios y archivos preservados
 - Carpeta de la implementación reciente: `C:\Users\tiago\Documents\Codex\2026-10-13\rev\work\vasconcelo-publicacion`.
 - Rama: `feature/cuentas-pedidos-mayorista`; punto de partida `e6b24c1`. Estaban los documentos solicitados, las capturas y el código de Google, pedidos, envíos, comprobantes, costos y mayoristas.
