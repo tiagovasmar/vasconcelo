@@ -31,11 +31,11 @@ export default async function AdminAvisos({ searchParams }: { searchParams: Prom
                 <td className="p-2 text-xs">{when(n.createdAt)}</td>
                 <td className="p-2">{n.subject}{n.inquiryId && <Link href={`/admin/pedidos/${n.inquiryId}`} className="ml-1 font-mono text-xs underline">{n.inquiryId}</Link>}</td>
                 <td className="p-2 text-xs">{n.toEmail}</td>
-                <td className="p-2"><b className={n.status === "enviado" ? "text-emerald" : "text-vermilion"}>{label[n.status] ?? n.status}</b>{n.attempts > 0 && <span className="block text-xs text-ink/60">{n.attempts} intento(s){n.lastError ? ` · ${n.lastError}` : ""}</span>}</td>
+                <td className="p-2"><b className={n.status === "enviado" ? "text-emerald" : "text-vermilion"}>{label[n.status] ?? n.status}</b>{n.attempts > 0 && <span className="block text-xs text-ink/75">{n.attempts} intento(s){n.lastError ? ` · ${n.lastError}` : ""}</span>}</td>
                 <td className="p-2 text-right">{n.status !== "enviado" && <AdminButton endpoint="/api/admin/avisos" body={{ ids: [n.id] }} label="Reintentar" ok="Reintento hecho." />}</td>
               </tr>
             ))}
-            {rows.length === 0 && <tr><td colSpan={5} className="p-6 text-center text-ink/60">No hay avisos.</td></tr>}
+            {rows.length === 0 && <tr><td colSpan={5} className="p-6 text-center text-ink/75">No hay avisos.</td></tr>}
           </tbody>
         </table>
       </div>

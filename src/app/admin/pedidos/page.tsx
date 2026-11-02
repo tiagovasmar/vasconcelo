@@ -33,10 +33,10 @@ export default async function AdminPedidos({ searchParams }: { searchParams: Pro
             <tbody>
               {rows.map((r) => (
                 <tr key={r.reference} className="border-t border-ink/10" data-testid="pedido-fila">
-                  <td className="p-2"><Link href={`/admin/pedidos/${r.reference}`} className="font-mono font-semibold underline">{r.reference}</Link><span className="block text-xs text-ink/60">{r.name ?? "Sin nombre"} · {when(r.createdAt)}</span></td>
+                  <td className="p-2"><Link href={`/admin/pedidos/${r.reference}`} className="font-mono font-semibold underline">{r.reference}</Link><span className="block text-xs text-ink/75">{r.name ?? "Sin nombre"} · {when(r.createdAt)}</span></td>
                   <td className="p-2">{kindName[r.kind]}</td>
                   <td className="p-2">{r.cancelled ? <b className="text-vermilion">Cancelado</b> : STAGE_LABEL[r.stage as Stage] ?? r.stage}</td>
-                  <td className="p-2 text-right">{r.agreedMinor === null ? <span className="text-ink/55">A confirmar</span> : formatARS(r.agreedMinor)}</td>
+                  <td className="p-2 text-right">{r.agreedMinor === null ? <span className="text-ink/75">A confirmar</span> : formatARS(r.agreedMinor)}</td>
                   <td className="p-2 text-right">{formatARS(r.confirmedMinor)}</td>
                   <td className="p-2 text-xs">
                     {r.pendingReceipts > 0 && <span className="mr-1 rounded bg-gold/40 px-1.5 py-0.5 font-semibold">{r.pendingReceipts} comprobante{r.pendingReceipts === 1 ? "" : "s"} por revisar</span>}

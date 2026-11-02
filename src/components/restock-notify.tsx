@@ -87,7 +87,7 @@ export function RestockNotify({ productId, title }: { productId: string; title: 
           )}
           <label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5 h-5 w-5 shrink-0" data-testid="avisame-consentimiento" /><span>{RESTOCK_CONSENT_TEXT}</span></label>
           <button type="submit" disabled={busy} className="min-h-11 bg-ink px-5 text-sm font-bold text-paper hover:bg-emerald disabled:opacity-50" data-testid="avisame-enviar">{busy ? "Anotando…" : "Avisame"}</button>
-          {logged && <p className="text-xs text-ink/60">Usamos el correo verificado de tu cuenta.</p>}
+          {logged && <p className="text-xs text-ink/75">Usamos el correo verificado de tu cuenta.</p>}
         </form>
       )}
       {msg && <p role={msg.ok ? "status" : "alert"} className={`mt-2 text-sm font-semibold ${msg.ok ? "text-emerald" : "text-vermilion"}`}>{msg.text}</p>}

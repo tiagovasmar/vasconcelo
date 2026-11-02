@@ -38,11 +38,11 @@ export default async function AdminEnvios() {
         return (
           <section key={s.id} className={card} data-testid="envio">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h2 className="text-base font-semibold">{s.label} <span className="font-mono text-xs text-ink/55">{s.id}</span></h2>
+              <h2 className="text-base font-semibold">{s.label} <span className="font-mono text-xs text-ink/75">{s.id}</span></h2>
               <span className="rounded-full bg-gold/30 px-3 py-1 text-sm font-semibold ring-1 ring-gold" data-testid="envio-estado">{SHIPMENT_LABEL[s.status as ShipmentStatus]}</span>
             </div>
-            <ol className="mt-2 flex flex-wrap gap-2 text-xs">{SHIPMENT_STATUSES.map((st) => { const at = dateOf(s, st); return <li key={st} className={`rounded-full px-2.5 py-1 ring-1 ${at && shipmentRank(st) <= shipmentRank(s.status) ? "bg-emerald/10 ring-emerald/40" : "ring-ink/20 text-ink/55"}`}>{SHIPMENT_LABEL[st]}{at && shipmentRank(st) <= shipmentRank(s.status) ? ` · ${when(at)}` : ""}</li>; })}</ol>
-            {s.supplier && <p className="mt-1 text-xs text-ink/65">Proveedor: {s.supplier}</p>}
+            <ol className="mt-2 flex flex-wrap gap-2 text-xs">{SHIPMENT_STATUSES.map((st) => { const at = dateOf(s, st); return <li key={st} className={`rounded-full px-2.5 py-1 ring-1 ${at && shipmentRank(st) <= shipmentRank(s.status) ? "bg-emerald/10 ring-emerald/40" : "ring-ink/20 text-ink/75"}`}>{SHIPMENT_LABEL[st]}{at && shipmentRank(st) <= shipmentRank(s.status) ? ` · ${when(at)}` : ""}</li>; })}</ol>
+            {s.supplier && <p className="mt-1 text-xs text-ink/75">Proveedor: {s.supplier}</p>}
             <ul className="mt-3 divide-y divide-ink/10 text-sm" aria-label="Artículos del envío">
               {s.items.map((it) => (
                 <li key={it.lineId} className="flex flex-wrap items-center justify-between gap-2 py-1.5" data-testid="envio-item">
@@ -50,7 +50,7 @@ export default async function AdminEnvios() {
                   {prep && <AdminButton endpoint={EP} body={{ action: "remove_item", shipmentId: s.id, lineId: it.lineId }} label="Quitar" ok="Quitado." />}
                 </li>
               ))}
-              {s.items.length === 0 && <li className="py-1.5 text-ink/60">Sin artículos todavía.</li>}
+              {s.items.length === 0 && <li className="py-1.5 text-ink/75">Sin artículos todavía.</li>}
             </ul>
             {prep && lines.length > 0 && (
               <div className="mt-3 border-t border-ink/10 pt-3">

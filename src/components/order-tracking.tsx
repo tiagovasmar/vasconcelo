@@ -29,7 +29,7 @@ export function OrderTracking({ view, whatsappNumber, linkToken }: { view: Custo
         {view.steps.map((s) => (
           <li key={s.stage} className="flex gap-3" aria-current={s.current && !view.cancelled ? "step" : undefined}>
             <span aria-hidden="true" className={`mt-1 grid h-5 w-5 shrink-0 place-items-center rounded-full border-2 text-[.65rem] font-black ${s.reachedAt ? "border-emerald bg-emerald text-paper" : "border-ink/30 bg-white text-transparent"}`}>✓</span>
-            <span className={s.reachedAt ? "text-ink" : "text-ink/55"}>
+            <span className={s.reachedAt ? "text-ink" : "text-ink/75"}>
               <span className={s.current && !view.cancelled ? "font-extrabold" : "font-semibold"}>{s.label}</span>
               <span className="block text-xs">{s.reachedAt ? day(s.reachedAt) : "Pendiente"}</span>
             </span>
@@ -50,7 +50,7 @@ export function OrderTracking({ view, whatsappNumber, linkToken }: { view: Custo
             </ul>
           )}
           {view.action && <p className="mt-3 border-l-4 border-gold bg-gold/15 p-3 text-sm font-semibold" data-testid="accion-pedido">{view.action}</p>}
-          {view.kind !== "stock" && <p className="mt-2 text-xs text-ink/65">Condiciones: seña del {view.kind === "mayorista" ? mayorista.senaPercent : encargo.senaPercent}% del importe confirmado; el resto se paga cuando el pedido llega a Argentina, antes del despacho o del retiro. Si el paquete se pierde o un problema impide cumplir el pedido, se reintegra la seña.</p>}
+          {view.kind !== "stock" && <p className="mt-2 text-xs text-ink/75">Condiciones: seña del {view.kind === "mayorista" ? mayorista.senaPercent : encargo.senaPercent}% del importe confirmado; el resto se paga cuando el pedido llega a Argentina, antes del despacho o del retiro. Si el paquete se pierde o un problema impide cumplir el pedido, se reintegra la seña.</p>}
         </div>
 
         <div data-testid="bloque-comprobantes">
@@ -82,7 +82,7 @@ export function OrderTracking({ view, whatsappNumber, linkToken }: { view: Custo
                   ? `Entregadas: ${i.delivered} de ${i.quantity}`
                   : <>Llegaron a Argentina: {i.arrived}{i.inTransit ? ` · En camino: ${i.inTransit}` : ""}{i.notShipped ? ` · Todavía no viajaron: ${i.notShipped}` : ""} · Entregadas: {i.delivered} de {i.quantity}</>}
               </p>
-              {i.shipments.length > 0 && <p className="mt-0.5 text-xs text-ink/60">{i.shipments.map((s) => `${s.quantity} en «${s.label}» (${SHIPMENT_LABEL[s.status as ShipmentStatus] ?? s.status})`).join(" · ")}</p>}
+              {i.shipments.length > 0 && <p className="mt-0.5 text-xs text-ink/75">{i.shipments.map((s) => `${s.quantity} en «${s.label}» (${SHIPMENT_LABEL[s.status as ShipmentStatus] ?? s.status})`).join(" · ")}</p>}
             </li>
           ))}
         </ul>
@@ -101,7 +101,7 @@ export function OrderTracking({ view, whatsappNumber, linkToken }: { view: Custo
       <div className="mt-6" data-testid="bloque-historial">
         <h3 className="text-base font-bold">Historial</h3>
         <ol className="mt-2 space-y-1.5 text-sm">
-          {[...view.timeline].reverse().map((t, i) => <li key={i}><span className="text-xs font-semibold text-ink/60">{day(t.at)}</span> · {t.text}</li>)}
+          {[...view.timeline].reverse().map((t, i) => <li key={i}><span className="text-xs font-semibold text-ink/75">{day(t.at)}</span> · {t.text}</li>)}
         </ol>
       </div>
 

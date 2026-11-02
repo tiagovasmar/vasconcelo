@@ -61,7 +61,7 @@ export default async function AdminMayoristas() {
             { name: "unitPriceUsdMinor", label: "Precio unitario (USD)", type: "usd", required: true },
           ]} submit="Guardar tramo (borrador)" ok="Tramo guardado como borrador." testId="form-tramo" />
         </div>
-        {withTiers.length === 0 ? <p className="mt-4 text-sm text-ink/60">Todavía no hay tramos cargados.</p> : withTiers.map((pid) => {
+        {withTiers.length === 0 ? <p className="mt-4 text-sm text-ink/75">Todavía no hay tramos cargados.</p> : withTiers.map((pid) => {
           const mine = tiers.filter((t) => t.productId === pid);
           const cost = costs.get(pid) ?? null;
           const ref = suggestedFromCost(cost);
@@ -70,7 +70,7 @@ export default async function AdminMayoristas() {
             <article key={pid} className="mt-4 rounded-lg border border-ink/15 p-3" data-testid="tramos-producto">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <h3 className="text-sm font-semibold">{title(pid)}</h3>
-                <span className="text-xs text-ink/65">{ref === null ? <b>Costo pendiente → sin referencia ×1,5</b> : <>Costo promedio {formatARS(cost!)} → referencia ×1,5: <b>{formatARS(ref)}</b>{rate ? ` ≈ ${formatUSD(Math.round((ref * 10_000) / rate))}` : ""}</>}</span>
+                <span className="text-xs text-ink/75">{ref === null ? <b>Costo pendiente → sin referencia ×1,5</b> : <>Costo promedio {formatARS(cost!)} → referencia ×1,5: <b>{formatARS(ref)}</b>{rate ? ` ≈ ${formatUSD(Math.round((ref * 10_000) / rate))}` : ""}</>}</span>
               </div>
               <ul className="mt-2 divide-y divide-ink/10 text-sm">
                 {mine.map((t) => (
@@ -104,7 +104,7 @@ export default async function AdminMayoristas() {
                 </div>
                 <p className="mt-1 text-ink/75">{r.name} · {r.email} · {r.locality}, {r.province}</p>
                 {r.note && <p className="mt-2 whitespace-pre-wrap border-l-4 border-emerald pl-3">{r.note}</p>}
-                <p className="mt-2 text-xs text-ink/60">{r.reference} · solicitada el {when(r.createdAt)}{r.reviewedAt ? ` · revisada el ${when(r.reviewedAt)}${r.reviewedByEmail ? ` por ${r.reviewedByEmail}` : ""}` : ""}</p>
+                <p className="mt-2 text-xs text-ink/75">{r.reference} · solicitada el {when(r.createdAt)}{r.reviewedAt ? ` · revisada el ${when(r.reviewedAt)}${r.reviewedByEmail ? ` por ${r.reviewedByEmail}` : ""}` : ""}</p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {r.status !== "aprobada" && <AdminButton endpoint={`/api/admin/mayoristas/${r.reference}`} method="PATCH" body={{ status: "aprobada" }} label="Aprobar cuenta" ok="Cuenta aprobada." confirmText={`¿Aprobar la cuenta de ${r.businessName}? Va a ver los precios mayoristas cuando el catálogo esté abierto.`} />}
                   {r.status !== "rechazada" && <AdminButton endpoint={`/api/admin/mayoristas/${r.reference}`} method="PATCH" body={{ status: "rechazada" }} label={r.status === "aprobada" ? "Revocar aprobación" : "Rechazar"} ok="Listo." danger confirmText="¿Seguro? La persona deja de ver precios mayoristas." />}

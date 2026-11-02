@@ -37,7 +37,7 @@ export function AdminForm({ endpoint, method = "POST", fixed = {}, fields, submi
   endpoint: string; method?: "POST" | "PATCH" | "PUT"; fixed?: Record<string, unknown>; fields: FormField[]; submit: string; ok?: string; compact?: boolean; confirmText?: string; idempotent?: boolean; testId?: string;
 }) {
   const router = useRouter();
-  const init = () => Object.fromEntries(fields.map((f) => [f.name, f.defaultValue ?? (f.type === "checkbox" ? false : f.type === "date" ? todayYmd() : "")]));
+  const init = () => Object.fromEntries(fields.map((f) => [f.name, f.defaultValue ?? (f.type === "checkbox" ? false : f.type === "date" ? todayYmd() : f.type === "select" && f.required ? (f.options?.[0]?.value ?? "") : "")]));
   const [values, setValues] = useState<Record<string, string | boolean>>(init);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -97,7 +97,7 @@ export function AdminForm({ endpoint, method = "POST", fixed = {}, fields, submi
                 {t === "textarea" ? <textarea id={id} rows={3} maxLength={f.maxLength ?? 1000} value={String(values[f.name])} onChange={(e) => setValues((v) => ({ ...v, [f.name]: e.target.value }))} placeholder={f.placeholder} className={`${field} py-2`} />
                   : t === "select" ? <select id={id} value={String(values[f.name])} onChange={(e) => setValues((v) => ({ ...v, [f.name]: e.target.value }))} className={field}>{!f.required && <option value="">—</option>}{(f.options ?? []).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select>
                   : <input id={id} type={t === "date" ? "date" : "text"} inputMode={t === "int" ? "numeric" : t === "pesos" || t === "usd" ? "decimal" : undefined} maxLength={f.maxLength ?? 200} value={String(values[f.name])} onChange={(e) => setValues((v) => ({ ...v, [f.name]: e.target.value }))} placeholder={f.placeholder ?? (t === "pesos" ? "$ 0" : t === "usd" ? "USD 0,00" : undefined)} className={field} />}
-                {f.help && <p className="mt-1 text-xs text-ink/60">{f.help}</p>}
+                {f.help && <p className="mt-1 text-xs text-ink/75">{f.help}</p>}
               </>
             )}
           </div>

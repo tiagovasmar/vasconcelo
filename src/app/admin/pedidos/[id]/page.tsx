@@ -52,7 +52,7 @@ export default async function AdminPedidoDetalle({ params }: { params: Promise<{
             <h2 className={h2}>Etapa del pedido</h2>
             <p className="mt-1 text-lg font-bold" data-testid="admin-etapa-actual">{track.cancelledAt ? "Cancelado" : STAGE_LABEL[track.stage as Stage]}</p>
             <ol className="mt-2 flex flex-wrap gap-2 text-xs" aria-label="Etapas">
-              {stagesFor(kind).map((s) => { const done = events.some((e) => e.kind === "stage" && e.stage === s); return <li key={s} className={`rounded-full px-2.5 py-1 ring-1 ${s === track.stage ? "bg-emerald text-paper ring-emerald" : done ? "bg-emerald/10 ring-emerald/40" : "ring-ink/20 text-ink/60"}`}>{STAGE_LABEL[s]}</li>; })}
+              {stagesFor(kind).map((s) => { const done = events.some((e) => e.kind === "stage" && e.stage === s); return <li key={s} className={`rounded-full px-2.5 py-1 ring-1 ${s === track.stage ? "bg-emerald text-paper ring-emerald" : done ? "bg-emerald/10 ring-emerald/40" : "ring-ink/20 text-ink/75"}`}>{STAGE_LABEL[s]}</li>; })}
             </ol>
             {!track.cancelledAt && (
               <div className="mt-4">
@@ -71,9 +71,9 @@ export default async function AdminPedidoDetalle({ params }: { params: Promise<{
           <section className={card} data-testid="admin-pago">
             <h2 className={h2}>Pago (separado de la logística)</h2>
             <dl className="mt-2 grid gap-2 text-sm sm:grid-cols-3">
-              <div><dt className="text-xs text-ink/60">Importe acordado</dt><dd className="font-extrabold">{track.agreedMinor === null ? "A confirmar" : formatARS(track.agreedMinor)}</dd></div>
-              <div><dt className="text-xs text-ink/60">Confirmado</dt><dd className="font-extrabold">{formatARS(totals.confirmedMinor)}</dd></div>
-              <div><dt className="text-xs text-ink/60">Estado</dt><dd className="font-semibold">{PAYMENT_STATUS_LABEL[pay.status]}</dd></div>
+              <div><dt className="text-xs text-ink/75">Importe acordado</dt><dd className="font-extrabold">{track.agreedMinor === null ? "A confirmar" : formatARS(track.agreedMinor)}</dd></div>
+              <div><dt className="text-xs text-ink/75">Confirmado</dt><dd className="font-extrabold">{formatARS(totals.confirmedMinor)}</dd></div>
+              <div><dt className="text-xs text-ink/75">Estado</dt><dd className="font-semibold">{PAYMENT_STATUS_LABEL[pay.status]}</dd></div>
             </dl>
             {d.senaMinor !== null && kind !== "stock" && <p className="mt-1 text-xs text-ink/70">Seña del 20%: {formatARS(d.senaMinor)} · saldo del 80% al llegar a Argentina, antes del despacho o del retiro.</p>}
             {!track.cancelledAt && (
@@ -86,7 +86,7 @@ export default async function AdminPedidoDetalle({ params }: { params: Promise<{
             <ul className="mt-4 divide-y divide-ink/10 text-sm" aria-label="Pagos">
               {payments.map((p) => (
                 <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 py-2" data-testid="pago-fila">
-                  <span><b>{formatARS(p.amountMinor)}</b> · {p.kind} · {p.method} · {when(p.paidAt)} <span className="font-mono text-xs text-ink/55">{p.id}</span>{p.status === "anulado" && <b className="ml-2 text-vermilion">ANULADO ({p.voidReason})</b>}</span>
+                  <span><b>{formatARS(p.amountMinor)}</b> · {p.kind} · {p.method} · {when(p.paidAt)} <span className="font-mono text-xs text-ink/75">{p.id}</span>{p.status === "anulado" && <b className="ml-2 text-vermilion">ANULADO ({p.voidReason})</b>}</span>
                   {p.status === "confirmado" && <AdminForm endpoint={ep} compact fixed={{ action: "void_payment", paymentId: p.id }} fields={[{ name: "reason", label: "Motivo de la anulación", required: true }]} submit="Anular pago" ok="Pago anulado." confirmText="¿Anular este pago? Queda registrado como anulado." idempotent={false} />}
                 </li>
               ))}
@@ -110,12 +110,12 @@ export default async function AdminPedidoDetalle({ params }: { params: Promise<{
           <section className={card} data-testid="admin-comprobantes">
             <h2 className={h2}>Comprobantes subidos</h2>
             <p className="mt-1 text-xs text-ink/70">Son archivos privados. Subirlos no confirma nada: vos confirmás el ingreso arriba.</p>
-            {receipts.length === 0 ? <p className="mt-2 text-sm text-ink/60">Ninguno todavía.</p> : (
+            {receipts.length === 0 ? <p className="mt-2 text-sm text-ink/75">Ninguno todavía.</p> : (
               <ul className="mt-2 divide-y divide-ink/10 text-sm">
                 {receipts.map((r) => (
                   <li key={r.id} className="py-2" data-testid="comprobante-fila">
                     <p><b className="font-mono">{r.id}</b> · {when(r.createdAt)} · {r.uploaderKind} · {r.status === "pendiente_revision" ? <b className="text-vermilion">Pendiente de revisión</b> : r.status === "aceptado" ? "Aceptado" : `Rechazado (${r.rejectReason})`} · <a href={`/api/comprobantes/${r.id}`} target="_blank" rel="noopener noreferrer" className="underline">Abrir</a></p>
-                    {r.declaredAmountMinor && <p className="text-xs text-ink/65">La persona dice haber transferido {formatARS(r.declaredAmountMinor)}{r.note ? ` · «${r.note}»` : ""}</p>}
+                    {r.declaredAmountMinor && <p className="text-xs text-ink/75">La persona dice haber transferido {formatARS(r.declaredAmountMinor)}{r.note ? ` · «${r.note}»` : ""}</p>}
                     {r.status === "pendiente_revision" && <div className="mt-1"><AdminForm endpoint={ep} compact fixed={{ action: "reject_receipt", receiptId: r.id }} fields={[{ name: "reason", label: "Motivo del rechazo", required: true }]} submit="Rechazar comprobante" ok="Comprobante rechazado." idempotent={false} /></div>}
                   </li>
                 ))}
@@ -131,7 +131,7 @@ export default async function AdminPedidoDetalle({ params }: { params: Promise<{
                 <tbody>
                   {items.map((l) => (
                     <tr key={l.lineId} className="border-t border-ink/10" data-testid="admin-articulo">
-                      <td className="py-1.5 pr-2">{l.title}<span className="block text-xs text-ink/55">{l.fulfillment}{l.shipments.length ? ` · ${l.shipments.map((s) => `${s.quantity} en ${s.label} (${SHIPMENT_LABEL[s.status as ShipmentStatus]})`).join(", ")}` : ""}</span></td>
+                      <td className="py-1.5 pr-2">{l.title}<span className="block text-xs text-ink/75">{l.fulfillment}{l.shipments.length ? ` · ${l.shipments.map((s) => `${s.quantity} en ${s.label} (${SHIPMENT_LABEL[s.status as ShipmentStatus]})`).join(", ")}` : ""}</span></td>
                       <td className="pr-2">{l.quantity}</td><td className="pr-2">{l.arrived}</td><td className="pr-2">{l.inTransit}</td><td className="pr-2">{l.notShipped}</td><td className="pr-2">{l.delivered}</td>
                       <td className="text-xs">{avg.has(l.productId) ? `Prom. ${formatARS(avg.get(l.productId)!)}` : <b>Costo pendiente</b>}{kind !== "stock" && avg.has(l.productId) && <span className="ml-1"><AdminButton endpoint={ep} body={{ action: "apply_cost", lineId: l.lineId }} label="Aplicar" ok="Costo aplicado." /></span>}</td>
                     </tr>
@@ -152,7 +152,7 @@ export default async function AdminPedidoDetalle({ params }: { params: Promise<{
                 ]} submit="Registrar entrega" ok="Entrega registrada." testId="form-entrega" />
               </div>
             )}
-            {deliveries.length > 0 && <p className="mt-3 text-xs text-ink/65">{deliveries.length} entrega(s) registrada(s).</p>}
+            {deliveries.length > 0 && <p className="mt-3 text-xs text-ink/75">{deliveries.length} entrega(s) registrada(s).</p>}
           </section>
 
           <section className={card} data-testid="admin-incidentes">
@@ -162,7 +162,7 @@ export default async function AdminPedidoDetalle({ params }: { params: Promise<{
               {incidents.map((x) => (
                 <li key={x.id} className="rounded-lg bg-paper-2 p-3" data-testid="incidente-fila">
                   <b>{INCIDENT_KIND_LABEL[x.kind] ?? x.kind}</b> · {when(x.openedAt)} · {x.status === "abierto" ? <b className="text-vermilion">Abierto</b> : `Resuelto: ${x.resolution}`}
-                  {x.internalDetail && <span className="block text-xs text-ink/65">Interno: {x.internalDetail}</span>}
+                  {x.internalDetail && <span className="block text-xs text-ink/75">Interno: {x.internalDetail}</span>}
                   {x.status === "abierto" && <div className="mt-2"><AdminForm endpoint={ep} compact fixed={{ action: "resolve_incident", incidentId: x.id }} fields={[{ name: "resolution", label: "Cómo se resolvió", required: true }, { name: "resolvedAt", label: "Fecha", type: "date", required: true }]} submit="Marcar resuelto" ok="Incidente resuelto." idempotent={false} /></div>}
                 </li>
               ))}
@@ -173,7 +173,7 @@ export default async function AdminPedidoDetalle({ params }: { params: Promise<{
                 </li>
               ))}
             </ul>
-            {totals.confirmedMinor > 0 && <p className="mt-2 text-xs text-ink/65">Pagado y confirmado: {formatARS(totals.confirmedMinor)} · registrado para reintegrar: {formatARS(refunded)}.</p>}
+            {totals.confirmedMinor > 0 && <p className="mt-2 text-xs text-ink/75">Pagado y confirmado: {formatARS(totals.confirmedMinor)} · registrado para reintegrar: {formatARS(refunded)}.</p>}
             <div className="mt-4 grid gap-6 border-t border-ink/10 pt-4 md:grid-cols-2">
               <div>
                 <h3 className="text-sm font-semibold">Abrir un incidente</h3>
@@ -226,7 +226,7 @@ export default async function AdminPedidoDetalle({ params }: { params: Promise<{
 
           <section className={card} data-testid="admin-avisos">
             <h2 className={h2}>Avisos por correo de este pedido</h2>
-            {notices.length === 0 ? <p className="mt-2 text-sm text-ink/60">Ninguno (las compras de invitados no reciben correos: ven el estado en la web).</p> : (
+            {notices.length === 0 ? <p className="mt-2 text-sm text-ink/75">Ninguno (las compras de invitados no reciben correos: ven el estado en la web).</p> : (
               <ul className="mt-2 divide-y divide-ink/10 text-sm">
                 {notices.map((n) => <li key={n.id} className="flex flex-wrap items-center justify-between gap-2 py-1.5"><span>{n.subject} · {when(n.createdAt)} · <b className={n.status === "enviado" ? "text-emerald" : "text-vermilion"}>{noticeState[n.status] ?? n.status}</b>{n.lastError ? ` (${n.lastError})` : ""}</span>{n.status !== "enviado" && <AdminButton endpoint="/api/admin/avisos" body={{ ids: [n.id] }} label="Reintentar" ok="Reintento hecho." />}</li>)}
               </ul>
@@ -238,7 +238,7 @@ export default async function AdminPedidoDetalle({ params }: { params: Promise<{
       <section className={card} data-testid="admin-historial">
         <h2 className={h2}>Historial completo (con notas internas)</h2>
         <ol className="mt-2 space-y-1.5 text-sm">
-          {events.map((e) => <li key={e.id}><span className="text-xs text-ink/60">{when(e.occurredAt)}</span> · <b>{e.kind}</b>{e.publicText ? ` · ${e.publicText}` : ""}{e.internalText ? <span className="text-vermilion"> · [interno] {e.internalText}</span> : null}{e.actorEmail ? <span className="text-xs text-ink/50"> · {e.actorEmail}</span> : null}</li>)}
+          {events.map((e) => <li key={e.id}><span className="text-xs text-ink/75">{when(e.occurredAt)}</span> · <b>{e.kind}</b>{e.publicText ? ` · ${e.publicText}` : ""}{e.internalText ? <span className="text-vermilion"> · [interno] {e.internalText}</span> : null}{e.actorEmail ? <span className="text-xs text-ink/75"> · {e.actorEmail}</span> : null}</li>)}
         </ol>
       </section>
     </div>

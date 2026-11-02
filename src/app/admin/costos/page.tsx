@@ -40,7 +40,7 @@ export default async function AdminCostos({ searchParams }: { searchParams: Prom
         </form>
         <dl className="mt-4 grid gap-3 sm:grid-cols-5">
           {[["Facturado", formatARS(t.billedMinor), "Importe de venta ya con descuentos"], ["Cobrado", formatARS(t.collectedMinor), "Pagos confirmados menos reintegrados (solo ventas con registro de cobro)"], ["Descuentos", formatARS(t.discountMinor), "Promociones aplicadas"], ["Comisiones", formatARS(t.commissionMinor), "Cargadas a mano"], ["Ganancia calculada", formatARS(t.profitMinor), t.pendingCostRows ? `Sin contar ${t.pendingCostRows} con costo pendiente` : "Venta − costo − comisiones"]].map(([l, v, h]) => (
-            <div key={l} className="rounded-lg bg-paper-2 p-3"><dt className="text-xs font-semibold uppercase tracking-wide text-ink/65">{l}</dt><dd className="mt-1 text-xl font-semibold tabular-nums">{v}</dd><dd className="mt-0.5 text-xs text-ink/60">{h}</dd></div>
+            <div key={l} className="rounded-lg bg-paper-2 p-3"><dt className="text-xs font-semibold uppercase tracking-wide text-ink/75">{l}</dt><dd className="mt-1 text-xl font-semibold tabular-nums">{v}</dd><dd className="mt-0.5 text-xs text-ink/75">{h}</dd></div>
           ))}
         </dl>
         <div className="mt-4 overflow-x-auto">
@@ -49,16 +49,16 @@ export default async function AdminCostos({ searchParams }: { searchParams: Prom
             <tbody>
               {report.rows.map((r) => (
                 <tr key={`${r.kind}-${r.ref}`} className="border-t border-ink/10 align-top" data-testid="ganancia-fila">
-                  <td className="py-1.5 pr-2"><Link href={r.kind === "venta" ? `/admin/ventas` : `/admin/pedidos/${r.ref}`} className="font-mono text-xs underline">{r.ref}</Link> <span className="text-xs text-ink/60">{when(r.at)}</span><span className="block text-xs text-ink/65">{r.label}</span></td>
+                  <td className="py-1.5 pr-2"><Link href={r.kind === "venta" ? `/admin/ventas` : `/admin/pedidos/${r.ref}`} className="font-mono text-xs underline">{r.ref}</Link> <span className="text-xs text-ink/75">{when(r.at)}</span><span className="block text-xs text-ink/75">{r.label}</span></td>
                   <td className="pr-2 text-right tabular-nums">{formatARS(r.revenueMinor)}</td>
                   <td className="pr-2 text-right tabular-nums">{r.discountMinor ? formatARS(r.discountMinor) : "—"}</td>
                   <td className="pr-2 text-right tabular-nums">{r.costMinor === null ? <b className="text-vermilion">Costo pendiente</b> : formatARS(r.costMinor)}</td>
                   <td className="pr-2 text-right tabular-nums">{r.commissionMinor ? formatARS(r.commissionMinor) : "—"}</td>
-                  <td className="pr-2 text-right tabular-nums">{r.collectedMinor === null ? <span className="text-ink/55">Sin registro</span> : formatARS(r.collectedMinor)}</td>
+                  <td className="pr-2 text-right tabular-nums">{r.collectedMinor === null ? <span className="text-ink/75">Sin registro</span> : formatARS(r.collectedMinor)}</td>
                   <td className="text-right font-semibold tabular-nums">{r.profitMinor === null ? "—" : formatARS(r.profitMinor)}</td>
                 </tr>
               ))}
-              {report.rows.length === 0 && <tr><td colSpan={7} className="py-6 text-center text-ink/60">No hay operaciones en el período.</td></tr>}
+              {report.rows.length === 0 && <tr><td colSpan={7} className="py-6 text-center text-ink/75">No hay operaciones en el período.</td></tr>}
             </tbody>
           </table>
         </div>
@@ -81,13 +81,13 @@ export default async function AdminCostos({ searchParams }: { searchParams: Prom
 
       <section className={card} data-testid="compras">
         <h2 className="text-base font-semibold">Compras</h2>
-        {purchases.length === 0 ? <p className="mt-2 text-sm text-ink/60">Todavía no cargaste compras.</p> : purchases.map((p) => (
+        {purchases.length === 0 ? <p className="mt-2 text-sm text-ink/75">Todavía no cargaste compras.</p> : purchases.map((p) => (
           <article key={p.id} className="mt-4 rounded-lg border border-ink/15 p-3" data-testid="compra">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h3 className="text-sm font-semibold">{p.supplier} · {when(p.purchasedAt)} <span className="font-mono text-xs text-ink/55">{p.id}</span></h3>
+              <h3 className="text-sm font-semibold">{p.supplier} · {when(p.purchasedAt)} <span className="font-mono text-xs text-ink/75">{p.id}</span></h3>
               <span className="rounded-full bg-gold/30 px-2.5 py-0.5 text-xs font-semibold ring-1 ring-gold">{p.status === "confirmada" ? "Confirmada · costos congelados" : "Borrador"}</span>
             </div>
-            <p className="text-xs text-ink/65">Moneda {p.currency}{p.rateToArs10k ? ` · cotización usada $${(p.rateToArs10k / 10_000).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 4 })}` : ""}{p.rateNote ? ` (${p.rateNote})` : ""}</p>
+            <p className="text-xs text-ink/75">Moneda {p.currency}{p.rateToArs10k ? ` · cotización usada $${(p.rateToArs10k / 10_000).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 4 })}` : ""}{p.rateNote ? ` (${p.rateNote})` : ""}</p>
             <div className="mt-2 overflow-x-auto">
               <table className="w-full min-w-[640px] text-sm">
                 <thead><tr className="text-left text-xs text-ink/70"><th className="py-1 pr-2">Producto</th><th className="pr-2 text-right">Cant.</th><th className="pr-2 text-right">Precio original</th><th className="pr-2 text-right">Gastos repartidos</th><th className="pr-2 text-right">Costo total</th><th className="text-right">Costo final por unidad</th></tr></thead>

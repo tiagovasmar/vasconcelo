@@ -24,10 +24,10 @@ export default async function AdminReposicion() {
             <tbody>
               {rows.map(({ p, n }) => (
                 <tr key={p.id} className="border-t border-ink/10" data-testid="reposicion-fila">
-                  <td className="p-2">{p.title}<span className="block font-mono text-xs text-ink/55">{p.sku}</span></td>
+                  <td className="p-2">{p.title}<span className="block font-mono text-xs text-ink/75">{p.sku}</span></td>
                   <td className="p-2 text-right text-lg font-semibold tabular-nums" data-testid="reposicion-cantidad">{n}</td>
                   <td className="p-2 text-right">{p.stockQuantity === null ? "Pendiente" : p.stockQuantity}</td>
-                  <td className="p-2 text-right">{p.stockQuantity && p.stockQuantity > 0 ? <AdminButton endpoint="/api/admin/reposicion" body={{ productId: p.id }} label={`Avisar a ${n} ${n === 1 ? "persona" : "personas"}`} ok="Avisos encolados." confirmText={`Se enviará un correo a ${n} ${n === 1 ? "persona" : "personas"}. ¿Avisar?`} /> : <span className="text-xs text-ink/55">Cargá stock para poder avisar</span>}</td>
+                  <td className="p-2 text-right">{p.stockQuantity && p.stockQuantity > 0 ? <AdminButton endpoint="/api/admin/reposicion" body={{ productId: p.id }} label={`Avisar a ${n} ${n === 1 ? "persona" : "personas"}`} ok="Avisos encolados." confirmText={`Se enviará un correo a ${n} ${n === 1 ? "persona" : "personas"}. ¿Avisar?`} /> : <span className="text-xs text-ink/75">Cargá stock para poder avisar</span>}</td>
                 </tr>
               ))}
             </tbody>

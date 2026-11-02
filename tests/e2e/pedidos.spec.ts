@@ -191,7 +191,7 @@ test("pedido de un invitado: solo con su navegador o con el enlace privado que g
 });
 
 test("«Avisame cuando vuelva»: consentimiento, sin duplicados, cancelación y conteo en el panel", async ({ page }) => {
-  await go(page, "/productos/parcial-bundle");
+  await go(page, "/productos/set-parcial-de-ejemplo-bundle");
   const box = page.getByTestId("avisame");
   await expect(box).toBeVisible();
   const mail = newEmail("aviso");
@@ -206,13 +206,13 @@ test("«Avisame cuando vuelva»: consentimiento, sin duplicados, cancelación y 
   expect(again.status()).toBe(200);
   expect((await again.json()).replayed).toBe(true);
   await go(ownerPage, "/admin/reposicion");
-  const n1 = Number(await ownerPage.getByTestId("reposicion-fila").filter({ hasText: "parcial" }).getByTestId("reposicion-cantidad").first().innerText());
+  const n1 = Number(await ownerPage.getByTestId("reposicion-fila").filter({ hasText: "Booster bundle" }).getByTestId("reposicion-cantidad").first().innerText());
   expect(n1).toBeGreaterThanOrEqual(1);
   // Cancelar; ya no cuenta.
   await box.getByTestId("avisame-cancelar").click();
   await expect(page.getByText("Cancelamos tu aviso")).toBeVisible();
   await go(ownerPage, "/admin/reposicion");
-  const filas = ownerPage.getByTestId("reposicion-fila").filter({ hasText: "parcial" });
+  const filas = ownerPage.getByTestId("reposicion-fila").filter({ hasText: "Booster bundle" });
   const n2 = (await filas.count()) ? Number(await filas.getByTestId("reposicion-cantidad").first().innerText()) : 0;
   expect(n2).toBe(n1 - 1);
   // El aviso no creó ninguna consulta ni venta.
@@ -233,7 +233,8 @@ test("mayorista: solo cuentas aprobadas, precios por tramo validados en el servi
   const fila = ownerPage.getByTestId("mayorista-fila").filter({ hasText: "Kiosco Marta" });
   ownerPage.once("dialog", (d) => void d.accept());
   await fila.getByRole("button", { name: "Aprobar cuenta" }).click();
-  await expect(fila.getByRole("status")).toHaveText("Cuenta aprobada.");
+  // Al guardar, el panel se vuelve a dibujar y la fila pasa a «Aprobada».
+  await expect(fila).toContainText("Aprobada");
   // Aprobada pero con el catálogo cerrado (condiciones sin definir): sigue sin precios.
   await go(page, "/mayoristas/catalogo");
   await expect(page.getByTestId("mayorista-sin-acceso")).toContainText("todavía no está habilitado");
@@ -253,7 +254,7 @@ test("mayorista: solo cuentas aprobadas, precios por tramo validados en el servi
   await expect(page.getByTestId("problemas-pedido")).toContainText("compra mínima");
   await fp.getByLabel(/Cantidad de/).fill("50");
   await expect(fp.getByTestId("precio-unitario")).toContainText("12.000");
-  await expect(page.getByTestId("total-pedido")).toContainText("60.000"); // 50 u. × $12.000
+  await expect(page.getByTestId("total-pedido")).toContainText("600.000"); // 50 u. × $12.000
   await page.getByTestId("enviar-pedido-mayorista").click();
   await expect(page.getByTestId("pedido-mayorista-enviado")).toBeVisible();
   const ref = (await page.getByTestId("pedido-mayorista-enviado").innerText()).match(/TT-[A-Z0-9]{8}/)![0];
@@ -294,7 +295,7 @@ for (const width of [360, 390, 430]) {
     const ref = await crearEncargo(page);
     await admin(ref, { action: "open" });
     await admin(ref, { action: "agreed", agreedMinor: 5_000_000 });
-    for (const url of [`/cuenta/consultas/${ref}`, "/mayoristas", "/mayoristas/catalogo", "/cuenta/avisos", "/productos/parcial-bundle"]) {
+    for (const url of [`/cuenta/consultas/${ref}`, "/mayoristas", "/mayoristas/catalogo", "/cuenta/avisos", "/productos/set-parcial-de-ejemplo-bundle"]) {
       await go(page, url);
       expect(await overflow(page), `${url} a ${width}px`).toBeLessThanOrEqual(0);
     }
