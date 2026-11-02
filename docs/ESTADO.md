@@ -1,5 +1,8 @@
 # Estado del proyecto
 
+> **Continuidad en Codex — 02/11/2026:** el trabajo reciente se encontró en `vasconcelo-publicacion`, rama `feature/cuentas-pedidos-mayorista` (`e6b24c1` al comenzar). `kit-claude-pokemon` conserva una implementación anterior y no se modificó ni mezcló. Se reprodujo el desborde mayorista con una cuenta aprobada y cantidades: 546/390 en el fixture; 552/390 al reconstruir la geometría anterior con el catálogo real y datos ficticios. Causa: las etiquetas accesibles absolutas escapaban del contenedor de la tabla. Corregido con contención local y tarjetas móviles. Los resultados y límites de la continuación se registran en [CONTINUIDAD-PEDIDOS.md](CONTINUIDAD-PEDIDOS.md). Las afirmaciones anteriores de «sin desborde» no cubrían el catálogo autorizado en móvil. Verificación propia final: verify 592 correctas/1 omitida; Playwright completo más repetición del bloque admin, 634 escenarios cubiertos/9 omitidos; 48 capturas y cuatro casos extremos. Una expectativa antigua de aprobación se corrigió y el bloque admin pasó 19/19; los detalles y la falla original están en el informe.
+
+
 > **02/11/2026 — Cuentas Google, pedidos y encargos, comprobantes, envíos agrupados, costos privados y catálogo mayorista (rama `feature/cuentas-pedidos-mayorista`, commits locales sobre `2d2ca08`, SIN push, SIN migración en Supabase real y SIN publicación; pendiente de revisión del dueño):** ver [PEDIDOS.md](PEDIDOS.md) (cómo funciona), [GOOGLE.md](GOOGLE.md) (qué falta configurar), [DECISIONES-PENDIENTES-PEDIDOS.md](DECISIONES-PENDIENTES-PEDIDOS.md) (lo comercial que falta definir) y [PUBLICACION-PEDIDOS.md](PUBLICACION-PEDIDOS.md) (plan de publicación y vuelta atrás, no ejecutado). **Migración nueva `drizzle/0004_pedidos_encargos_mayorista`** (solo agrega 18 tablas y la columna `inquiries.order_kind`; ensayada sobre una base descartable con datos previos). Los archivos `src/app/apple-icon.png`, `favicon.ico` e `icon.svg` siguen siendo del dueño y sin commitear (se verificó que ningún commit de la rama los incluye).
 > **Pruebas ejecutadas sobre este código:** ver «Pedidos y mayoristas: pruebas y límites» al final de este archivo. **No se probó el OAuth real contra Google, ni correo real, ni Supabase Storage real.**
 
@@ -173,7 +176,7 @@ Además, cada acción que cambia datos espera la respuesta del servidor antes de
 
 Informe completo: `docs/VELOCIDAD-DE-CARGA.md`. Una consulta por página en vez de cinco, `zod` fuera del navegador (carrito 214 → 181 KB de JS), fotos fuera de pantalla diferidas (se piden a 400 px; los banners del carrusel no). Medición intercalada en laboratorio local: en móvil lento el inicio queda interactivo ≈28 % antes y el catálogo ≈37 % antes; la ficha de producto en red lenta **no mejora** (limitada por ancho de banda). Escritorio: dentro del ruido. Probado: `npm run verify` (543 OK, 1 omitida) y Playwright completo con WebKit (625 OK, 9 omitidas por diseño, 0 fallas); 0 desbordes en 360/390/430/1366. Limitaciones: laboratorio, no un iPhone ni el hosting; fotos diferidas con alternativa `<noscript>` (probada con y sin JavaScript); no medido contra Supabase real. Sin push ni despliegue. Los archivos `src/app/apple-icon.png`, `favicon.ico` e `icon.svg` siguen siendo del dueño y pendientes (no incluidos en el commit).
 
-## Pedidos y mayoristas: pruebas y límites (02/11/2026)
+## Pedidos y mayoristas: registro de Claude anterior a la continuación (02/11/2026)
 
 Detalle funcional: [PEDIDOS.md](PEDIDOS.md). Capturas: `docs/capturas/pedidos/` (si existe; ver «Vista previa local» abajo).
 

@@ -1,1 +1,1 @@
-desborde horizontal de 162px en mayorista-catalogo-movil-390
+Sin desborde horizontal, imágenes rotas ni errores de consola en las capturas.

@@ -1,0 +1,18 @@
+{
+  "viewport": 390,
+  "fixed": 390,
+  "reconstructedTable": 552,
+  "onlyRelativeWrapper": 390,
+  "labels": [
+    {
+      "text": "Cantidad de Black Bolt · Sobre individual",
+      "position": "absolute",
+      "left": 550.5625
+    },
+    {
+      "text": "Cantidad de White Flare · Caja de 20 sobres",
+      "position": "absolute",
+      "left": 550.5625
+    }
+  ]
+}

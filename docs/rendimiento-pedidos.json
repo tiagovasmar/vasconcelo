@@ -1,0 +1,73 @@
+{
+  "measuredAt": "2026-11-02T22:39:37.162Z",
+  "base": "http://localhost:3010",
+  "runs": 3,
+  "description": "Laboratorio local con datos ficticios. Móvil: CPU 4x, 1.6Mb/s, latencia 150ms; no Safari/iPhone real ni Supabase/Netlify.",
+  "measurements": [
+    {
+      "profile": "escritorio",
+      "page": "seguimiento cliente",
+      "lcpMs": 164,
+      "cls": 0,
+      "tbtMs": 0,
+      "overflow": 0
+    },
+    {
+      "profile": "escritorio",
+      "page": "catálogo mayorista aprobado",
+      "lcpMs": 92,
+      "cls": 0.00008511581106931585,
+      "tbtMs": 0,
+      "overflow": 0
+    },
+    {
+      "profile": "escritorio",
+      "page": "pedido administrador",
+      "lcpMs": 116,
+      "cls": 0.00012615660365226336,
+      "tbtMs": 0,
+      "overflow": 0
+    },
+    {
+      "profile": "escritorio",
+      "page": "costos administrador",
+      "lcpMs": 112,
+      "cls": 0.00012615660365226336,
+      "tbtMs": 0,
+      "overflow": 0
+    },
+    {
+      "profile": "móvil",
+      "page": "seguimiento cliente",
+      "lcpMs": 448,
+      "cls": 0,
+      "tbtMs": 0,
+      "overflow": 0
+    },
+    {
+      "profile": "móvil",
+      "page": "catálogo mayorista aprobado",
+      "lcpMs": 376,
+      "cls": 0,
+      "tbtMs": 0,
+      "overflow": 0
+    },
+    {
+      "profile": "móvil",
+      "page": "pedido administrador",
+      "lcpMs": 300,
+      "cls": 0,
+      "tbtMs": 7,
+      "overflow": 0
+    },
+    {
+      "profile": "móvil",
+      "page": "costos administrador",
+      "lcpMs": 328,
+      "cls": 0,
+      "tbtMs": 0,
+      "overflow": 0
+    }
+  ],
+  "failures": []
+}

@@ -2,7 +2,14 @@
 
 Nada de esto se inventó: los campos existen, están vacíos o con una **decisión de trabajo marcada** y no se publican como condiciones reales hasta que el dueño las confirme. Se agrupan para responder de una vez.
 
-## A. Mayoristas (el catálogo no se puede abrir sin los puntos 1 a 4)
+## Confirmación del dueño en Codex (02/11/2026)
+El dueño pidió dejar pendientes mínimo, combinación, tramos/precios, demoras, plazo de reintegro y cancelación voluntaria. Deben poder configurarse después desde `/admin/mayoristas`, sin cambiar código. Se agregaron allí los dos textos que faltaban (plazo y cancelación), vacíos por defecto. El servidor impide abrir el catálogo mientras falte cualquiera de esas condiciones; no se cargaron condiciones reales.
+
+El cobro en entregas parciales sigue **sin decidir**. Se conserva el control existente de pago completo antes de despachar/entregar; no se interpreta como una aprobación comercial del dueño.
+
+Confirmado: mayorista solo por pedido, seña 20%, resto al llegar a Argentina antes del despacho o al retirar, transferencia/efectivo sin descuento adicional, financiación a 3 o 6 meses solo por consulta y reintegro de la seña si se pierde el paquete o no se puede cumplir. La vista previa usa valores identificados como FICTICIOS en una base nueva descartable.
+
+## A. Mayoristas (el catálogo no se abre sin mínimos, combinación, tramos publicados, demoras, plazo de reintegro y cancelación)
 1. **Compra mínima**: ¿en unidades, en pesos o ambas? ¿Cuánto?
 2. **Combinación de productos**: ¿las unidades de distintos productos suman para alcanzar el mínimo y cada tramo (`pedido`) o cada producto llega a su propio tramo (`producto`)?
 3. **Escalas**: desde qué cantidades hay cada tramo y el precio unitario de cada uno, por producto. (La referencia `costo final × 1,5` ya está en el panel; hacen falta compras confirmadas para verla.)

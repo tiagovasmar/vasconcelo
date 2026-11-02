@@ -1,0 +1,75 @@
+{
+  "date": "2026-11-02",
+  "branch": "feature/cuentas-pedidos-mayorista",
+  "startingCommit": "e6b24c1",
+  "verify": {
+    "passed": 592,
+    "skipped": 1,
+    "filesPassed": 45,
+    "errors": 0,
+    "lintWarnings": 4,
+    "skipReason": "No existe la copia SQLite histórica local requerida por el ensayo opcional."
+  },
+  "playwright": {
+    "completeRun": {
+      "passed": 627,
+      "failed": 1,
+      "skippedByDesign": 9,
+      "notRunAfterSerialFailure": 6,
+      "flaky": 0
+    },
+    "cause": "Prueba antigua esperaba 409 policy_pending para aprobación mayorista; la regla vigente permite aprobación manual por el dueño (200), y mantiene separado el cierre del catálogo por condiciones pendientes.",
+    "correction": "Prueba con botón real de aprobación, persistencia, rechazo para cuenta sin permisos y catálogo cerrado para cuenta aprobada sin condiciones.",
+    "entireAdminRepeat": {
+      "passed": 19,
+      "failed": 0,
+      "skipped": 0
+    },
+    "finalDistinctCoverage": {
+      "passed": 634,
+      "skippedByDesign": 9,
+      "unresolvedFailures": 0
+    },
+    "method": "Cobertura de la corrida completa más repetición de todo el bloque administrador. Los 12 casos admin ya correctos no se cuentan dos veces. No se afirma una segunda corrida monolítica verde.",
+    "webkit": {
+      "project": "resil-webkit",
+      "passed": 33,
+      "note": "Motor WebKit de laboratorio en Windows; no Safari/iPhone físico. El catálogo aprobado se verificó con Chromium en cuatro anchos."
+    },
+    "pedidos": {
+      "passed": 9,
+      "widths": [
+        360,
+        390,
+        430,
+        1440
+      ]
+    },
+    "freshSequentialBuilds": 8
+  },
+  "captures": {
+    "normal": 48,
+    "regression": 4,
+    "baseline": 1,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "brokenImages": 0
+  },
+  "performance": {
+    "profiles": [
+      "escritorio",
+      "móvil"
+    ],
+    "screens": 4,
+    "runsPerScreen": 3,
+    "maxLcpMs": 448,
+    "maxCls": 0.00012615660365226336,
+    "maxTbtMs": 7,
+    "budgetFailures": 0,
+    "note": "Build local con datos ficticios; navegaciones reutilizan caché. No es medición del hosting ni comparación contra una línea base."
+  },
+  "realServicesVerified": false,
+  "productionChanged": false,
+  "pushOrDeployment": false,
+  "implementationCommit": "0af935d"
+}

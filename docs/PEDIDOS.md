@@ -80,7 +80,7 @@ En un producto agotado (`stock = 0`) se pide el correo (invitados) o se usa el v
 - Tabla de pedido: buscar, filtrar por idioma y presentación, cantidades y, por producto: foto pequeña, idioma/edición, presentación, tramos, **precio unitario según el tramo** y total. Sin tramo alcanzado o sin precio: **«A cotizar»**.
 - **Siempre por pedido**: el stock minorista no es stock mayorista y un pedido mayorista no reserva ni descuenta stock. Transferencia o efectivo **sin descuento adicional**; no se aplican el 10% por transferencia ni las cuotas sin interés. Financiación a 3 o 6 meses: solo consulta, sin prometer aprobación, cuotas ni tasas.
 - **Precios:** los fija el dueño por tramo (en USD, convertidos a pesos con la conversión única del sitio). La referencia interna es **costo final × 1,5** (recargo del 50% sobre el costo, *no* un margen sobre la venta y *no* «30% menos que el minorista»); `/admin/mayoristas` la muestra junto al costo promedio. Los tramos nacen en borrador y se publican tras revisarlos; los precios deben bajar al comprar más.
-- **Condiciones sin definir y por eso vacías** (campos listos, probados con datos ficticios): compra mínima, si los productos se combinan para el mínimo y cada tramo, tramos y demoras. **El catálogo no se puede abrir** (el servidor lo rechaza) hasta que estén definidas y haya un tramo publicado. La demora se informa con «desde cuándo se cuenta» y sin fechas garantizadas.
+- **Condiciones sin definir y por eso vacías** (campos listos, probados con datos ficticios): compra mínima, si los productos se combinan para el mínimo y cada tramo, tramos, demoras, plazo de reintegro y condiciones de cancelación voluntaria. Los dos últimos son textos editables en el panel, vacíos hasta definirlos. **El catálogo no se puede abrir** (el servidor lo rechaza) hasta que estén definidas y haya un tramo publicado. La demora se informa con «desde cuándo se cuenta» y sin fechas garantizadas.
 - Seguimiento, pagos, incidentes y entregas parciales: **los mismos que los encargos** (seña del 20% tras confirmar disponibilidad e importe; resto al retirar o antes del despacho).
 - Se retiró el «30% sobre el precio minorista» de la lógica y de todos los textos (inicio, cuenta, cómo comprar, mayoristas, solicitud, panel).
 
@@ -91,3 +91,12 @@ En un producto agotado (`stock = 0`) se pide el correo (invitados) o se usa el v
 ## 11. Pruebas
 
 Ver `docs/ESTADO.md` (sección de esta tanda) para lo ejecutado y sus límites.
+
+## 12. Continuidad y vista previa segura (02/11/2026)
+La continuación está en `C:\Users\tiago\Documents\Codex\2026-10-13\rev\work\vasconcelo-publicacion`, rama `feature/cuentas-pedidos-mayorista`. La carpeta `kit-claude-pokemon` es anterior y no se mezcló con esta.
+
+- Vista previa: `npx tsx --conditions=react-server scripts/preview-pedidos.ts`. Crea PostgreSQL nuevo en un puerto libre, aplica migraciones solo allí, siembra datos ficticios y construye/arranca producción local en `http://localhost:3010`. Accesos en `.local/preview-pedidos-continuidad/acceso.txt`; contraseñas en archivos locales ignorados. No reutiliza 54400/54401 y no carga credenciales reales. Mientras el proceso corre, la vista está disponible. Al detenerlo se descarta la base.
+- `dev:pedidos` ahora rechaza el puerto 54400 y exige `ENTORNO_DESCARTABLE=1` además de `ENTORNO_LOCAL=1`. Usar el lanzador anterior; no ejecutar la vieja secuencia de siembra sobre la base habitual.
+- Suite completa con builds nuevos secuenciales: `npx tsx scripts/e2e-completo.ts`. Es la misma suite y los mismos proyectos de Playwright, incluido WebKit; construir secuencialmente evita ocho builds simultáneos. Informe JSON local en `.local/playwright-final.json`.
+- Catálogo móvil: tarjetas con los mismos controles y validación del servidor. La etiqueta accesible queda dentro de un contenedor posicionado; no se agregó ocultamiento global de desbordes. En escritorio se conserva la tabla.
+- Informe y resultados de esta continuación: [CONTINUIDAD-PEDIDOS.md](CONTINUIDAD-PEDIDOS.md).
