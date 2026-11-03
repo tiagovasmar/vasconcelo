@@ -273,6 +273,7 @@ test("mayorista: solicitud, tramos, pedido, seña y envío internacional", async
   }
 
   const reglas = ownerPage.getByTestId("form-reglas");
+  await reglas.getByLabel("Compra mínima (cajas)").fill("");
   await reglas.getByLabel("Compra mínima (unidades)").fill("10");
   await reglas.getByLabel(/Se combinan productos/).selectOption("producto");
   await reglas.getByLabel("Demora estimada").fill("Entre 30 y 60 días (dato ficticio)");
