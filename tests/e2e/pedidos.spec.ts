@@ -238,15 +238,21 @@ test("«Avisame cuando vuelva»: consentimiento, sin duplicados, cancelación y 
   expect((await ownerPage.request.get(`${ORIGIN}/admin/consultas`)).ok()).toBe(true);
 });
 
-test("mayorista: solo cuentas aprobadas, precios por tramo validados en el servidor y pedido por pedido", async ({ page, browser }) => {
+test("mayorista: solicitud, tramos, pedido, seña y envío internacional", async ({ page, browser }, testInfo) => {
+  test.setTimeout(90_000);
   const mail = newEmail("mayor");
   await signUp(page, "Marta Gómez", mail);
   // Sin aprobar: ni un precio mayorista en la página.
   await go(page, "/mayoristas/catalogo");
   await expect(page.getByTestId("mayorista-sin-acceso")).toBeVisible();
   await expect(page.locator("body")).not.toContainText("Precio unitario");
-  const sol = await api(page.request, "/api/mayoristas/solicitud", { businessName: "Kiosco Marta", locality: "Haedo", province: "Buenos Aires" });
-  expect(sol.status()).toBeLessThan(300);
+  await go(page, "/mayoristas/solicitar");
+  const solicitud = page.getByTestId("form-mayorista");
+  await solicitud.getByLabel(/Nombre comercial/).fill("Kiosco Marta");
+  await solicitud.getByLabel("Localidad").fill("Haedo");
+  await solicitud.getByLabel("Provincia").selectOption("Buenos Aires");
+  await solicitud.getByRole("button", { name: "Enviar solicitud" }).click();
+  await expect(page.getByTestId("solicitud-guardada")).toBeVisible();
   // El dueño define tramos y condiciones (DATOS FICTICIOS DE PRUEBA, no condiciones reales).
   await go(ownerPage, "/admin/mayoristas");
   const fila = ownerPage.getByTestId("mayorista-fila").filter({ hasText: "Kiosco Marta" });
@@ -257,12 +263,33 @@ test("mayorista: solo cuentas aprobadas, precios por tramo validados en el servi
   // Aprobada pero con el catálogo cerrado (condiciones sin definir): sigue sin precios.
   await go(page, "/mayoristas/catalogo");
   await expect(page.getByTestId("mayorista-sin-acceso")).toContainText("todavía no está habilitado");
-  const t1 = await api(ownerPage.request, "/api/admin/mayorista", { action: "tier", productId: "storm-sobre", minQty: 10, unitPriceUsdMinor: 1000 });
-  expect(t1.ok(), await t1.text()).toBe(true);
-  await api(ownerPage.request, "/api/admin/mayorista", { action: "tier", productId: "storm-sobre", minQty: 50, unitPriceUsdMinor: 800 });
-  expect((await api(ownerPage.request, "/api/admin/mayorista", { action: "publish", productId: "storm-sobre" })).ok()).toBe(true);
-  const closed = await api(ownerPage.request, "/api/admin/mayorista", { action: "rules", rules: { minUnits: 10, minAmountMinor: null, combine: "producto", delayText: "entre 30 y 60 días (dato ficticio de prueba)", delayFrom: "la confirmación de la seña", refundPeriod: "Plazo FICTICIO de prueba, pendiente de definición real", cancellationPolicy: "Condición FICTICIA de prueba, pendiente de definición real", open: true } });
-  expect(closed.ok(), await closed.text()).toBe(true);
+  const tramos = ownerPage.getByTestId("form-tramo");
+  for (const [cantidad, precio] of [["10", "10"], ["50", "8"]]) {
+    await tramos.getByLabel("Producto").selectOption("storm-sobre");
+    await tramos.getByLabel("Desde (unidades)").fill(cantidad);
+    await tramos.getByLabel("Precio unitario (USD)").fill(precio);
+    await tramos.getByRole("button", { name: "Guardar tramo (borrador)" }).click();
+    await expect(tramos.getByRole("status")).toHaveText("Tramo guardado como borrador.");
+  }
+
+  const reglas = ownerPage.getByTestId("form-reglas");
+  await reglas.getByLabel("Compra mínima (unidades)").fill("10");
+  await reglas.getByLabel(/Se combinan productos/).selectOption("producto");
+  await reglas.getByLabel("Demora estimada").fill("Entre 30 y 60 días (dato ficticio)");
+  await reglas.getByLabel(/Se cuenta desde/).fill("la confirmación de la seña");
+  await reglas.getByLabel(/Plazo de reintegro/).fill("Plazo ficticio de prueba");
+  await reglas.getByLabel(/Condiciones de cancelación/).fill("Condición ficticia de prueba");
+  await reglas.getByRole("checkbox").check();
+  const guardar = reglas.getByRole("button", { name: "Guardar condiciones" });
+  await guardar.click();
+  await expect(reglas.getByRole("alert")).toContainText(/tramo/i);
+
+  ownerPage.once("dialog", (d) => void d.accept());
+  await ownerPage.getByRole("button", { name: "Revisé los precios: publicar" }).click();
+  await expect(ownerPage.getByTestId("tramos-producto").getByTestId("tramo").filter({ hasText: "Publicado" })).toHaveCount(2);
+  await guardar.click();
+  await expect(reglas.getByRole("status")).toHaveText("Condiciones guardadas.");
+  await expect(ownerPage.getByTestId("estado-catalogo-mayorista")).toContainText("ABIERTO");
 
   await go(page, "/mayoristas/catalogo");
   const tabla = page.getByTestId("tabla-mayorista");
@@ -313,7 +340,7 @@ test("mayorista: solo cuentas aprobadas, precios por tramo validados en el servi
       offenders: [...document.querySelectorAll("main *")].filter((el) => el.getBoundingClientRect().right > innerWidth + 1).slice(0, 15).map((el) => ({ tag: el.tagName, class: el.className, right: el.getBoundingClientRect().right, width: el.getBoundingClientRect().width })),
     }));
     await test.info().attach(`catalogo-${width}-geometria`, { body: JSON.stringify(geometry, null, 2), contentType: "application/json" });
-    await page.screenshot({ path: `docs/capturas/pedidos/mayorista-regresion-${width}.png`, fullPage: true });
+    await page.screenshot({ path: testInfo.outputPath(`mayorista-regresion-${width}.png`), fullPage: true });
     expect(geometry.document, JSON.stringify(geometry)).toBeLessThanOrEqual(width);
   }
   const a11y = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
@@ -339,6 +366,62 @@ test("mayorista: solo cuentas aprobadas, precios por tramo validados en el servi
   await go(otra.page, "/mayoristas/catalogo");
   await expect(otra.page.locator("body")).not.toContainText("USD 8,00");
   await otra.ctx.close();
+
+  await go(ownerPage, `/admin/pedidos/${ref}`);
+  const importe = ownerPage.getByTestId("form-importe");
+  await importe.getByLabel(/Importe acordado/).fill("600.000");
+  await importe.getByRole("button", { name: "Guardar importe" }).click();
+  await expect(importe.getByRole("status")).toHaveText("Importe guardado.");
+  const etapa = ownerPage.getByTestId("form-etapa");
+  await etapa.getByLabel(/Nueva etapa/).selectOption("confirmado_tienda");
+  await etapa.getByRole("button", { name: "Guardar etapa" }).click();
+  await expect(ownerPage.getByTestId("admin-etapa-actual")).toContainText("confirmados por la tienda");
+
+  await go(page, `/cuenta/consultas/${ref}`);
+  const seg = page.getByTestId("seguimiento");
+  await expect(seg.getByTestId("importe-transferir")).toContainText("120.000");
+  await expect(seg.getByTestId("alias-transferencia")).toHaveText("vasconcelotiago");
+  await seg.locator("#comprobante-archivo").setInputFiles({ name: "sena-mayorista.pdf", mimeType: "application/pdf", buffer: PDF });
+  await seg.getByLabel(/Importe transferido/).fill("120.000");
+  await seg.getByRole("button", { name: "Subir comprobante" }).click();
+  await expect(seg.getByTestId("estado-pago")).toHaveText("Comprobante en revisión");
+
+  await go(ownerPage, `/admin/pedidos/${ref}`);
+  const pago = ownerPage.getByTestId("form-pago");
+  await pago.getByLabel(/Tipo/).selectOption("sena");
+  await pago.getByLabel(/^Importe/).fill("120.000");
+  await pago.getByLabel(/Comprobante que respalda/).selectOption({ index: 1 });
+  await pago.getByRole("button", { name: "Confirmar ingreso" }).click();
+  await expect(pago.getByRole("status")).toHaveText("Ingreso confirmado.");
+  const purchased = await admin(ref, { action: "stage", stage: "comprado_proveedor", occurredAt: Date.now() });
+  expect(purchased.ok(), await purchased.text()).toBe(true);
+
+  const envio = (data: Record<string, unknown>) => api(ownerPage.request, "/api/admin/envios", { idempotencyKey: key(), ...data });
+  const created = await envio({ action: "create", label: "Envío mayorista ficticio" });
+  expect(created.ok(), await created.text()).toBe(true);
+  const { id: shipmentId } = await created.json();
+  const other = await envio({ action: "create", label: "Otro envío ficticio" });
+  expect(other.ok(), await other.text()).toBe(true);
+  await go(ownerPage, "/admin/envios");
+  const shipment = ownerPage.getByTestId("envio").filter({ hasText: shipmentId });
+  const article = shipment.getByRole("combobox", { name: /^Artículo\s*\*$/ });
+  const lineId = await article.locator("option").filter({ hasText: ref }).getAttribute("value");
+  await article.selectOption(lineId!);
+  await shipment.getByLabel(/Cantidad en este envío/).fill("50");
+  await shipment.getByRole("button", { name: "Sumar al envío" }).click();
+  await expect(shipment.getByTestId("envio-item")).toContainText(ref);
+  for (const status of ["enviado_proveedor", "recibido_origen", "en_transito"]) {
+    const updated = await envio({ action: "status", shipmentId, status, occurredAt: Date.now() });
+    expect(updated.ok(), await updated.text()).toBe(true);
+  }
+  await go(page, `/cuenta/consultas/${ref}`);
+  await expect(seg.getByTestId("etapa-actual")).toHaveText("En tránsito a Argentina");
+  await expect(seg.getByTestId("datos-transferencia")).toHaveCount(0);
+  const arrived = await envio({ action: "status", shipmentId, status: "recibido_argentina", occurredAt: Date.now() });
+  expect(arrived.ok(), await arrived.text()).toBe(true);
+  await go(page, `/cuenta/consultas/${ref}`);
+  await expect(seg.getByTestId("etapa-actual")).toHaveText("Recibido en Argentina");
+  await expect(seg.getByTestId("importe-transferir")).toContainText("480.000");
 });
 
 test("costos y ganancia son privados: ni clientes ni anónimos acceden", async ({ page, browser }) => {

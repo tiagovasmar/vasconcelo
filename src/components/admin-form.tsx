@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { parseMoney } from "@/lib/money-input";
 
 export { parseMoney };
@@ -37,6 +37,7 @@ export function AdminForm({ endpoint, method = "POST", fixed = {}, fields, submi
   endpoint: string; method?: "POST" | "PATCH" | "PUT"; fixed?: Record<string, unknown>; fields: FormField[]; submit: string; ok?: string; compact?: boolean; confirmText?: string; idempotent?: boolean; testId?: string;
 }) {
   const router = useRouter();
+  const formId = useId();
   const init = () => Object.fromEntries(fields.map((f) => [f.name, f.defaultValue ?? (f.type === "checkbox" ? false : f.type === "date" ? todayYmd() : f.type === "select" && f.required ? (f.options?.[0]?.value ?? "") : "")]));
   const [values, setValues] = useState<Record<string, string | boolean>>(init);
   const [busy, setBusy] = useState(false);
@@ -85,7 +86,7 @@ export function AdminForm({ endpoint, method = "POST", fixed = {}, fields, submi
   return (
     <form onSubmit={onSubmit} className={compact ? "flex flex-wrap items-end gap-3" : "grid gap-3 sm:grid-cols-2"} data-testid={testId}>
       {fields.map((f) => {
-        const id = `${endpoint}-${f.name}`.replace(/[^a-z0-9-]/gi, "");
+        const id = `${formId}-${f.name}`.replace(/[^a-z0-9-]/gi, "");
         const t = f.type ?? "text";
         return (
           <div key={f.name} className={t === "textarea" ? "sm:col-span-2" : ""}>

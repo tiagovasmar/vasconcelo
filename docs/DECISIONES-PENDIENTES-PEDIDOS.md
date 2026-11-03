@@ -11,7 +11,7 @@ Confirmado: mayorista solo por pedido, seña 20%, resto al llegar a Argentina an
 
 ## A. Mayoristas (el catálogo no se abre sin mínimos, combinación, tramos publicados, demoras, plazo de reintegro y cancelación)
 1. **Compra mínima**: ¿en unidades, en pesos o ambas? ¿Cuánto?
-2. **Combinación de productos**: ¿las unidades de distintos productos suman para alcanzar el mínimo y cada tramo (`pedido`) o cada producto llega a su propio tramo (`producto`)?
+2. **Combinación de productos**: ¿las unidades de distintos productos suman para alcanzar el mínimo y cada tramo (`pedido`) o cada producto llega a su propio tramo (`producto`)? Hoy el mínimo global en unidades suma todo el pedido en ambos modos. El selector cambia qué cantidad se usa para buscar el tramo de cada producto.
 3. **Escalas**: desde qué cantidades hay cada tramo y el precio unitario de cada uno, por producto. (La referencia `costo final × 1,5` ya está en el panel; hacen falta compras confirmadas para verla.)
 4. **Demoras estimadas** y **desde qué momento se cuentan** (por ejemplo, desde la confirmación de la seña). Sin fechas garantizadas.
 5. **Moneda de los precios por tramo**: hoy se cargan en **USD** (como el catálogo) y se muestran en pesos con la conversión del sitio. ¿Lo preferís en pesos fijos?

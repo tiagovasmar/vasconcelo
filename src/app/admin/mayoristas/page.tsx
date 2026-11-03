@@ -37,7 +37,7 @@ export default async function AdminMayoristas() {
 
       <section className={card} data-testid="reglas-mayoristas">
         <h2 className="text-base font-semibold">Condiciones comerciales</h2>
-        <p className="mt-1 text-xs text-ink/70">Todavía sin definir: compra mínima, si los productos se combinan para el mínimo y cada tramo, y las demoras estimadas. El catálogo mayorista <b>no se puede abrir</b> hasta que estén definidas y haya al menos un tramo publicado. La demora se informa antes de pagar la seña, indicando desde qué momento se cuenta; no se prometen fechas.</p>
+        <p className="mt-1 text-xs text-ink/70">Para abrir el catálogo, definí la compra mínima, la combinación de productos, la demora y desde cuándo se cuenta, el plazo de reintegro y las condiciones de cancelación. También hace falta publicar al menos un tramo. La demora se informa antes de pagar la seña, indicando desde qué momento se cuenta; no se prometen fechas.</p>
         <p className="mt-2 text-sm font-semibold" data-testid="estado-catalogo-mayorista">{rules.open && missing.length === 0 ? "Catálogo ABIERTO para cuentas aprobadas." : `Catálogo CERRADO.${missing.length ? ` Falta definir: ${missing.join("; ")}.` : " Falta activar el interruptor."}`}</p>
         <div className="mt-3">
           <AdminForm endpoint="/api/admin/mayorista" idempotent={false} fixed={{ action: "rules" }} fields={[
