@@ -107,6 +107,12 @@ async function main() {
   // 3) Encargo de un invitado (sin cuenta).
   await encargo(null, [{ productId: b.id, quantity: 1 }], "Invitado Prueba");
 
+  // Ejemplo visible para revisar la seña y el comprobante sin alterar el pedido en tránsito.
+  const senaDemo = await encargo(ana, [{ productId: b.id, quantity: 1 }]);
+  await setAgreedAmount(db, senaDemo, { agreedMinor: 10_000_000 }, actor, at(1));
+  await setStage(db, senaDemo, { stage: "confirmado_tienda", occurredAt: at(1), idempotencyKey: k() }, actor, at(1));
+  await addNote(db, senaDemo, { publicText: "Ejemplo FICTICIO para revisar la seña del 20% y adjuntar un comprobante. No realices transferencias para esta demostración.", idempotencyKey: k() }, actor, at(1));
+
   // 4) Avisos de reposición (producto agotado).
   await subscribeRestock(db, { productId: agotado.id, consent: true, email: "interesada1@example.com" }, { userId: null, accountEmail: null, emailVerified: false }, at(3));
   await subscribeRestock(db, { productId: agotado.id, consent: true, email: "interesado2@example.com" }, { userId: null, accountEmail: null, emailVerified: false }, at(2));

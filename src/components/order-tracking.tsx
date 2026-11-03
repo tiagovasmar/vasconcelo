@@ -1,6 +1,7 @@
 import { INCIDENT_KIND_LABEL, REFUND_STATUS_LABEL, type CustomerOrderView } from "@/features/pedidos/service";
-import { SHIPMENT_LABEL, type ShipmentStatus } from "@/features/pedidos/etapas";
+import { SHIPMENT_LABEL, senaFor, transferDue, type ShipmentStatus } from "@/features/pedidos/etapas";
 import { encargo, mayorista } from "@/content/politicas";
+import { transferencia } from "@/content/transferencia";
 import { formatARS } from "@/lib/format";
 import { ReceiptUpload } from "./receipt-upload";
 
@@ -12,12 +13,14 @@ const receiptState: Record<string, string> = { pendiente_revision: "En revisión
 
 /**
  * «Mi pedido»: línea de seguimiento con fechas reales, estado del pago aparte de la logística, artículos con su avance (llegó / en camino / entregado), notas públicas,
- * incidentes y reintegros. NO muestra notas internas, costos ni datos bancarios, y no es un tablero de deuda: dice qué acción corresponde cuando hace falta.
+ * incidentes y reintegros. NO muestra notas internas ni costos. Los datos de transferencia son los del comercio, nunca los de otras personas.
  * La consulta por WhatsApp lleva la referencia del pedido.
  */
 export function OrderTracking({ view, whatsappNumber, linkToken }: { view: CustomerOrderView; whatsappNumber: string | null; linkToken?: string }) {
   const wa = whatsappNumber ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(`Hola, consulto por mi pedido ${view.reference}.`)}` : null;
   const k = linkToken ? `?k=${encodeURIComponent(linkToken)}` : "";
+  const sena = view.kind === "stock" ? null : senaFor(view.agreedMinor);
+  const due = transferDue({ ...view, confirmedMinor: view.payments.reduce((sum, p) => sum + p.amountMinor, 0) });
   return (
     <section aria-labelledby="seguimiento-title" className="mt-8 border border-ink/25 bg-white/80 p-5" data-testid="seguimiento">
       <p className="eyebrow text-vermilion">{kindName[view.kind]} · {view.reference}</p>
@@ -38,10 +41,11 @@ export function OrderTracking({ view, whatsappNumber, linkToken }: { view: Custo
       </ol>
 
       <div className="mt-6 grid gap-5 md:grid-cols-2">
-        <div data-testid="bloque-pago">
+        <div className="min-w-0" data-testid="bloque-pago">
           <h3 className="text-base font-bold">Pago</h3>
           <dl className="mt-2 space-y-1 text-sm">
             <div className="flex justify-between gap-4"><dt>Importe acordado</dt><dd className="font-extrabold" data-testid="importe-acordado">{view.agreedMinor === null ? "A confirmar por la tienda" : formatARS(view.agreedMinor)}</dd></div>
+            {sena !== null && <div className="flex flex-wrap justify-between gap-x-4 gap-y-1"><dt>Seña del {encargo.senaPercent}% del total</dt><dd className="text-lg font-extrabold" data-testid="importe-sena">{formatARS(sena)}</dd></div>}
             <div className="flex justify-between gap-4"><dt>Estado del pago</dt><dd className="font-semibold" data-testid="estado-pago">{view.paymentStatusLabel}</dd></div>
           </dl>
           {view.payments.length > 0 && (
@@ -53,7 +57,16 @@ export function OrderTracking({ view, whatsappNumber, linkToken }: { view: Custo
           {view.kind !== "stock" && <p className="mt-2 text-xs text-ink/75">Condiciones: seña del {view.kind === "mayorista" ? mayorista.senaPercent : encargo.senaPercent}% del importe confirmado; el resto se paga cuando el pedido llega a Argentina, antes del despacho o del retiro. Si el paquete se pierde o un problema impide cumplir el pedido, se reintegra la seña.</p>}
         </div>
 
-        <div data-testid="bloque-comprobantes">
+        <div className="min-w-0" data-testid="bloque-comprobantes">
+          {due && <div className="mb-4 min-w-0 rounded-lg border border-emerald/30 bg-emerald/5 p-4" data-testid="datos-transferencia">
+            <h3 className="text-base font-bold">{due.kind === "sena" ? "Transferí la seña" : "Completá el pago de tu pedido"}</h3>
+            <p className="mt-2 text-2xl font-extrabold" data-testid="importe-transferir">{formatARS(due.amountMinor)}</p>
+            <dl className="mt-3 space-y-2 text-sm">
+              <div><dt className="text-ink/75">Alias</dt><dd className="break-all text-base font-extrabold" data-testid="alias-transferencia">{transferencia.alias}</dd></div>
+              <div><dt className="text-ink/75">Titular</dt><dd className="font-semibold">{transferencia.titular}</dd></div>
+            </dl>
+            <p className="mt-3 text-sm">Verificá el alias y el titular antes de transferir. Después cargá el comprobante acá abajo.</p>
+          </div>}
           <h3 className="text-base font-bold">Comprobantes de transferencia</h3>
           <p className="mt-1 text-xs text-ink/70">Subir un comprobante no confirma el pago: la tienda lo revisa y confirma el ingreso.</p>
           {view.receipts.length > 0 && (

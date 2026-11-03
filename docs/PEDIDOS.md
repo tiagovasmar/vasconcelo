@@ -39,6 +39,7 @@ Reglas que el servidor hace cumplir (no la interfaz):
 - Antes de despachar o retirar (`enviado`, `listo_retiro`) o de registrar una entrega tiene que estar confirmado el **pago completo** (seña + 80%). *Decisión de trabajo: ver DECISIONES-PENDIENTES-PEDIDOS.md §7.*
 - No se puede marcar «entregado» por entregar solo una parte.
 - Condiciones visibles para la cliente antes de pagar: seña del 20% del importe confirmado, 80% al llegar a Argentina (antes del despacho o del retiro) y reintegro de la seña si el paquete se pierde o un problema impide cumplir el encargo. **No se inventaron** el plazo de reintegro ni reglas de cancelación voluntaria.
+- En el seguimiento de encargos y mayoristas se desglosa el importe de la seña (20%). Solo tras confirmar disponibilidad e importe se muestran los datos de transferencia del comercio: alias `vasconcelotiago`, titular **Tiago Vasconcelo Marostica**, junto a la carga privada del comprobante. Con pagos parciales se solicita solo la diferencia de la seña; con un comprobante en revisión no se pide otra transferencia. El resto se solicita recién al llegar a Argentina. Cancelados, entregados y pagos completos no muestran una nueva instrucción de transferencia. Estos datos no pertenecen a clientes y no se cambia ningún dato bancario privado ni credencial.
 
 ## 4. Pagos, comprobantes, incidentes y reintegros
 

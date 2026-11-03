@@ -90,21 +90,34 @@ export const PAYMENT_STATUS_LABEL: Record<PaymentSummary["status"], string> = {
 /** Importe de la seña (20% del importe acordado y confirmado). null mientras no haya importe acordado: nunca se calcula sobre un precio inexistente. */
 export const senaFor = (agreedMinor: number | null): number | null => (agreedMinor && agreedMinor > 0 ? percentOf(agreedMinor, encargo.senaPercent) : null);
 
+export type OrderPaymentInput = { kind: TrackKind; stage: string; agreedMinor: number | null; confirmedMinor: number; pendingReceipts: number; cancelled: boolean };
+
+/** Solo pide transferir con disponibilidad e importe confirmados. Nunca vuelve a cobrar lo ya confirmado. */
+export function transferDue(p: OrderPaymentInput): { kind: "sena" | "resto"; amountMinor: number } | null {
+  if (p.kind === "stock" || p.cancelled || p.stage === "entregado" || p.pendingReceipts > 0) return null;
+  const sena = senaFor(p.agreedMinor);
+  const r = rank(p.kind, p.stage);
+  if (sena === null || p.agreedMinor === null || r < rank(p.kind, "confirmado_tienda") || p.confirmedMinor >= p.agreedMinor) return null;
+  if (r >= rank(p.kind, "recibido_argentina")) return { kind: "resto", amountMinor: p.agreedMinor - p.confirmedMinor };
+  if (p.confirmedMinor < sena) return { kind: "sena", amountMinor: sena - p.confirmedMinor };
+  return null;
+}
+
 /**
  * Qué acción corresponde a la cliente, sin tablero de deuda: una frase según el tipo, la etapa y lo ya confirmado.
  * El saldo (80%) se pide recién cuando el pedido llegó a Argentina y antes del despacho o del retiro.
  */
-export function nextAction(p: { kind: TrackKind; stage: string; agreedMinor: number | null; confirmedMinor: number; pendingReceipts: number; cancelled: boolean }, fmt: (minor: number) => string): string | null {
+export function nextAction(p: OrderPaymentInput, fmt: (minor: number) => string): string | null {
   if (p.cancelled || p.stage === "entregado") return null;
-  const sena = senaFor(p.agreedMinor);
   if (p.kind !== "stock") {
-    if (p.agreedMinor === null) return "La tienda te va a confirmar el producto, la disponibilidad y el importe. Todavía no hace falta pagar nada.";
-    if (p.confirmedMinor <= 0) {
-      if (p.pendingReceipts > 0) return "Recibimos tu comprobante. Lo revisamos y, cuando confirmemos el ingreso, avanzamos con la compra.";
-      return sena !== null ? `Para avanzar con la compra, abonar la seña del ${encargo.senaPercent}% (${fmt(sena)}). Podés adjuntar el comprobante acá.` : null;
-    }
-    const r = rank(p.kind, p.stage);
-    if (r >= rank(p.kind, "recibido_argentina") && r < rank(p.kind, "entregado") && p.confirmedMinor < p.agreedMinor) return `Tu pedido ya está en Argentina. Falta abonar el resto del importe acordado (${fmt(p.agreedMinor - p.confirmedMinor)}) antes del despacho o del retiro. Podés adjuntar el comprobante acá.`;
+    if (p.agreedMinor === null || rank(p.kind, p.stage) < rank(p.kind, "confirmado_tienda")) return "La tienda te va a confirmar el producto, la disponibilidad y el importe. Todavía no hace falta pagar nada.";
+    if (p.pendingReceipts > 0) return "Recibimos tu comprobante. Lo estamos revisando: no vuelvas a transferir ese importe mientras esperás la confirmación.";
+    if (p.confirmedMinor >= p.agreedMinor) return "El pago completo ya está confirmado. No hace falta que transfieras más.";
+    const due = transferDue(p);
+    if (due?.kind === "sena") return p.confirmedMinor > 0
+      ? `Para completar la seña del ${encargo.senaPercent}%, falta abonar ${fmt(due.amountMinor)}. Podés adjuntar el comprobante acá.`
+      : `Para avanzar con la compra, abonar la seña del ${encargo.senaPercent}% (${fmt(due.amountMinor)}). Podés adjuntar el comprobante acá.`;
+    if (due?.kind === "resto") return `Tu pedido ya está en Argentina. Falta abonar el resto del importe acordado (${fmt(due.amountMinor)}) antes del despacho o del retiro. Podés adjuntar el comprobante acá.`;
     return `Cuando tu pedido llegue a Argentina te avisamos para abonar el ${100 - encargo.senaPercent}% restante, antes del despacho o del retiro.`;
   }
   if (p.agreedMinor !== null && p.confirmedMinor < p.agreedMinor && p.pendingReceipts === 0 && rank("stock", p.stage) < rank("stock", "entregado")) return "Si ya transferiste, adjuntá el comprobante acá para que lo revisemos.";

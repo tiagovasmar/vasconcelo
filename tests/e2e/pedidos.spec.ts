@@ -85,6 +85,10 @@ test("encargo de punta a punta: seguimiento, pago separado, comprobante privado 
   await importe.getByLabel(/Importe acordado/).fill("100.000");
   await importe.getByRole("button", { name: "Guardar importe" }).click();
   await expect(importe.getByRole("status")).toHaveText("Importe guardado.");
+  // Un importe guardado sin confirmar disponibilidad no habilita todavía la transferencia.
+  await go(page, `/cuenta/consultas/${ref}`);
+  await expect(page.getByTestId("datos-transferencia")).toHaveCount(0);
+  await expect(page.getByTestId("accion-pedido")).toContainText("Todavía no hace falta pagar");
   const etapa = ownerPage.getByTestId("form-etapa");
   await etapa.getByLabel(/Nueva etapa/).selectOption("confirmado_tienda");
   await etapa.getByRole("button", { name: "Guardar etapa" }).click();
@@ -96,6 +100,17 @@ test("encargo de punta a punta: seguimiento, pago separado, comprobante privado 
   await expect(seg.getByTestId("etapa-actual")).toHaveText("Producto, disponibilidad e importe confirmados por la tienda");
   await expect(seg.getByTestId("importe-acordado")).toContainText("100.000");
   await expect(seg.getByTestId("accion-pedido")).toContainText("seña del 20%");
+  await expect(seg.getByTestId("importe-sena")).toContainText("20.000");
+  await expect(seg.getByTestId("importe-transferir")).toContainText("20.000");
+  await expect(seg.getByTestId("alias-transferencia")).toHaveText("vasconcelotiago");
+  await expect(seg.getByTestId("datos-transferencia")).toContainText("Tiago Vasconcelo Marostica");
+  for (const width of [360, 390, 430]) {
+    await page.setViewportSize({ width, height: 844 });
+    expect(await overflow(page)).toBeLessThanOrEqual(1);
+    await expect(seg.getByTestId("alias-transferencia")).toBeVisible();
+    await expect(seg.getByRole("button", { name: "Subir comprobante" })).toBeVisible();
+  }
+  await page.setViewportSize({ width: 1440, height: 900 });
   await expect(seg).not.toContainText(/saldo pendiente|deuda|debés/i);
   await expect(seg.getByTestId("consultar-whatsapp")).toHaveAttribute("href", new RegExp(`wa\\.me/5491155550000\\?text=.*${ref}`));
   await expect(seg.getByTestId("referencia-pedido")).toHaveText(ref);
@@ -106,6 +121,8 @@ test("encargo de punta a punta: seguimiento, pago separado, comprobante privado 
   await seg.getByRole("button", { name: "Subir comprobante" }).click();
   await expect(seg.getByTestId("comprobante-mensaje")).toContainText("Queda en revisión");
   await expect(seg.getByTestId("estado-pago")).toHaveText("Comprobante en revisión");
+  await expect(seg.getByTestId("datos-transferencia")).toHaveCount(0);
+  await expect(seg.getByTestId("accion-pedido")).toContainText("no vuelvas a transferir");
   await expect(seg.getByTestId("bloque-pago")).not.toContainText("Pago completo");
   // Subir exactamente el mismo archivo otra vez no lo duplica.
   const dupe = await page.request.post(`${ORIGIN}/api/pedidos/${ref}/comprobantes`, { multipart: { file: { name: "otra.pdf", mimeType: "application/pdf", buffer: PDF } }, headers: H });
@@ -155,6 +172,8 @@ test("encargo de punta a punta: seguimiento, pago separado, comprobante privado 
   await go(page, `/cuenta/consultas/${ref}`);
   await expect(page.getByTestId("estado-pago")).toHaveText("Pago parcial confirmado");
   await expect(page.getByTestId("etapa-actual")).toHaveText("Seña del 20% confirmada");
+  await expect(page.getByTestId("importe-sena")).toContainText("20.000");
+  await expect(page.getByTestId("datos-transferencia")).toHaveCount(0);
   await expect(page.getByTestId("bloque-comprobantes")).toContainText("Aceptado");
   // Un aviso por correo quedó registrado para la cuenta (transporte LOCAL de pruebas: no sale a ningún cliente real).
   const sent = fs.readdirSync(MAIL_DIR).map((f) => JSON.parse(fs.readFileSync(path.join(MAIL_DIR, f), "utf8")) as { to: string; kind: string; subject: string }).filter((m) => m.to === ana && m.kind === "aviso");
