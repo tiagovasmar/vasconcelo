@@ -11,6 +11,7 @@ export const suggestedFromCost = (costMinor: number | null | undefined): number 
 export type WholesaleRules = {
   /** Compra mínima en unidades (null = sin definir). */
   minUnits: number | null;
+  minBoxes?: number | null;
   /** Compra mínima en pesos (centavos; null = sin definir). */
   minAmountMinor: number | null;
   /** producto = cada producto llega a su propio tramo · pedido = las unidades de todos los productos suman para el tramo y el mínimo. null = sin definir. */
@@ -26,9 +27,9 @@ export type WholesaleRules = {
 };
 
 /** Qué falta definir para abrir el catálogo (el mínimo puede ser en unidades o en importe, pero tiene que haber alguno). */
-export function missingForOpening(r: Pick<WholesaleRules, "minUnits" | "minAmountMinor" | "combine" | "delayText" | "delayFrom" | "refundPeriod" | "cancellationPolicy">, publishedTiers: number): string[] {
+export function missingForOpening(r: Pick<WholesaleRules, "minBoxes" | "minUnits" | "minAmountMinor" | "combine" | "delayText" | "delayFrom" | "refundPeriod" | "cancellationPolicy">, publishedTiers: number): string[] {
   const out: string[] = [];
-  if (r.minUnits === null && r.minAmountMinor === null) out.push("la compra mínima");
+  if (r.minBoxes == null && r.minUnits === null && r.minAmountMinor === null) out.push("la compra mínima");
   if (r.combine === null) out.push("si los productos se combinan para alcanzar el mínimo y cada tramo");
   if (!r.delayText || !r.delayFrom) out.push("la demora estimada y desde cuándo se cuenta");
   if (!r.refundPeriod) out.push("el plazo de reintegro");
@@ -73,6 +74,8 @@ export function quote(rows: WholesaleRow[], rules: WholesaleRules, lines: QuoteL
     out.push({ productId: l.productId, title: row.title, quantity: l.quantity, tier, unitUsdMinor: usd, unitArsMinor: ars, totalArsMinor: ars === null ? null : ars * l.quantity, status: ars === null ? "a_cotizar" : "ok" });
   }
   const total = out.reduce((n, l) => n + (l.totalArsMinor ?? 0), 0);
+  const boxes = lines.reduce((n, l) => rows.some((r) => r.productId === l.productId && r.kind === "box") ? n + l.quantity : n, 0);
+  if (rules.minBoxes != null && boxes < rules.minBoxes) problems.push(`La compra mínima es de ${rules.minBoxes} cajas (llevás ${boxes}).`);
   if (rules.minUnits !== null && units < rules.minUnits) problems.push(`La compra mínima es de ${rules.minUnits} unidades (llevás ${units}).`);
   if (rules.minAmountMinor !== null && total < rules.minAmountMinor) problems.push(`La compra mínima es de ${formatARS(rules.minAmountMinor)} (llevás ${formatARS(total)}).`);
   if (out.some((l) => l.status === "a_cotizar")) problems.push("Hay productos «A cotizar»: no llegan al primer tramo de precios o no tienen precio. Subí la cantidad o consultanos.");

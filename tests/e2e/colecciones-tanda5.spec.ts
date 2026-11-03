@@ -25,7 +25,7 @@ test("sobres individuales de 20 cartas: sus fichas directas responden «retirado
 
 test("no aparecen en catálogo, búsquedas, filtros ni conteos; los conteos y la paginación se ajustan", async ({ page }) => {
   await go(page, "/sellados");
-  await expect(page.getByRole("status").filter({ hasText: "Mostrando 1–12 de 50 productos" })).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: "Mostrando 1–12 de 51 productos" })).toBeVisible();
   for (const q of ["20 cartas", "zhenshi xuanxu", "975082756071-SKU13", "ZH-1008153816247"]) {
     await go(page, `/sellados?q=${encodeURIComponent(q)}`);
     await expect(page.locator("main")).not.toContainText("Sobre de 20 cartas");

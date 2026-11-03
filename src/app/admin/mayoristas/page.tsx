@@ -1,4 +1,6 @@
+import propuesta from "@/content/real/propuesta-mayorista.json";
 import { AdminButton, AdminForm } from "@/components/admin-form";
+import { listProducts } from "@/features/catalog/data";
 import { getDb } from "@/db/client";
 import { catalog } from "@/content/catalog";
 import { mayorista } from "@/content/politicas";
@@ -24,6 +26,7 @@ export default async function AdminMayoristas() {
   const [rows, rules, tiers, fx] = await Promise.all([listWholesaleRequests(db), getRules(db), listTiersForAdmin(db), currentRate(db)]);
   const published = new Set(tiers.filter((t) => t.state === "publicado").map((t) => t.productId));
   const missing = missingForOpening(rules, published.size);
+  const storeProducts = await listProducts(db);
   const withTiers = [...new Set(tiers.map((t) => t.productId))];
   const costs = await averageCosts(db, catalog.products.map((p) => p.id));
   const rate = fx.rate10k;
@@ -41,13 +44,14 @@ export default async function AdminMayoristas() {
         <p className="mt-2 text-sm font-semibold" data-testid="estado-catalogo-mayorista">{rules.open && missing.length === 0 ? "Catálogo ABIERTO para cuentas aprobadas." : `Catálogo CERRADO.${missing.length ? ` Falta definir: ${missing.join("; ")}.` : " Falta activar el interruptor."}`}</p>
         <div className="mt-3">
           <AdminForm endpoint="/api/admin/mayorista" idempotent={false} fixed={{ action: "rules" }} fields={[
+            { name: "minBoxes", label: "Compra mínima (cajas)", type: "int", defaultValue: String(rules.minBoxes ?? 2), help: "Cuenta únicamente cajas del catálogo." },
             { name: "minUnits", label: "Compra mínima (unidades)", type: "int", defaultValue: rules.minUnits === null ? "" : String(rules.minUnits), help: "Vacío = sin mínimo en unidades." },
             { name: "minAmountMinor", label: "Compra mínima (pesos)", type: "pesos", defaultValue: rules.minAmountMinor === null ? "" : String(rules.minAmountMinor / 100), help: "Vacío = sin mínimo en pesos. Hace falta definir al menos uno." },
             { name: "combine", label: "¿Se combinan productos?", type: "select", defaultValue: rules.combine ?? "", options: [{ value: "producto", label: "No: cada producto llega a su propio tramo" }, { value: "pedido", label: "Sí: las unidades de todo el pedido suman para el tramo y el mínimo" }] },
-            { name: "delayText", label: "Demora estimada", defaultValue: rules.delayText ?? "", help: "Texto, sin fechas garantizadas. Ej.: «entre X y Y semanas»." },
+            { name: "delayText", label: "Demora estimada", defaultValue: rules.delayText ?? "Entre 8 y 15 días", help: "Texto, sin fechas garantizadas. Ej.: «entre X y Y semanas»." },
             { name: "delayFrom", label: "Se cuenta desde…", defaultValue: rules.delayFrom ?? "", help: "Ej.: «la confirmación de la seña»." },
             { name: "refundPeriod", label: "Plazo de reintegro de la seña", type: "textarea", maxLength: 500, defaultValue: rules.refundPeriod ?? "", help: "Dejar vacío hasta definirlo. Se reintegra la seña si el paquete se pierde o no se puede cumplir el pedido." },
-            { name: "cancellationPolicy", label: "Condiciones de cancelación voluntaria", type: "textarea", defaultValue: rules.cancellationPolicy ?? "", help: "Dejar vacío hasta definirlo. No se presupone pérdida ni devolución de la seña." },
+            { name: "cancellationPolicy", label: "Condiciones de cancelación voluntaria", type: "textarea", defaultValue: rules.cancellationPolicy ?? mayorista.cancellationPolicy, help: "La cancelación voluntaria se distingue del reintegro por pérdida o incumplimiento." },
             { name: "open", label: "Abrir el catálogo mayorista a las cuentas aprobadas", type: "checkbox", defaultValue: rules.open },
           ]} submit="Guardar condiciones" ok="Condiciones guardadas." testId="form-reglas" />
         </div>
@@ -58,8 +62,8 @@ export default async function AdminMayoristas() {
         <p className="mt-1 text-xs text-ink/70">Cada tramo vale desde su cantidad mínima. Los precios están en USD, como el resto del catálogo, y se muestran en pesos con la misma cotización. La referencia interna es <b>costo final × 1,5</b> (recargo del 50% sobre el costo, no un margen sobre la venta y no «30% menos que el minorista»); el precio de cada tramo lo fijás vos y se revisa antes de publicar. Sin costo ni precio figura «A cotizar».</p>
         <div className="mt-3">
           <AdminForm endpoint="/api/admin/mayorista" compact idempotent={false} fixed={{ action: "tier" }} fields={[
-            { name: "productId", label: "Producto", type: "select", required: true, options: catalog.products.filter((p) => p.active && !p.retired).map((p) => ({ value: p.id, label: `${p.title} (${p.sku})` })) },
-            { name: "minQty", label: "Desde (unidades)", type: "int", required: true },
+            { name: "productId", label: "Producto", type: "select", required: true, options: storeProducts.map((p) => ({ value: p.id, label: `${p.title} (${p.sku})${published.has(p.id) ? "" : " · A cotizar"}` })) },
+            { name: "minQty", label: "Desde (unidades)", type: "int", required: true, help: "Sobres: tramos cada 10 unidades. Cajas: descuentos cada 3." },
             { name: "unitPriceUsdMinor", label: "Precio unitario (USD)", type: "usd", required: true },
           ]} submit="Guardar tramo (borrador)" ok="Tramo guardado como borrador." testId="form-tramo" />
         </div>
@@ -67,6 +71,7 @@ export default async function AdminMayoristas() {
           const mine = tiers.filter((t) => t.productId === pid);
           const cost = costs.get(pid) ?? null;
           const ref = suggestedFromCost(cost);
+          const estimate = propuesta.find((product) => product.id === pid);
           const draft = mine.some((t) => t.state === "borrador");
           return (
             <article key={pid} className="mt-4 rounded-lg border border-ink/15 p-3" data-testid="tramos-producto">
@@ -74,6 +79,7 @@ export default async function AdminMayoristas() {
                 <h3 className="text-sm font-semibold">{title(pid)}</h3>
                 <span className="text-xs text-ink/75">{ref === null ? <b>Costo pendiente → sin referencia ×1,5</b> : <>Costo promedio {formatARS(cost!)} → referencia ×1,5: <b>{formatARS(ref)}</b>{rate ? ` ≈ ${formatUSD(Math.round((ref * 10_000) / rate))}` : ""}</>}</span>
               </div>
+              {estimate && <p className="mt-2 text-xs text-ink/75">Proveedor: {estimate.providerRmb === null ? "a confirmar" : `${estimate.providerRmb} RMB`} · logística estimada: {estimate.logisticsUsd === null ? "a confirmar" : formatUSD(Math.round(estimate.logisticsUsd * 100))} · costo puesto estimado: {estimate.providerRmb === null || estimate.logisticsUsd === null ? "a confirmar" : formatUSD(Math.round((estimate.providerRmb / 6.6611 + estimate.logisticsUsd) * 100))} por unidad{estimate.draft ? " · costo final pendiente" : ""}.</p>}
               <ul className="mt-2 divide-y divide-ink/10 text-sm">
                 {mine.map((t) => (
                   <li key={t.minQty} className="flex flex-wrap items-center justify-between gap-2 py-1.5" data-testid="tramo">

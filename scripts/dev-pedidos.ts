@@ -1,3 +1,4 @@
+import propuesta from "../src/content/real/propuesta-mayorista.json";
 import { randomBytes } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -19,6 +20,7 @@ import { subscribeRestock } from "../src/features/avisos/reposicion";
 import { confirmPurchase, createPurchase } from "../src/features/costos/service";
 import { registerSale } from "../src/features/sales/service";
 import { createWholesaleRequest, reviewWholesaleRequest } from "../src/features/wholesale/service";
+import { mayorista } from "../src/content/politicas";
 import { publishTiers, saveRules, saveTier } from "../src/features/mayorista/precios";
 import { LocalReceiptStore } from "../src/server/receipt-store";
 import { flushOutbox } from "../src/features/avisos/outbox";
@@ -131,11 +133,15 @@ async function main() {
   // 6) Mayorista (condiciones y tramos FICTICIOS, solo en esta base local): Marta solicita y el dueño aprueba; el catálogo queda abierto.
   const { request } = await createWholesaleRequest(db, marta, { businessName: "Kiosco de Marta (prueba)", locality: "Haedo", province: "Buenos Aires" }, at(12));
   await reviewWholesaleRequest(db, request.reference, "aprobada", actor.email, { now: at(11) });
-  for (const [p, tiers] of [[a, [[10, 1800], [50, 1500]]], [b, [[20, 1200]]]] as const) {
-    for (const [minQty, usd] of tiers) await saveTier(db, { productId: p.id, minQty, unitPriceUsdMinor: usd }, actor, at(9));
-    await publishTiers(db, p.id, actor, at(9));
+  for (const product of propuesta) {
+    const current = (await loadOverrides(db)).get(product.id);
+    await saveProductChange(db, realCatalog.products, product.id, { priceUsdMinor: Math.round(product.retailUsd * 100), expectedVersion: current?.updatedAt ?? 0 }, actor);
+    for (const [minQty, usd] of product.tiers) {
+      await saveTier(db, { productId: product.id, minQty, unitPriceUsdMinor: Math.round(usd * 100) }, actor, at(9));
+    }
+    if (!product.draft) await publishTiers(db, product.id, actor, at(9));
   }
-  await saveRules(db, { minUnits: 10, minAmountMinor: null, combine: "producto", delayText: "entre 30 y 60 días (DATO FICTICIO DE PRUEBA, no es una condición real)", delayFrom: "la confirmación de la seña", refundPeriod: "Plazo FICTICIO de prueba, pendiente de definición real", cancellationPolicy: "Condición FICTICIA de prueba, pendiente de definición real", open: true }, actor, at(9));
+  await saveRules(db, { minBoxes: 2, minUnits: null, minAmountMinor: null, combine: "producto", delayText: "entre 8 y 15 días", delayFrom: "la confirmación de la seña", refundPeriod: "Plazo FICTICIO de prueba, pendiente de definición real", cancellationPolicy: mayorista.cancellationPolicy, open: true }, actor, at(9));
 
   // Avisos pendientes de los hechos anteriores: se "envían" al transporte LOCAL (archivos), nunca a nadie.
   await flushOutbox(db, { limit: 100 });

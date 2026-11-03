@@ -28,6 +28,7 @@ export const promo = {
  * las cantidades y precios de los tramos y las demoras estimadas. La financiación a 3 o 6 meses solo se puede CONSULTAR: no se promete aprobación, cuotas ni tasas.
  */
 export const mayorista = {
+  cancellationPolicy: "Podés solicitar la cancelación voluntaria. Una vez confirmada la orden al proveedor, la seña no se devuelve porque el producto ya está pagado.",
   approval: "manual" as const,
   /** La revisión (aprobar / rechazar) está habilitada: la hace el dueño a mano. */
   activationEnabled: true,

@@ -10,10 +10,9 @@ export const metadata: Metadata = {
 
 /** Lo que el dueño todavía no definió: se muestra tal cual, sin inventar valores. */
 const pendientes = [
-  "La compra mínima.",
   "Si se pueden combinar productos para alcanzar el mínimo o cada tramo de precio.",
   "Las cantidades y los precios de cada tramo.",
-  "Las demoras estimadas.",
+  "Desde cuándo se cuenta la demora estimada de 8 a 15 días.",
 ];
 
 export default function Mayoristas() {
@@ -39,11 +38,13 @@ export default function Mayoristas() {
             <p className="eyebrow text-vermilion">01 / Cómo funciona</p>
             <h2 id="may-que" className="display mt-2 text-4xl normal-case sm:text-5xl">Qué incluye</h2>
             <ul className="mt-5 space-y-4 text-base leading-relaxed">
+              <li><b>Productos originales de Asia.</b> Somos distribuidores y trabajamos exclusivamente con productos originales de Asia. Los precios en USD pueden variar levemente según el mercado de reventa en origen.</li>
               <li><b>Solo por pedido.</b> El stock que ves en la tienda minorista no es stock mayorista: la tienda confirma la disponibilidad y el importe de cada pedido antes de pedirte la seña.</li>
               <li><b>Cuenta aprobada por la tienda.</b> Solicitás la cuenta y la tienda la revisa y la aprueba manualmente. Los precios mayoristas solo se muestran a cuentas aprobadas.</li>
               <li><b>Precio según la cantidad.</b> Cada producto tiene tramos de cantidad con su precio unitario. Si todavía no llegás al primer tramo, o no hay precio, figura «A cotizar».</li>
               <li><b>Pago.</b> {mayorista.paymentNote} No se aplican el 10% OFF por transferencia ni las 3 cuotas sin interés de la venta minorista.</li>
               <li><b>Seña y saldo.</b> Después de confirmar disponibilidad e importe, se abona una seña del {mayorista.senaPercent}%. El resto se paga al retirar o antes del despacho, cuando la mercadería ya llegó a Argentina. Si el paquete se pierde o un problema impide cumplir el pedido, se reintegra la seña.</li>
+              <li><b>Cancelación voluntaria.</b> {mayorista.cancellationPolicy}</li>
               <li><b>Seguimiento.</b> Ves cada etapa de tu pedido en <Link href="/cuenta/consultas" className="underline">Mi cuenta</Link>, con fechas reales, y recibís avisos por correo cuando hay novedades. Los pedidos pueden llegar y entregarse en partes.</li>
               <li><b>Financiación.</b> Podés consultar la financiación de mercadería a 3 o 6 meses. Es solo una consulta: no se promete aprobación, cuotas ni tasas.</li>
             </ul>

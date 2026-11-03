@@ -34,7 +34,7 @@ describe("catálogo chino: cobertura de las 16 fuentes y formatos", () => {
     expect(zh.filter((p) => p.retired).every((p) => !p.active)).toBe(true);
     expect(zhExp.every((e) => e.region === "CN" && !e.isDemo && e.cards.length === 0 && e.cardListStatus === "unavailable")).toBe(true);
     for (const k of ["id", "sku", "slug"] as const) expect(new Set(all.map((p) => p[k])).size, k).toBe(all.length);
-    expect(new Set(all.map((p) => p.sku)).size).toBe(61);
+    expect(new Set(all.map((p) => p.sku)).size).toBe(62);
   });
 
   it("las 16 fuentes del dueño están representadas por al menos una ficha y cada ficha cita su fuente", () => {
@@ -189,7 +189,7 @@ describe("catálogo chino: búsqueda y filtros", () => {
     expect(f({ formato: "especial" })).toHaveLength(2);
     expect(f({ formato: "ilustraciones" })).toHaveLength(2);
     expect(f({ formato: "caja", idioma: "zh" })).toHaveLength(4);
-    expect(f({ formato: "caja" })).toHaveLength(18);
+    expect(f({ formato: "caja" })).toHaveLength(19);
     expect(f({ formato: "sobre" })).toHaveLength(24); // 8 japoneses + 16 chinos
     expect(f({ expansion: "zh-gongzhu-rongguang" })).toHaveLength(1); // el de 20 cartas fue retirado
     expect(f({ expansion: "zh-30-zhounian" })).toHaveLength(4);
@@ -202,8 +202,8 @@ describe("catálogo chino: búsqueda y filtros", () => {
     expect(f({ q: "ogerpon" })).toHaveLength(2);
     expect(f({ q: "storm" })).toHaveLength(2); // sigue encontrando las japonesas
   });
-  it("paginación: 50 sellados públicos, accesorios solo como adicionales, en 5 páginas de 12", () => {
-    expect(f({})).toHaveLength(50);
+  it("paginación: 51 sellados públicos, accesorios solo como adicionales, en 5 páginas de 12", () => {
+    expect(f({})).toHaveLength(51);
     expect(Math.ceil(f({}).length / 12)).toBe(5);
   });
 });

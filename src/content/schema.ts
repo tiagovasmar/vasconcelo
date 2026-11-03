@@ -5,7 +5,7 @@ export { kindLabel, languageLabel, wideKinds } from "./labels";
 /** Esquemas del catálogo. Campos desconocidos quedan ausentes/nulos: nunca se rellenan con certezas ficticias. */
 
 /** Idiomas de edición. `zh` = chino simplificado (China continental); no se asigna a ediciones sin verificar. */
-export const languages = ["ja", "en", "es", "zh"] as const;
+export const languages = ["ja", "en", "es", "zh", "zh-TW"] as const;
 /** `na` = no aplica: solo para productos sin idioma de edición (accesorios). Nunca se ofrece como filtro de idioma. */
 export type Language = (typeof languages)[number] | "na";
 const LanguageSchema = z.enum(languages);

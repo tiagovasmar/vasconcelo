@@ -18,7 +18,9 @@ describe("qué garantiza cada caja (contenido físico / rarezas documentadas / o
   });
 
   it("cada caja, caja especial y kit trae su revisión de rarezas con fuentes que existen; los sobres no", () => {
-    const aplicables = products.filter((p) => ["box", "special-box", "kit"].includes(p.kind));
+    const sinFuente = products.find((p) => p.id === "zh-30-zhounian-caja");
+    expect(sinFuente?.rarityReview).toBeUndefined();
+    const aplicables = products.filter((p) => p !== sinFuente && ["box", "special-box", "kit"].includes(p.kind));
     expect(aplicables).toHaveLength(8 + 6 + 4 + 2 + 3); // cajas japonesas + seis cajas japonesas nuevas + cajas chinas + cajas especiales + kits
     for (const p of aplicables) {
       expect(p.rarityReview, p.id).toBeDefined();

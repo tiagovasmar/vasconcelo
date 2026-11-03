@@ -43,7 +43,7 @@ export default async function CatalogoMayorista() {
       <div className="mx-auto max-w-[1440px] px-4 py-8 sm:px-8 sm:py-12">
         <p className="eyebrow text-vermilion">Mayoristas</p>
         <h1 className="display mt-3 text-[clamp(2.4rem,7vw,4.6rem)] normal-case leading-[.95]">Catálogo mayorista.</h1>
-        <p className="mt-3 max-w-3xl text-ink/80">Pedidos por cantidad, siempre por pedido: el stock de la tienda minorista no cuenta. Elegí cantidades y revisá el precio unitario según el tramo.</p>
+        <p className="mt-3 max-w-3xl text-ink/80">Somos distribuidores de productos originales de Asia y vendemos exclusivamente por pedido. Elegí las cantidades para ver el precio en USD según el tramo. Los precios pueden variar levemente según el mercado de reventa en origen. Te confirmamos el importe antes de que pagues la seña.</p>
         <div className="mt-6"><WholesaleCatalog rows={rows} rules={rules} rate10k={rate10k} defaultName={user?.name ?? ""} /></div>
       </div>
     </div>

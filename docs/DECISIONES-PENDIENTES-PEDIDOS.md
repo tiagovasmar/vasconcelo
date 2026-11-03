@@ -10,17 +10,17 @@ El cobro en entregas parciales sigue **sin decidir**. Se conserva el control exi
 Confirmado: mayorista solo por pedido, seña 20%, resto al llegar a Argentina antes del despacho o al retirar, transferencia/efectivo sin descuento adicional, financiación a 3 o 6 meses solo por consulta y reintegro de la seña si se pierde el paquete o no se puede cumplir. La vista previa usa valores identificados como FICTICIOS en una base nueva descartable.
 
 ## A. Mayoristas (el catálogo no se abre sin mínimos, combinación, tramos publicados, demoras, plazo de reintegro y cancelación)
-1. **Compra mínima**: ¿en unidades, en pesos o ambas? ¿Cuánto?
+1. **Compra mínima**: 2 cajas por pedido. Los sobres no cuentan.
 2. **Combinación de productos**: ¿las unidades de distintos productos suman para alcanzar el mínimo y cada tramo (`pedido`) o cada producto llega a su propio tramo (`producto`)? Hoy el mínimo global en unidades suma todo el pedido en ambos modos. El selector cambia qué cantidad se usa para buscar el tramo de cada producto.
 3. **Escalas**: desde qué cantidades hay cada tramo y el precio unitario de cada uno, por producto. (La referencia `costo final × 1,5` ya está en el panel; hacen falta compras confirmadas para verla.)
-4. **Demoras estimadas** y **desde qué momento se cuentan** (por ejemplo, desde la confirmación de la seña). Sin fechas garantizadas.
-5. **Moneda de los precios por tramo**: hoy se cargan en **USD** (como el catálogo) y se muestran en pesos con la conversión del sitio. ¿Lo preferís en pesos fijos?
+4. **Demora estimada**: entre 8 y 15 días. Queda definir desde cuándo se cuenta y si son días corridos o hábiles.
+5. **Moneda de los precios mayoristas**: USD. Queda definir si la seña y el resto se cobran en USD o en pesos al equivalente.
 6. **Financiación a 3 o 6 meses**: hoy solo se informa que se puede consultar. ¿Hay algo más para publicar? (No se prometieron aprobación, cuotas ni tasas.)
 
 ## B. Encargos y reintegros
 7. **Pago antes de entregar**: hoy el servidor exige el **pago completo** (seña + 80%) confirmado antes de despachar, dejar listo para retirar o entregar *cualquier* parte de un encargo o pedido mayorista. Con entregas parciales, ¿se cobra todo antes de la primera entrega o proporcional a lo entregado?
 8. **Plazo de reintegro de la seña** cuando el paquete se pierde o un problema impide cumplir el encargo. (Hoy el texto dice que «se reintegra la seña» sin plazo.)
-9. **Cancelaciones voluntarias**: ¿la seña se devuelve, se pierde o se devuelve parcialmente? Hoy no hay ninguna regla escrita.
+9. **Cancelaciones voluntarias**: se pueden solicitar. Una vez confirmada la orden al proveedor, la seña no se devuelve porque el producto ya está pagado. El reintegro por pérdida o incumplimiento se trata por separado.
 10. **Encargos sin vencimiento**: confirmado que no hay cotizaciones con vencimiento; ¿hay un tiempo máximo para pagar la seña tras confirmar el importe?
 
 ## C. Costos y ganancia

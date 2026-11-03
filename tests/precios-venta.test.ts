@@ -48,7 +48,8 @@ describe("lote de precios de venta (USD)", () => {
     for (const id of ["zh-wuwei-taijing-sobre-5", "zh-nuyan-zhuotian-sobre-6", "zh-anying-duohui-sobre-6", "zh-jiju-gongfang-sobre-6", "zh-gengu-kailai-sobre-5"]) expect(usd(id), id).toBe(600);
     // variantes retiradas de 20 cartas y productos fuera del lote: siguen sin precio
     for (const p of v.filter((x) => x.retired)) expect(p.priceUsdMinor, p.id).toBeNull();
-    expect(v.filter((p) => p.priceUsdMinor !== null)).toHaveLength(lote.items.length);
+    expect(usd("zh-30-zhounian-caja")).toBe(14_000);
+    expect(v.filter((p) => p.priceUsdMinor !== null)).toHaveLength(lote.items.length + 1);
     expect(usd("zh-taijing-shengju-sobre-10")).toBeNull();
     expect(usd("zh-taijing-shengju-caja")).toBeNull();
   });

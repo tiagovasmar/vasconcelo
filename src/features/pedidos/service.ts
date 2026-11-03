@@ -261,7 +261,7 @@ export async function cancelOrder(db: Db, inquiryId: string, body: unknown, acto
     if (track.cancelledAt) return { changed: false };
     if (track.stage === "entregado") return fail(409, "order_rule", "Un pedido entregado no se puede cancelar.");
     await tx.update(orderTracks).set({ cancelledAt: now, updatedAt: now }).where(eq(orderTracks.inquiryId, inquiryId));
-    await tx.insert(orderEvents).values({ inquiryId, kind: "system", publicText: input.publicText ?? "El pedido fue cancelado. Si abonaste una seña, el estado de su reintegro se informa acá.", internalText: `Cancelado: ${input.reason}`, occurredAt: now, createdAt: now, actorEmail: actor.email, opKey: `cancel:${input.idempotencyKey}` });
+    await tx.insert(orderEvents).values({ inquiryId, kind: "system", publicText: input.publicText ?? "El pedido fue cancelado. Si corresponde un reintegro, su estado se informa acá.", internalText: `Cancelado: ${input.reason}`, occurredAt: now, createdAt: now, actorEmail: actor.email, opKey: `cancel:${input.idempotencyKey}` });
     return { changed: true };
   });
 }

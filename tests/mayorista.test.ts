@@ -64,13 +64,13 @@ describe("acceso: solo cuentas aprobadas por el dueño, validado en el servidor"
     expect(missingForOpening({ minUnits: null, minAmountMinor: null, combine: null, delayText: null, delayFrom: null, refundPeriod: null, cancellationPolicy: null }, 0)).toHaveLength(6);
     expect(await code(saveRules(db, { ...REGLAS }, actor))).toBe("order_rule"); // sin tramos publicados
     await saveTier(db, { productId: "storm-sobre", minQty: 10, unitPriceUsdMinor: 1000 }, actor);
-    expect((await wholesaleCatalog(db)).rows).toHaveLength(0); // borrador: invisible
+    expect((await wholesaleCatalog(db)).rows.every((r) => r.tiers.length === 0)).toBe(true); // el precio en borrador es privado
     expect(await code(saveRules(db, { ...REGLAS, combine: null }, actor))).toBe("order_rule");
     await publishTiers(db, "storm-sobre", actor);
     expect(await code(saveRules(db, { ...REGLAS, refundPeriod: null }, actor))).toBe("order_rule");
     expect(await code(saveRules(db, { ...REGLAS, cancellationPolicy: null }, actor))).toBe("order_rule");
     expect((await saveRules(db, REGLAS, actor)).open).toBe(true);
-    expect((await wholesaleCatalog(db)).rows.map((r) => r.productId)).toEqual(["storm-sobre"]);
+    expect((await wholesaleCatalog(db)).rows.filter((r) => r.tiers.length).map((r) => r.productId)).toEqual(["storm-sobre"]);
   });
 });
 
@@ -104,6 +104,13 @@ describe("tramos y escalas", () => {
     const { rows, rules, rate10k } = await wholesaleCatalog(db);
     expect(rate10k).toBe(15_000_000);
     const q = quote(rows, rules, [{ productId: "storm-sobre", quantity: 50 }, { productId: "ejemplo-sobre", quantity: 20 }], rate10k);
+    const conCajas = rows.map((row) => row.productId === "storm-sobre"
+      ? { ...row, kind: "box", tiers: [{ minQty: 1, unitUsdMinor: 800, unitArsMinor: 1_200_000 }] }
+      : row);
+    const minimoCajas = { ...rules, minUnits: null, minBoxes: 2 };
+    const unaCajaYSobres = [{ productId: "storm-sobre", quantity: 1 }, { productId: "ejemplo-sobre", quantity: 20 }];
+    expect(quote(conCajas, minimoCajas, unaCajaYSobres, rate10k).problems).toContain("La compra mínima es de 2 cajas (llevás 1).");
+    expect(quote(conCajas, minimoCajas, [{ productId: "storm-sobre", quantity: 2 }], rate10k).ok).toBe(true);
     expect(q.ok).toBe(true);
     expect(q.lines[0]).toMatchObject({ unitUsdMinor: 800, unitArsMinor: 1_200_000, totalArsMinor: 60_000_000 }); // USD 8 × 1.500 = $12.000
     expect(q.lines[1]).toMatchObject({ unitUsdMinor: 500, unitArsMinor: 750_000 });
@@ -184,6 +191,6 @@ describe("pedido mayorista (siempre por pedido, reutiliza consultas y seguimient
 
   it("las reglas vacías vuelven a «sin definir» y no se inventan valores", async () => {
     const r = await getRules(db);
-    expect(r).toEqual({ minUnits: null, minAmountMinor: null, combine: null, delayText: null, delayFrom: null, refundPeriod: null, cancellationPolicy: null, open: false });
+    expect(r).toEqual({ minBoxes: null, minUnits: null, minAmountMinor: null, combine: null, delayText: null, delayFrom: null, refundPeriod: null, cancellationPolicy: null, open: false });
   });
 });

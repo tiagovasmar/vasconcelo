@@ -128,6 +128,39 @@ export const products: Product[] = datos.productos.map((p): Product => {
   };
 });
 
+// La lista del proveedor identifica la edición china por caja, sin detallar cuántos sobres trae.
+products.push({
+  ...products.find((p) => p.id === "zh-30-zhounian-sobre-6")!,
+  id: "zh-30-zhounian-caja",
+  slug: "zh-30-zhounian-caja",
+  sku: "ZH-30TH-CN-BOX",
+  priceUsdMinor: 14_000,
+  stockQuantity: null,
+  title: "30th Celebration · Caja (chino tradicional)",
+  originalTitle: "30週年慶典",
+  language: "zh-TW",
+  region: "Asia",
+  expansionIds: [],
+  aliases: ["30 aniversario", "30th Celebration", "caja chino tradicional"],
+  kind: "box",
+  variant: "Caja",
+  images: [{
+    src: "/images/products/ZH-30TH-CN-BOX/caja-transparente.png",
+    alt: "Caja abierta de 30th Celebration en chino tradicional",
+    width: 1254,
+    height: 1254,
+    opaque: false,
+    status: "reference",
+    source: "illustration",
+    view: "display-open",
+    origin: "Imagen aportada por el dueño y restaurada con edición generativa.",
+    license: "Imagen de referencia para el catálogo.",
+  }],
+  description: "Caja de 30th Celebration en chino tradicional. La imagen de referencia muestra el exhibidor abierto. Cantidad de sobres a confirmar con el proveedor.",
+  contents: [],
+  guaranteeIds: [],
+});
+
 /**
  * Una sola garantía por producto: el CONTENIDO FÍSICO que informan la ficha y las fotos de origen (evidencia «seller_pack_contents»).
  * No hay garantías de rareza ni de composición, ni tasas de aparición: ninguna está verificada para estas ediciones.

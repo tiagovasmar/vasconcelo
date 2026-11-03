@@ -294,9 +294,9 @@ test("mayorista: solicitud, tramos, pedido, seña y envío internacional", async
   await go(page, "/mayoristas/catalogo");
   const tabla = page.getByTestId("tabla-mayorista");
   await expect(tabla).toBeVisible();
-  const fp = page.getByTestId("fila-mayorista").first();
+  const fp = page.getByTestId("fila-mayorista").filter({ has: page.locator("#qty-storm-sobre") });
   await fp.getByLabel(/Cantidad de/).fill("5");
-  await expect(fp.getByTestId("precio-unitario")).toHaveText("A cotizar"); // no llega al primer tramo
+  await expect(fp.getByTestId("precio-unitario")).toHaveText("A cotizar · desde 10 unidades"); // no llega al primer tramo
   await expect(page.getByTestId("problemas-pedido")).toContainText("compra mínima");
   await fp.getByLabel(/Cantidad de/).fill("50");
   await expect(fp.getByTestId("precio-unitario")).toContainText("12.000");

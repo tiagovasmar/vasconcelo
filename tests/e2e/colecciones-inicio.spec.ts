@@ -14,12 +14,12 @@ test("inicio: Cajas y Sobres abren el catálogo filtrado; Packs es «Próximamen
   // el orden: banner, categorías, cartas destacadas, colecciones (japonesas y chinas juntas); ya no hay una sección china aparte
   const order = await page.$$eval("main section[aria-labelledby]", (s) => s.map((x) => x.getAttribute("aria-labelledby")!));
   expect(order[0]).toBe("banner-title-storm-emeralda");
-  expect(order.filter((x) => !x.startsWith("banner-title")).slice(0, 4)).toEqual(["cat-title", "cards-title", "collections-title", "feat-title"]);
+  expect(order.filter((x) => !x.startsWith("banner-title")).slice(0, 5)).toEqual(["whatsapp-group-title", "cat-title", "cards-title", "collections-title", "feat-title"]);
   expect(order).not.toContain("zh-title");
 
   await cat.getByTestId("categoria-cajas").click();
   await expect(page).toHaveURL(/formato=caja/);
-  await expect(page.getByRole("status").filter({ hasText: "Mostrando 1–12 de 18 productos" })).toBeVisible(); // 14 japonesas + 4 chinas
+  await expect(page.getByRole("status").filter({ hasText: "Mostrando 1–12 de 19 productos" })).toBeVisible(); // 14 japonesas + 5 chinas
   await go(page, "/");
   await page.locator("section[aria-labelledby=cat-title]").getByTestId("categoria-sobres").click();
   await expect(page.getByRole("status").filter({ hasText: "Mostrando 1–12 de 24 productos" })).toBeVisible(); // 8 japoneses + 16 chinos

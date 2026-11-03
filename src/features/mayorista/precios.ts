@@ -36,17 +36,18 @@ const sha = (s: string) => createHash("sha256").update(s).digest("hex");
 
 /* ---------- Reglas comerciales (configurables; vacías hasta que el dueño decida) ---------- */
 
-const K = { minUnits: "wholesale.minUnits", minAmount: "wholesale.minAmountMinor", combine: "wholesale.combine", delayText: "wholesale.delayText", delayFrom: "wholesale.delayFrom", refundPeriod: "wholesale.refundPeriod", cancellationPolicy: "wholesale.cancellationPolicy", open: "wholesale.open" } as const;
+const K = { minBoxes: "wholesale.minBoxes", minUnits: "wholesale.minUnits", minAmount: "wholesale.minAmountMinor", combine: "wholesale.combine", delayText: "wholesale.delayText", delayFrom: "wholesale.delayFrom", refundPeriod: "wholesale.refundPeriod", cancellationPolicy: "wholesale.cancellationPolicy", open: "wholesale.open" } as const;
 
 export async function getRules(db: Db): Promise<WholesaleRules> {
   const rows = await db.select().from(adminSettings).where(inArray(adminSettings.key, Object.values(K)));
   const g = (k: string) => rows.find((r) => r.key === k)?.value ?? null;
   const int = (v: string | null) => (v !== null && /^\d+$/.test(v) ? Number(v) : null);
   const combine = g(K.combine);
-  return { minUnits: int(g(K.minUnits)), minAmountMinor: int(g(K.minAmount)), combine: combine === "producto" || combine === "pedido" ? combine : null, delayText: g(K.delayText), delayFrom: g(K.delayFrom), refundPeriod: g(K.refundPeriod), cancellationPolicy: g(K.cancellationPolicy), open: g(K.open) === "1" };
+  return { minBoxes: int(g(K.minBoxes)), minUnits: int(g(K.minUnits)), minAmountMinor: int(g(K.minAmount)), combine: combine === "producto" || combine === "pedido" ? combine : null, delayText: g(K.delayText), delayFrom: g(K.delayFrom), refundPeriod: g(K.refundPeriod), cancellationPolicy: g(K.cancellationPolicy), open: g(K.open) === "1" };
 }
 
 export const RulesSchema = z.object({
+  minBoxes: z.number().int().min(1).max(100_000).nullable().optional(),
   minUnits: z.number().int().min(1).max(100_000).nullable(),
   minAmountMinor: z.number().int().min(100).max(1_000_000_000_00).nullable(),
   combine: z.enum(["producto", "pedido"]).nullable(),
@@ -70,6 +71,7 @@ export async function saveRules(db: Db, body: unknown, actor: Actor, now = Date.
       const vals = { value, updatedAt: now, updatedByEmail: actor.email };
       await tx.insert(adminSettings).values({ key, ...vals }).onConflictDoUpdate({ target: adminSettings.key, set: vals });
     };
+    if (v.minBoxes !== undefined) await put(K.minBoxes, v.minBoxes === null ? null : String(v.minBoxes));
     await put(K.minUnits, v.minUnits === null ? null : String(v.minUnits));
     await put(K.minAmount, v.minAmountMinor === null ? null : String(v.minAmountMinor));
     await put(K.combine, v.combine);
@@ -142,16 +144,15 @@ export async function wholesaleAccess(db: Db, userId: string | null): Promise<Wh
   return { ok: true };
 }
 
-/** Productos con tramos PUBLICADOS. No incluye costos, stock minorista ni nada interno. Solo se llama tras `wholesaleAccess`. */
+/** Productos de la tienda con sus tramos PUBLICADOS, si tienen. No incluye costos, stock minorista ni nada interno. Solo se llama tras `wholesaleAccess`. */
 export async function wholesaleCatalog(db: Db): Promise<{ rows: WholesaleRow[]; rules: WholesaleRules; rate10k: number | null }> {
   const [rules, tiers, products, fx] = await Promise.all([getRules(db), db.select().from(wholesaleTiers).where(eq(wholesaleTiers.state, "publicado")).orderBy(asc(wholesaleTiers.minQty)), listProducts(db), currentRate(db)]);
   const rate = fx.rate10k ?? null;
   const rows: WholesaleRow[] = [];
   for (const p of products) {
     const mine = tiers.filter((t) => t.productId === p.id);
-    if (!mine.length || p.retired) continue;
     const img = p.images[0];
-    rows.push({ productId: p.id, slug: p.slug, sku: p.sku, title: p.title, language: p.language, kind: p.kind, image: img ? { src: img.src, alt: img.alt } : null, tiers: mine.map((t) => ({ minQty: t.minQty, unitUsdMinor: t.unitPriceUsdMinor, unitArsMinor: rate ? usdToArsMinor(t.unitPriceUsdMinor, rate) : null })) });
+    rows.push({ productId: p.id, slug: p.slug, sku: p.sku, title: p.title, language: p.language, kind: p.kind, image: img && img.status !== "demo" ? { src: img.src, alt: img.alt } : null, tiers: mine.map((t) => ({ minQty: t.minQty, unitUsdMinor: t.unitPriceUsdMinor, unitArsMinor: rate ? usdToArsMinor(t.unitPriceUsdMinor, rate) : null })) });
   }
   return { rows, rules, rate10k: rate };
 }

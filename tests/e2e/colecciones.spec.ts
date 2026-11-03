@@ -7,9 +7,9 @@ const KEY = "tienda-carrito-v1";
 const cards = (page: Page) => page.locator("section[aria-labelledby=archivo-title] ul > li");
 
 test.describe("catálogo y destacados", () => {
-  test("el catálogo muestra las 50 fichas reales publicadas (22 japonesas + 28 chinas), con «Precio a confirmar» y sin datos de demostración", async ({ page }) => {
+  test("el catálogo muestra las 51 fichas reales publicadas, con «Precio a confirmar» y sin datos de demostración", async ({ page }) => {
     await go(page, "/sellados");
-    await expect(page.getByRole("status").filter({ hasText: "Mostrando 1–12 de 50 productos" })).toBeVisible();
+    await expect(page.getByRole("status").filter({ hasText: "Mostrando 1–12 de 51 productos" })).toBeVisible();
     await expect(cards(page)).toHaveCount(12);
     await expect(page.getByTestId("precio").first()).toHaveText("Precio a confirmar");
     await expect(page.getByTestId("disponibilidad").first()).toHaveText("Sin stock");
@@ -17,18 +17,18 @@ test.describe("catálogo y destacados", () => {
     expect(body).not.toMatch(/\$\s?0\b|de ejemplo|DEMO|Agotado/i); // ni $0, ni demo, ni «agotado» falso
     await page.getByRole("link", { name: "Siguiente →" }).click();
     await expect(cards(page)).toHaveCount(12);
-    await go(page, "/sellados?pagina=5"); // última página: 50 = 4 × 12 + 2 (los 2 protectores son solo adicionales y no se listan)
-    await expect(cards(page)).toHaveCount(2);
+    await go(page, "/sellados?pagina=5"); // última página: 51 = 4 × 12 + 3 (los 2 protectores son solo adicionales y no se listan)
+    await expect(cards(page)).toHaveCount(3);
     await expect(page.locator("main")).not.toContainText(/sleeves|top loaders/i);
     // ningún botón de agregar está activo: cada tarjeta explica por qué
-    await expect(page.getByTestId("consultar-encargo")).toHaveCount(2); // sin precio ni stock (los 2 chinos de la última página): no se compra, se consulta por encargo
+    await expect(page.getByTestId("consultar-encargo")).toHaveCount(3); // sin stock en la última página: no se compra, se consulta por encargo
     await expect(page.getByRole("button", { name: /^Agregar .* al carrito$/ })).toHaveCount(0);
   });
 
   test("filtros: idioma, expansión y formato; buscar por nombre o código", async ({ page }) => {
     await go(page, "/sellados");
     const idiomas = await page.getByLabel("Idioma").locator("option").allInnerTexts();
-    expect(idiomas).toEqual(["Todos", "Japonés", "Chino simplificado"]); // no se ofrecen idiomas sin productos
+    expect(idiomas).toEqual(["Todos", "Japonés", "Chino simplificado", "Chino tradicional"]); // no se ofrecen idiomas sin productos
     const exps = await page.getByLabel("Expansión").locator("option").allInnerTexts();
     expect(exps).toHaveLength(32); // «Todas» + 8 + 6 japonesas + 17 chinas (la colección sin productos publicados no se ofrece)
     const formatos = await page.getByLabel("Formato").locator("option").allInnerTexts();
@@ -36,7 +36,7 @@ test.describe("catálogo y destacados", () => {
     await go(page, "/sellados?expansion=abyss-eye");
     await expect(cards(page)).toHaveCount(2);
     await go(page, "/sellados?formato=caja");
-    await expect(page.getByText(/de 18 productos/)).toBeVisible(); // 14 japonesas + 4 chinas
+    await expect(page.getByText(/de 19 productos/)).toBeVisible(); // 14 japonesas + 5 chinas
     await go(page, "/sellados?idioma=ja&formato=caja");
     await expect(page.getByText(/de 14 productos/)).toBeVisible();
     await go(page, "/sellados?idioma=en");
@@ -44,7 +44,7 @@ test.describe("catálogo y destacados", () => {
     await go(page, "/sellados?q=M6-JP");
     await expect(cards(page)).toHaveCount(2);
     // un rango de precio no deja pasar productos con precio pendiente
-    await go(page, "/sellados?pmin=5000"); // los accesorios cuestan menos que eso
+    await go(page, "/sellados?idioma=ja&pmin=5000"); // los accesorios cuestan menos que eso
     await expect(page.getByText("No encontramos productos con esos filtros.")).toBeVisible();
   });
 
