@@ -36,6 +36,20 @@
       "when": 1793648527674,
       "tag": "0004_pedidos_encargos_mayorista",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793749719864,
+      "tag": "0005_contabilidad_ventas_y_gastos",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793750862451,
+      "tag": "0006_visitas_tienda",
+      "breakpoints": true
     }
   ]
 }

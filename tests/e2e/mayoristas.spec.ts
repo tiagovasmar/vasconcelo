@@ -1,5 +1,5 @@
 import { expect } from "@playwright/test";
-import { newEmail, ORIGIN, PASSWORD, signUp, test, waitForMail } from "./account-helpers";
+import { newEmail, ORIGIN, PASSWORD, signUp, test } from "./account-helpers";
 import { go } from "./helpers";
 
 // Servidor «demo» (sin ADMIN_EMAIL: el panel del dueño está cerrado). Cada prueba usa su propia IP de origen.
@@ -103,7 +103,7 @@ test.describe("solicitud de cuenta mayorista", () => {
     expect(sinOrigen.status()).toBe(403);
   });
 
-  test("persona nueva: crea la cuenta desde la solicitud, confirma el correo y vuelve a la solicitud sin crear otra cuenta", async ({ page }) => {
+  test("persona nueva: crea la cuenta desde la solicitud y vuelve a la solicitud sin crear otra cuenta", async ({ page }) => {
     const email = newEmail("nueva");
     await go(page, "/cuenta/registro?next=%2Fmayoristas%2Fsolicitar");
     await page.getByLabel("Nombre", { exact: true }).fill("Persona Nueva");
@@ -111,11 +111,6 @@ test.describe("solicitud de cuenta mayorista", () => {
     await page.getByLabel("Contraseña", { exact: true }).fill(PASSWORD);
     await page.getByLabel("Repetí la contraseña").fill(PASSWORD);
     await page.getByRole("button", { name: "Crear cuenta" }).click();
-    await expect(page.getByTestId("registro-ok")).toBeVisible();
-    const mail = await waitForMail(email, "verificacion");
-    await go(page, mail.link);
-    await expect(page.getByTestId("verificacion-ok")).toBeVisible();
-    await page.getByTestId("verificacion-ok").getByRole("link", { name: "Continuar" }).click();
     await expect(page).toHaveURL(/\/mayoristas\/solicitar$/);
     await expect(page.getByTestId("form-mayorista")).toBeVisible();
   });

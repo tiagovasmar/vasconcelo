@@ -21,7 +21,7 @@ function createAuth() {
       enabled: true,
       minPasswordLength: 10,
       maxPasswordLength: 128,
-      requireEmailVerification: true,
+      requireEmailVerification: false,
       revokeSessionsOnPasswordReset: true,
       resetPasswordTokenExpiresIn: 60 * 60,
       sendResetPassword: async ({ user, url }) => {
@@ -35,7 +35,7 @@ function createAuth() {
       },
     },
     emailVerification: {
-      sendOnSignUp: true,
+      sendOnSignUp: false,
       autoSignInAfterVerification: true,
       expiresIn: 60 * 60 * 24,
       sendVerificationEmail: async ({ user, url }) => {

@@ -45,6 +45,7 @@ export const countMails = (to: string, kind: string) =>
 export async function signUp(page: Page, name: string, email: string, password = PASSWORD) {
   const res = await page.request.post("/api/auth/sign-up/email", { data: { name, email, password, callbackURL: "/cuenta/verificado" }, headers: { Origin: ORIGIN } });
   expect(res.ok()).toBe(true);
+  await page.request.post(`${ORIGIN}/api/auth/send-verification-email`, { data: { email: email, callbackURL: "/cuenta/verificado" }, headers: { Origin: ORIGIN } });
   const mail = await waitForMail(email, "verificacion");
   await go(page, mail.link);
   await expect(page.getByTestId("verificacion-ok")).toBeVisible();

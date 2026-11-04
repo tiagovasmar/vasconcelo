@@ -5,6 +5,7 @@ import { createDb } from "@/db/client";
 import { productAudit, productOverrides, saleLines, sales, stockMovements } from "@/db/schema";
 import { loadOverrides, saveProductChange } from "@/features/catalog/overrides";
 import { createInquiry, hashToken } from "@/features/inquiries/service";
+import { accountingOverview, registerExpense } from "@/features/contabilidad/service";
 import { listMovements, listSales, moveStock, previewSale, registerSale, SaleError, voidSale } from "@/features/sales/service";
 import type { EffectiveRate } from "@/features/fx/convert";
 import { openTestDb, type TestDb } from "./helpers/pg";
@@ -45,6 +46,40 @@ describe("registrar una venta", () => {
     const audit = (await db.select().from(productAudit)).filter((a) => a.field === "stock_quantity");
     expect(audit).toHaveLength(1);
     expect(audit[0].userEmail).toContain(s.id);
+  });
+
+  it("registra una venta externa en cuotas con fecha y neto, y cuenta el gasto una sola vez", async () => {
+    const before = await stockOf("storm-sobre");
+    const body = sale([{ productId: "storm-sobre", quantity: 2, price: 9000 }], {
+      paymentMethod: "tarjeta-cuotas", soldOn: "2026-11-01", receivedMinor: peso(16500), installments: 3,
+    });
+    const { sale: saved } = await reg(body);
+    expect(saved).toMatchObject({ soldOn: "2026-11-01", totalMinor: peso(18000), receivedMinor: peso(16500), installments: 3 });
+    expect((await reg(body)).replayed).toBe(true);
+    expect(await stockOf("storm-sobre")).toBe(before! - 2);
+    expect(await code(reg({ ...body, receivedMinor: peso(16000) }))).toBe("idempotency_conflict");
+    const expense = { idempotencyKey: key(), spentAt: Date.parse("2026-11-01T15:00:00Z"), amountMinor: peso(1500), description: "Envío", paymentMethod: "transferencia" };
+    expect(await registerExpense(db, expense, actor.email)).toEqual({ replayed: false });
+    expect(await registerExpense(db, expense, actor.email)).toEqual({ replayed: true });
+    expect(await accountingOverview(db)).toMatchObject({ gross: peso(18000), net: peso(16500), spent: peso(1500), pending: 0 });
+    const day = { from: "2026-11-01", to: "2026-11-01" };
+    expect(await accountingOverview(db, day)).toMatchObject({ gross: peso(18000), net: peso(16500), spent: peso(1500), billing: [{ day: "2026-11-01", total: peso(18000) }] });
+    expect((await listSales(db, 30, day)).map((entry) => entry.id)).toEqual([saved.id]);
+    const later = { from: "2026-11-02", to: "2026-11-02" };
+    expect(await accountingOverview(db, later)).toMatchObject({ gross: 0, net: 0, spent: 0, expenses: [] });
+    expect(await listSales(db, 30, later)).toEqual([]);
+    await voidSale(db, saved.id, "Registro duplicado", actor);
+    expect(await stockOf("storm-sobre")).toBe(before);
+    expect(await accountingOverview(db)).toMatchObject({ gross: 0, net: 0, spent: peso(1500) });
+  });
+
+  it("rechaza datos incompletos de tarjeta sin descontar stock", async () => {
+    const before = await stockOf("storm-sobre");
+    const body = sale([{ productId: "storm-sobre", quantity: 1, price: 9000 }]);
+    expect(await code(reg({ ...body, paymentMethod: "tarjeta" }))).toBe("invalid_input");
+    expect(await code(reg({ ...body, paymentMethod: "tarjeta-cuotas", receivedMinor: peso(8000) }))).toBe("invalid_input");
+    expect(await code(reg({ ...body, paymentMethod: "tarjeta", receivedMinor: peso(9500) }))).toBe("invalid_input");
+    expect(await stockOf("storm-sobre")).toBe(before);
   });
 
   it("conserva el precio realmente cobrado aunque después cambien el catálogo y la cotización", async () => {

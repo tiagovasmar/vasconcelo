@@ -83,9 +83,7 @@ test("recorrido con cuenta: registro → favoritos → consulta → Mis consulta
   await page.getByLabel("Contraseña", { exact: true }).fill(PASSWORD);
   await page.getByLabel("Repetí la contraseña").fill(PASSWORD);
   await page.getByRole("button", { name: "Crear cuenta" }).click();
-  await expect(page.getByTestId("registro-ok")).toBeVisible();
-  await go(page, (await waitForMail(email, "verificacion")).link);
-  await expect(page.getByTestId("verificacion-ok")).toContainText("Iniciamos tu sesión, Valeria");
+  await expect(page).toHaveURL(/\/cuenta$/);
 
   // favorito desde la ficha
   await go(page, "/productos/storm-emeralda-pack-5-sobres");

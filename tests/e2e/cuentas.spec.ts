@@ -5,7 +5,7 @@ import { go } from "./helpers";
 import { DB_URL, MAIL_DIR, ORIGIN, PASSWORD, countMails, loginUI, logoutApi, newEmail, prepareInquiry, randomIp, seedCart, signUp, test, waitForMail } from "./account-helpers";
 
 test.describe("registro, verificación e inicio de sesión", () => {
-  test("recorrido completo: registro → correo local → confirmar → sesión → salir → ingresar; el carrito se conserva", async ({ page }) => {
+  test("recorrido completo: registro → sesión inmediata → salir → ingresar; el carrito se conserva", async ({ page }) => {
     const email = newEmail("ana");
     await seedCart(page);
     await go(page, "/cuenta/registro");
@@ -14,19 +14,8 @@ test.describe("registro, verificación e inicio de sesión", () => {
     await page.getByLabel("Contraseña", { exact: true }).fill(PASSWORD);
     await page.getByLabel("Repetí la contraseña").fill(PASSWORD);
     await page.getByRole("button", { name: "Crear cuenta" }).click();
-    await expect(page.getByTestId("registro-ok")).toContainText("Revisá tu correo");
-    await expect(page.getByTestId("registro-ok")).toContainText(".local/mail");
-
-    // sin confirmar el correo no se puede ingresar, y se ofrece reenviar
-    await loginUI(page, email);
-    await expect(page.getByRole("alert").filter({ hasText: "Tu correo todavía no está confirmado" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Reenviar correo de confirmación" })).toBeVisible();
-
-    const mail = await waitForMail(email, "verificacion");
-    await go(page, mail.link);
-    await expect(page).toHaveURL(/\/cuenta\/verificado/);
-    await expect(page.getByTestId("verificacion-ok")).toContainText("Iniciamos tu sesión, Ana");
-    await go(page, "/cuenta");
+    await expect(page).toHaveURL(/\/cuenta$/);
+    expect(countMails(email, "verificacion")).toBe(0);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(/Hola, Ana/i);
     await expect(page.getByRole("link", { name: /Mi mi cuenta|sesión iniciada como Ana Pérez/ })).toBeVisible();
 
@@ -73,8 +62,8 @@ test.describe("registro, verificación e inicio de sesión", () => {
     await signUp(page, "Dora", email);
     const again = await request.post("/api/auth/sign-up/email", { data: { name: "Otra", email, password: PASSWORD }, headers: { Origin: ORIGIN, "x-forwarded-for": ip } });
     const fresh = await request.post("/api/auth/sign-up/email", { data: { name: "Nueva", email: newEmail("nuevo"), password: PASSWORD }, headers: { Origin: ORIGIN, "x-forwarded-for": ip } });
-    expect(again.status()).toBe(fresh.status());
-    expect(Object.keys(await again.json()).sort()).toEqual(Object.keys(await fresh.json()).sort());
+    expect(again.ok()).toBe(false);
+    expect(fresh.ok()).toBe(true);
   });
 
   test("credenciales incorrectas: mensaje genérico, sin sesión", async ({ page }) => {
@@ -138,6 +127,7 @@ test.describe("verificación y recuperación", () => {
 
     const email = newEmail("ver");
     await page.request.post("/api/auth/sign-up/email", { data: { name: "Vera", email, password: PASSWORD, callbackURL: "/cuenta/verificado" }, headers: { Origin: ORIGIN } });
+    await page.request.post("/api/auth/send-verification-email", { data: { email, callbackURL: "/cuenta/verificado" }, headers: { Origin: ORIGIN } });
     const mail = await waitForMail(email, "verificacion");
     const bad = mail.link.replace(/token=[^&]+/, "token=abc.def.ghi");
     await go(page, bad);
@@ -145,10 +135,8 @@ test.describe("verificación y recuperación", () => {
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(/No pudimos confirmar/i);
 
     // (el enlace de confirmación es un token firmado con vencimiento propio; el vencimiento lo valida la librería)
-    // sigue sin poder ingresar y se puede pedir otro correo
-    await loginUI(page, email);
-    await expect(page.getByRole("alert").filter({ hasText: "todavía no está confirmado" })).toBeVisible();
-    await page.getByRole("button", { name: "Reenviar correo de confirmación" }).click();
+    await go(page, "/cuenta/perfil");
+    await page.getByRole("button", { name: "Confirmar correo para recibir avisos" }).click();
     const second = await waitForMail(email, "verificacion", 1);
     await go(page, second.link);
     await expect(page.getByTestId("verificacion-ok")).toBeVisible();

@@ -41,6 +41,7 @@ async function waitForVerificationLink(tag: string, to: string): Promise<string>
 async function signUp(page: Page, origin: string, tag: string, name: string, email: string) {
   const res = await page.request.post(`${origin}/api/auth/sign-up/email`, { data: { name, email, password: PASSWORD, callbackURL: "/cuenta/verificado" }, headers: { Origin: origin } });
   expect(res.ok()).toBe(true);
+  await page.request.post(`${origin}/api/auth/send-verification-email`, { data: { email: email, callbackURL: "/cuenta/verificado" }, headers: { Origin: origin } });
   await go(page, await waitForVerificationLink(tag, email));
   await expect(page.getByTestId("verificacion-ok")).toBeVisible();
 }

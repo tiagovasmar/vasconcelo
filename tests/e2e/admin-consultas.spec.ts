@@ -39,6 +39,7 @@ async function ownerSession(page: Page) {
   if ((await signIn()).ok()) return;
   const up = await page.request.post(`${ADMIN}/api/auth/sign-up/email`, { data: { name: "Dueño de la Tienda", email: OWNER, password: PASSWORD, callbackURL: "/cuenta/verificado" }, headers: { Origin: ADMIN } });
   if (up.ok()) {
+    await page.request.post(`${ADMIN}/api/auth/send-verification-email`, { data: { email: OWNER, callbackURL: "/cuenta/verificado" }, headers: { Origin: ADMIN } });
     await go(page, await verificationLink(OWNER));
     return;
   }
@@ -390,6 +391,7 @@ test.describe("acceso y presentación", () => {
     const email = `otra-${uid()}@example.com`;
     const up = await page.request.post(`${ADMIN}/api/auth/sign-up/email`, { data: { name: "Otra Persona", email, password: PASSWORD, callbackURL: "/cuenta/verificado" }, headers: { Origin: ADMIN } });
     expect(up.ok()).toBe(true);
+    await page.request.post(`${ADMIN}/api/auth/send-verification-email`, { data: { email: email, callbackURL: "/cuenta/verificado" }, headers: { Origin: ADMIN } });
     await go(page, await verificationLink(email));
     for (const p of ["/admin/consultas", `/admin/consultas/${refA}`]) expect((await page.goto(p))!.status(), p).toBe(404);
     expect((await page.request.post(`${ADMIN}/api/admin/ventas`, { data: venta, headers: { Origin: ADMIN } })).status()).toBe(403);

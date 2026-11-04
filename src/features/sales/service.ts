@@ -7,6 +7,7 @@ import { inquiries, inquiryLines, inquirySales, productOverrides, saleLines, sal
 import { discountKindOf } from "@/features/promos/combo";
 import { assertConvertible, attachSale, closeLinkOnVoid, lockInquiry } from "@/features/consultas/links";
 import { SaleError } from "./errors";
+import { accountingDateFilter, saleAccountingDay, type AccountingPeriod } from "@/features/contabilidad/period";
 import { catalog } from "@/content/catalog";
 import { paymentMethods } from "@/content/checkout-options";
 import type { Language, Product } from "@/content/schema";
@@ -28,8 +29,8 @@ import type { EffectiveRate } from "@/features/fx/convert";
  *  - ventas, líneas y movimientos no se editan ni se borran (también lo impide la base); un error se corrige anulando la venta, que devuelve el stock.
  * Una consulta por WhatsApp o un carrito armado NO pasan por acá: nunca descuentan stock.
  */
-export const SALE_PAYMENT_IDS = paymentMethods.map((p) => p.id) as [string, ...string[]];
-export const paymentLabelOf = (id: string) => paymentMethods.find((p) => p.id === id)?.label ?? id;
+export const SALE_PAYMENT_IDS = [...paymentMethods.map((p) => p.id), "tarjeta", "tarjeta-cuotas"] as const;
+export const paymentLabelOf = (id: string) => id === "tarjeta" ? "Tarjeta · un pago" : id === "tarjeta-cuotas" ? "Tarjeta · cuotas" : paymentMethods.find((p) => p.id === id)?.label ?? id;
 
 export { SaleError, type SaleErrorCode } from "./errors";
 
@@ -50,6 +51,9 @@ export const SaleInputSchema = z.object({
     .min(1, "Elegí al menos un producto.")
     .max(30, "Demasiados productos en una sola venta."),
   paymentMethod: z.enum(SALE_PAYMENT_IDS, { error: "Elegí un método de pago." }),
+  soldOn: z.iso.date({ error: "Ingresá una fecha de venta válida." }).optional(),
+  receivedMinor: z.number().int().min(0).max(30_000_000_000_000).optional(),
+  installments: z.number().int().min(2).max(48).optional(),
   note: z.string().trim().max(300, "La observación es demasiado larga (máximo 300).").optional().transform((v) => (v ? v : undefined)),
   /** Si la venta convierte una consulta: la venta, el descuento de stock y el vínculo se guardan en la MISMA transacción. */
   inquiryId: z.string().trim().min(1).max(40).optional(),
@@ -66,6 +70,7 @@ export type SalePreview = { lines: PreviewLine[]; totalMinor: number; ok: boolea
 
 export type SaleView = {
   id: string; status: string; paymentMethod: string; paymentLabel: string; note: string | null; totalMinor: number; createdAt: number; createdByEmail: string;
+  soldOn: string | null; receivedMinor: number | null; installments: number | null;
   voidedAt: number | null; voidedByEmail: string | null; voidReason: string | null;
   /** Consulta de origen (y su persona), si la venta salió de una consulta o se vinculó a una. */
   inquiry?: { id: string; name: string | null; kind: string; active: boolean } | null;
@@ -79,11 +84,18 @@ export function newSaleId(): string {
 }
 
 type Parsed = z.output<typeof SaleInputSchema>;
-const hashOf = (i: Parsed) => sha(JSON.stringify({ items: [...i.items].map((x) => [x.productId, x.quantity, x.unitPriceMinor, x.discountMinor]).sort((a, b) => String(a[0]).localeCompare(String(b[0]))), p: i.paymentMethod, n: i.note ?? "", q: i.inquiryId ?? "" }));
+const hashOf = (i: Parsed) => sha(JSON.stringify({ items: [...i.items].map((x) => [x.productId, x.quantity, x.unitPriceMinor, x.discountMinor]).sort((a, b) => String(a[0]).localeCompare(String(b[0]))), p: i.paymentMethod, n: i.note ?? "", q: i.inquiryId ?? "", fecha: i.soldOn, recibido: i.receivedMinor, cuotas: i.installments }));
 
 function parse(body: unknown): Parsed {
   const r = SaleInputSchema.safeParse(body);
   if (!r.success) throw new SaleError(400, "invalid_input", r.error.issues[0]?.message ?? "Revisá los datos de la venta.", r.error.issues.map((i) => ({ path: i.path.join("."), message: i.message })));
+  const { paymentMethod, receivedMinor, installments } = r.data;
+  const card = paymentMethod.startsWith("tarjeta");
+  if ((paymentMethod === "tarjeta" || paymentMethod === "tarjeta-cuotas") && receivedMinor === undefined) throw new SaleError(400, "invalid_input", "Indicá el importe neto recibido con tarjeta.");
+  if (paymentMethod === "tarjeta-cuotas" && installments === undefined) throw new SaleError(400, "invalid_input", "Indicá la cantidad de cuotas.");
+  if ((!card && receivedMinor !== undefined) || (paymentMethod !== "tarjeta-cuotas" && installments !== undefined)) throw new SaleError(400, "invalid_input", "Revisá los datos del cobro con tarjeta.");
+  const total = r.data.items.reduce((sum, line) => sum + line.quantity * line.unitPriceMinor - line.discountMinor, 0);
+  if (receivedMinor !== undefined && receivedMinor > total) throw new SaleError(400, "invalid_input", "El monto recibido no puede superar el total de la venta.");
   const ids = r.data.items.map((i) => i.productId);
   if (new Set(ids).size !== ids.length) throw new SaleError(400, "invalid_input", "Un producto no puede repetirse en la misma venta: sumá las cantidades en una sola línea.");
   return r.data;
@@ -140,6 +152,7 @@ async function originsOf(db: Db, saleIds: string[]): Promise<Array<{ saleId: str
 function toView(s: typeof sales.$inferSelect, lines: Array<typeof saleLines.$inferSelect>): SaleView {
   return {
     id: s.id, status: s.status, paymentMethod: s.paymentMethod, paymentLabel: paymentLabelOf(s.paymentMethod), note: s.note, totalMinor: s.totalMinor, createdAt: s.createdAt, createdByEmail: s.createdByEmail,
+    soldOn: s.soldOn, receivedMinor: s.receivedMinor, installments: s.installments,
     voidedAt: s.voidedAt, voidedByEmail: s.voidedByEmail, voidReason: s.voidReason,
     lines: lines.map((l) => ({ productId: l.productId, sku: l.sku, title: l.title, language: l.language as Language, quantity: l.quantity, unitPriceMinor: l.unitPriceMinor, catalogPriceMinor: l.catalogPriceMinor, catalogPriceUsdMinor: l.catalogPriceUsdMinor, lineTotalMinor: l.lineTotalMinor, discountMinor: l.discountMinor, discountKind: l.discountKind, baseCurrency: l.baseCurrency, packSize: l.packSize })),
   };
@@ -183,6 +196,7 @@ export async function registerSale(db: Db, body: unknown, actor: Actor, ctx: { f
       if (inquiry) for (const l of await tx.select().from(inquiryLines).where(eq(inquiryLines.inquiryId, inquiry.id))) inquiryLinesByProduct.set(l.productId, l);
       await tx.insert(sales).values({
         id, idempotencyKey: input.idempotencyKey, contentHash: hash, paymentMethod: input.paymentMethod, note: input.note ?? null, totalMinor: total,
+        soldOn: input.soldOn ?? null, receivedMinor: input.receivedMinor ?? null, installments: input.installments ?? null,
         fxRate10k: fx.rate10k ?? null, status: "registrada", createdAt: now, createdByUserId: actor.id, createdByEmail: actor.email,
       });
       for (const it of input.items) {
@@ -344,8 +358,8 @@ export async function moveStock(db: Db, body: unknown, actor: Actor, now = Date.
 
 /* ---------- Listados ---------- */
 
-export async function listSales(db: Db, limit = 50): Promise<SaleView[]> {
-  const rows = await db.select().from(sales).orderBy(desc(sales.createdAt), desc(sales.id)).limit(Math.min(limit, 500));
+export async function listSales(db: Db, limit = 50, period?: AccountingPeriod): Promise<SaleView[]> {
+  const rows = await db.select().from(sales).where(period ? accountingDateFilter(saleAccountingDay, period) : undefined).orderBy(desc(period ? saleAccountingDay : sales.createdAt), desc(sales.createdAt), desc(sales.id)).limit(Math.min(limit, 500));
   if (!rows.length) return [];
   const ids = rows.map((s) => s.id);
   const [lines, origins] = await Promise.all([db.select().from(saleLines).where(inArray(saleLines.saleId, ids)).orderBy(saleLines.id), originsOf(db, ids)]);

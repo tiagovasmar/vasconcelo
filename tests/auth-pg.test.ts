@@ -52,7 +52,7 @@ const lastMail = () => {
 };
 
 describe("cuentas con Better Auth sobre PostgreSQL", () => {
-  it("registro → correo de confirmación → no ingresa sin confirmar → confirma → ingresa → sesión válida → cierra sesión", async () => {
+  it("registro con sesión inmediata, confirmación opcional, ingreso y cierre de sesión", async () => {
     const { auth } = await boot();
     const reg = await auth.handler(post("/sign-up/email", { name: "Ana", email: "ana@example.com", password: "una-clave-larga-123" }));
     expect(reg.status).toBe(200);
@@ -61,28 +61,29 @@ describe("cuentas con Better Auth sobre PostgreSQL", () => {
     const [acc] = await db.select().from(account).where(eq(account.userId, u.id));
     expect(acc.password).toMatch(/^[0-9a-f]+:[0-9a-f]+$/); // hash scrypt, nunca texto plano
     expect(acc.password).not.toContain("una-clave-larga-123");
+    expect(fs.readdirSync(mailDir)).toHaveLength(0);
+    expect(cookieOf(reg)).toMatch(/better-auth\.session_token=/);
+    const verificationRequest = await auth.handler(post("/send-verification-email", { email: u.email }, cookieOf(reg)));
+    expect(verificationRequest.status).toBe(200);
     const mail = lastMail();
     expect(mail).toMatchObject({ to: "ana@example.com", kind: "verificacion" });
-
-    const before = await auth.handler(post("/sign-in/email", { email: "ana@example.com", password: "una-clave-larga-123" }));
-    expect(before.status).toBe(403); // correo sin confirmar
 
     const verify = await auth.handler(new Request(mail.link, { headers: { "x-forwarded-for": "10.0.0.1" } }));
     expect([200, 302]).toContain(verify.status);
     expect((await db.select().from(user).where(eq(user.id, u.id)))[0].emailVerified).toBe(true);
-    expect(await db.select().from(session)).toHaveLength(1); // al confirmar el correo se abre sesión sola (autoSignInAfterVerification)
+    expect(await db.select().from(session)).toHaveLength(2); // registro y confirmación opcional
 
     const login = await auth.handler(post("/sign-in/email", { email: "ana@example.com", password: "una-clave-larga-123" }));
     expect(login.status).toBe(200);
     const cookie = cookieOf(login);
     expect(cookie).toMatch(/better-auth\.session_token=/);
-    expect(await db.select().from(session)).toHaveLength(2);
+    expect(await db.select().from(session)).toHaveLength(3);
     const get = await auth.handler(new Request(`${ORIGIN}/api/auth/get-session`, { headers: { cookie } }));
     expect((await get.json() as { user: { email: string } }).user.email).toBe("ana@example.com");
 
     const out = await auth.handler(post("/sign-out", {}, cookie));
     expect(out.status).toBe(200);
-    expect(await db.select().from(session)).toHaveLength(1); // la sesión que cerró se borra de la base
+    expect(await db.select().from(session)).toHaveLength(2); // la sesión que cerró se borra de la base
     const after = await auth.handler(new Request(`${ORIGIN}/api/auth/get-session`, { headers: { cookie } }));
     expect(await after.json()).toBeNull();
   });
@@ -161,14 +162,15 @@ describe("cuentas con Better Auth sobre PostgreSQL", () => {
 });
 
 describe("correo transaccional", () => {
-  it("sin proveedor en producción: no hay correo, el registro público queda deshabilitado (503) y no se simula ningún envío", async () => {
+  it("sin proveedor en producción: no hay correo, el registro público sigue disponible y no se simula ningún envío", async () => {
     vi.stubEnv("NODE_ENV", "production");
     delete process.env.MAIL_TRANSPORT;
     delete process.env.MAIL_PROVIDER;
     expect(mailTransportAvailable()).toBe(false);
     await expect(sendMail({ to: "a@b.c", subject: "s", text: "t", kind: "verificacion", link: "https://x" })).rejects.toThrow(/no configurado/);
     const res = guardMail(new Request(`${ORIGIN}/api/auth/sign-up/email`, { method: "POST" }));
-    expect(res?.status).toBe(503);
+    expect(res).toBeNull();
+    expect(guardMail(new Request(`${ORIGIN}/api/auth/request-password-reset`, { method: "POST" }))?.status).toBe(503);
     expect(guardMail(new Request(`${ORIGIN}/api/auth/sign-in/email`, { method: "POST" }))).toBeNull(); // el ingreso (administrador) sigue disponible
     vi.unstubAllEnvs();
   });

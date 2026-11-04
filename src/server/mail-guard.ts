@@ -1,7 +1,7 @@
 import { mailTransportAvailable } from "./mail";
 
 /** Rutas de autenticación que dependen de poder enviar un correo. */
-const NEEDS_MAIL = ["/sign-up/email", "/request-password-reset", "/send-verification-email", "/forget-password"];
+const NEEDS_MAIL = ["/request-password-reset", "/send-verification-email", "/forget-password"];
 
 /**
  * Si el entorno no puede enviar correos, rechaza de forma explícita (503) las acciones que lo necesitan, en vez de

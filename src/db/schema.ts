@@ -280,6 +280,21 @@ export const adminSettings = pgTable("admin_settings", {
  * disparadores). Un error se corrige con una anulación, que devuelve el stock y deja constancia; la venta original queda como «anulada», no desaparece.
  * Los precios son los realmente cobrados: no cambian aunque después cambien el catálogo o la cotización.
  */
+export const storefrontVisits = pgTable("storefront_visits", {
+  day: text("day").notNull(),
+  browser: text("browser").notNull(),
+}, (t) => [uniqueIndex("storefront_visits_day_browser").on(t.day, t.browser)]);
+
+export const accountingExpenses = pgTable("accounting_expenses", {
+  id: text("id").primaryKey(),
+  spentAt: ms("spent_at").notNull(),
+  amountMinor: ms("amount_minor").notNull(),
+  description: text("description").notNull(),
+  paymentMethod: text("payment_method").notNull(),
+  createdAt: ms("created_at").notNull(),
+  createdByEmail: text("created_by_email").notNull(),
+}, (t) => [check("accounting_expenses_amount_check", sql`${t.amountMinor} > 0`), index("accounting_expenses_date_idx").on(t.spentAt)]);
+
 export const sales = pgTable(
   "sales",
   {
@@ -291,6 +306,9 @@ export const sales = pgTable(
     /** tarjeta-3-cuotas | transferencia | efectivo */
     paymentMethod: text("payment_method").notNull(),
     note: text("note"),
+    soldOn: text("sold_on"),
+    receivedMinor: ms("received_minor"),
+    installments: integer("installments"),
     /** Total cobrado (suma de las líneas), en centavos de ARS. */
     totalMinor: ms("total_minor").notNull(),
     /** Cotización vigente al registrar (solo informativa; el precio cobrado es el de cada línea). */

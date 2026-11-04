@@ -6,6 +6,7 @@ import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { CartDrawer } from "@/components/cart-drawer";
 import { AccountProvider } from "@/components/account-provider";
+import { StorefrontVisit } from "@/components/storefront-visit";
 import { HydrationMarker } from "@/components/hydration-marker";
 import { failLayoutForTests } from "@/server/test-hooks";
 
@@ -39,6 +40,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           Saltar al contenido
         </a>
         <HydrationMarker />
+        <StorefrontVisit />
         <AccountProvider>
           <Header />
           <main id="principal">{children}</main>

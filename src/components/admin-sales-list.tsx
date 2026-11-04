@@ -35,13 +35,14 @@ export function AdminSalesList({ sales }: { sales: SaleView[] }) {
         <li key={s.id} className={`rounded-xl border bg-white p-4 ${s.status === "anulada" ? "border-vermilion/40" : "border-ink/15"}`} data-testid={`venta-${s.id}`}>
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <p className="font-mono text-sm font-semibold">{s.id}{s.status === "anulada" && <span className="ml-2 rounded bg-vermilion px-2 py-0.5 font-sans text-xs font-bold text-white">ANULADA</span>}</p>
-            <p className="text-sm text-ink/70">{when(s.createdAt)} · {s.createdByEmail}</p>
+            <p className="text-sm text-ink/70">{s.soldOn ? s.soldOn.split("-").reverse().join("/") : when(s.createdAt)} · {s.createdByEmail}</p>
           </div>
           {s.inquiry && <p className="mt-1 text-sm" data-testid="venta-origen">Cliente: <b>{s.inquiry.name ?? "Sin nombre"}</b> · consulta <Link href={`/admin/consultas/${s.inquiry.id}`} className="font-mono underline underline-offset-4">{s.inquiry.id}</Link>{s.inquiry.kind === "vinculada" ? " (vinculada)" : ""}</p>}
           <ul className="mt-2 text-sm">
             {s.lines.map((l) => <li key={l.productId} className="flex justify-between gap-3"><span>{l.quantity} × {l.title}{l.packSize && !/pack de/i.test(l.title) ? ` (pack de ${l.packSize})` : ""} <span className="font-mono text-xs text-ink/70">{l.sku}</span></span><span className="shrink-0 text-right">{formatARS(l.unitPriceMinor)} {l.packSize ? "por pack" : "c/u"}{l.discountMinor > 0 && <span className="block text-xs font-semibold text-emerald" data-testid={`venta-desc-${l.productId}`}>−{formatARS(l.discountMinor)} ({l.discountKind === "combo" ? "combo caja + sobres" : l.discountKind === "transferencia" ? "transferencia" : l.discountKind === "mixto" ? "combo y transferencia" : "descuento"})</span>}</span></li>)}
           </ul>
           <p className="mt-2 flex flex-wrap items-baseline justify-between gap-2 border-t border-ink/10 pt-2 text-sm"><span>{s.paymentLabel}{s.note ? ` · ${s.note}` : ""}</span><b className="text-lg">{formatARS(s.totalMinor)}</b></p>
+          {s.receivedMinor !== null && <p className="mt-1 text-sm">Neto recibido: <b>{formatARS(s.receivedMinor)}</b>{s.installments && ` · ${s.installments} cuotas`}</p>}
           {s.status === "anulada" ? (
             <p className="mt-1 text-xs text-vermilion">Anulada el {s.voidedAt ? when(s.voidedAt) : ""} por {s.voidedByEmail}: {s.voidReason}. El stock se devolvió.</p>
           ) : open === s.id ? (

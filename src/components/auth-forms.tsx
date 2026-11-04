@@ -126,7 +126,7 @@ export function LoginForm({ next, notice }: { next?: string; notice?: string }) 
   );
 }
 
-export function RegisterForm({ devMail, next }: { devMail: boolean; next?: string }) {
+export function RegisterForm({ next }: { next?: string }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -134,7 +134,7 @@ export function RegisterForm({ devMail, next }: { devMail: boolean; next?: strin
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [done, setDone] = useState(false);
+  const router = useRouter();
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -147,25 +147,16 @@ export function RegisterForm({ devMail, next }: { devMail: boolean; next?: strin
     setFormError("");
     if (Object.keys(er).length) return;
     setBusy(true);
-    const { error } = await authClient.signUp.email({ name: name.trim(), email: email.trim(), password, callbackURL: `/cuenta/verificado${next ? `?next=${encodeURIComponent(next)}` : ""}` });
+    const { error } = await authClient.signUp.email({ name: name.trim(), email: email.trim(), password });
     setBusy(false);
     if (error) {
       setFormError(authMessage(error));
       return;
     }
-    setDone(true);
+    router.push(safeNext(next));
+    router.refresh();
   }
 
-  if (done) {
-    return (
-      <div role="status" className="border-l-4 border-emerald bg-emerald/10 p-4 text-sm" data-testid="registro-ok">
-        <p className="text-base font-bold">Revisá tu correo para confirmar la cuenta.</p>
-        <p className="mt-2">Si el correo es válido, te enviamos un enlace de confirmación (vale 24 horas). Todavía no iniciaste sesión: primero confirmá tu correo.</p>
-        {devMail && <p className="mt-2 text-xs text-ink/70">Entorno de desarrollo: el correo no sale a internet, se guarda en la carpeta local <code>.local/mail/</code> (comando <code>npm run mail:last</code>).</p>}
-        <p className="mt-3"><Link href={next ? `/cuenta/ingresar?next=${encodeURIComponent(next)}` : "/cuenta/ingresar"} className="font-semibold underline">Ir a ingresar</Link></p>
-      </div>
-    );
-  }
   return (
     <form onSubmit={submit} noValidate className="space-y-4">
       <Field id="name" label="Nombre" error={errors.name}>
@@ -326,6 +317,20 @@ export function ProfileForm({ name: initial, email, verified }: { name: string; 
         <p className={labelCls}>Correo electrónico</p>
         <p className="flex min-h-12 flex-wrap items-center gap-x-3 break-all border border-ink/20 bg-paper-2 px-3 py-2 text-sm">{email} <span className="text-xs font-bold text-emerald">{verified ? "Confirmado" : "Sin confirmar"}</span></p>
         <p className="mt-1 text-xs text-ink/60">Por ahora el correo no se puede cambiar desde la web.</p>
+        {!verified && <button type="button" disabled={busy} className="min-h-11 text-sm font-semibold underline" onClick={async () => {
+          setBusy(true);
+          setErr("");
+          setMsg("");
+          try {
+            const { error } = await authClient.sendVerificationEmail({ email, callbackURL: "/cuenta/perfil" });
+            if (error) setErr(authMessage(error));
+            else setMsg("Te enviamos un enlace para confirmar tu correo.");
+          } catch {
+            setErr("No pudimos enviar el enlace. Intentá de nuevo.");
+          } finally {
+            setBusy(false);
+          }
+        }}>Confirmar correo para recibir avisos</button>}
       </div>
       <button type="submit" disabled={busy} className={button}>{busy ? "Guardando…" : "Guardar cambios"}</button>
       <p role="status" aria-live="polite" className="min-h-5 text-sm font-semibold text-emerald">{msg}</p>

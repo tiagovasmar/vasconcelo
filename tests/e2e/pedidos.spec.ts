@@ -39,6 +39,7 @@ async function mailLink(to: string, kind: string): Promise<string> {
 async function signUp(page: Page, name: string, email: string) {
   const res = await page.request.post(`${ORIGIN}/api/auth/sign-up/email`, { data: { name, email, password: PASSWORD, callbackURL: "/cuenta/verificado" }, headers: H });
   expect(res.ok()).toBe(true);
+  await page.request.post(`${ORIGIN}/api/auth/send-verification-email`, { data: { email: email, callbackURL: "/cuenta/verificado" }, headers: { Origin: ORIGIN } });
   await go(page, await mailLink(email, "verificacion"));
   await expect(page.getByTestId("verificacion-ok")).toBeVisible();
 }

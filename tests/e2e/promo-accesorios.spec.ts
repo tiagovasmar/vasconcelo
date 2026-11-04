@@ -40,6 +40,7 @@ async function ownerSession(page: Page) {
   if ((await signIn()).ok()) return;
   const up = await page.request.post(`${BASE}/api/auth/sign-up/email`, { data: { name: "Dueño de la Tienda", email: OWNER, password: PASSWORD, callbackURL: "/cuenta/verificado" }, headers: { Origin: BASE } });
   if (up.ok()) {
+    await page.request.post(`${BASE}/api/auth/send-verification-email`, { data: { email: OWNER, callbackURL: "/cuenta/verificado" }, headers: { Origin: BASE } });
     await go(page, await verificationLink(OWNER));
     return;
   }

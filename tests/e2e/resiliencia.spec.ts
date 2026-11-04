@@ -42,7 +42,10 @@ test.beforeAll(async ({ browser }) => {
   const signIn = () => page.request.post(`${BASE}/api/auth/sign-in/email`, { data: { email: OWNER, password: PASSWORD }, headers: { Origin: BASE } });
   if (!(await signIn()).ok()) {
     const up = await page.request.post(`${BASE}/api/auth/sign-up/email`, { data: { name: "Dueño de la Tienda", email: OWNER, password: PASSWORD, callbackURL: "/cuenta/verificado" }, headers: { Origin: BASE } });
-    if (up.ok()) await go(page, await verificationLink(OWNER));
+    if (up.ok()) {
+      await page.request.post(`${BASE}/api/auth/send-verification-email`, { data: { email: OWNER, callbackURL: "/cuenta/verificado" }, headers: { Origin: BASE } });
+      await go(page, await verificationLink(OWNER));
+    }
     else for (let i = 0; i < 20 && !(await signIn()).ok(); i++) await new Promise((r) => setTimeout(r, 500));
   }
   // La segunda pasada (móvil) encuentra la promoción ya encendida: el 409/400 por versión es esperado.

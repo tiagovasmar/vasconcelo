@@ -174,10 +174,11 @@ describe("correo local y redirecciones", () => {
 
 describe("correo no disponible (producción sin proveedor)", () => {
   const post = (path: string) => new Request(`http://localhost:3000/api/auth${path}`, { method: "POST" });
-  it("en producción bloquea registro, recuperación y reenvío con 503 explícito, sin simular envíos", async () => {
+  it("en producción permite registro y bloquea recuperación y reenvío con 503 explícito, sin simular envíos", async () => {
     const { guardMail } = await import("@/server/mail-guard");
     vi.stubEnv("NODE_ENV", "production");
-    for (const p of ["/sign-up/email", "/request-password-reset", "/send-verification-email"]) {
+    expect(guardMail(post("/sign-up/email"))).toBeNull();
+    for (const p of ["/request-password-reset", "/send-verification-email"]) {
       const res = guardMail(post(p));
       expect(res?.status).toBe(503);
       expect((await res!.json()).code).toBe("MAIL_UNAVAILABLE");

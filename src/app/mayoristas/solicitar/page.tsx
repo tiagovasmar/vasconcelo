@@ -25,7 +25,7 @@ export default async function Solicitar() {
       >
         <div className="grid gap-3" data-testid="mayorista-sin-sesion">
           <Link href={`/cuenta/ingresar?next=${encodeURIComponent(NEXT)}`} className="border border-ink bg-ink p-5 text-paper hover:bg-emerald"><b className="display block text-2xl normal-case">Ya tengo cuenta</b><span className="text-sm">Ingresar y continuar con la solicitud.</span></Link>
-          <Link href={`/cuenta/registro?next=${encodeURIComponent(NEXT)}`} className="border border-ink bg-gold p-5 hover:bg-paper"><b className="display block text-2xl normal-case">Crear cuenta</b><span className="text-sm">Nombre, correo y contraseña; confirmás tu correo y seguís.</span></Link>
+          <Link href={`/cuenta/registro?next=${encodeURIComponent(NEXT)}`} className="border border-ink bg-gold p-5 hover:bg-paper"><b className="display block text-2xl normal-case">Crear cuenta</b><span className="text-sm">Ingresá tu nombre, correo y contraseña para continuar.</span></Link>
         </div>
       </AuthCard>
     );
