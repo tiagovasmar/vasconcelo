@@ -415,36 +415,3 @@ export function ClaimGuestCard({ count }: { count: number }) {
     </div>
   );
 }
-
-/** Mensajes del regreso de Google (la librería agrega ?error=… a la dirección de error). Nunca revelan si un correo ya estaba registrado. */
-export function googleErrorMessage(code: string | undefined): string | undefined {
-  if (!code) return undefined;
-  if (code === "access_denied") return "Cancelaste el ingreso con Google. Podés intentarlo de nuevo o ingresar con tu correo.";
-  if (/account_not_linked|unable_to_link|email_doesn't_match|email_does_not_match/i.test(code)) return "No pudimos unir Google a una cuenta existente. Ingresá con tu correo y contraseña (si todavía no confirmaste ese correo, confirmalo o recuperá el acceso) y probá de nuevo.";
-  return "No pudimos completar el ingreso con Google. Intentá de nuevo o ingresá con tu correo.";
-}
-
-/** «Continuar con Google»: sirve para ingresar y para crear la cuenta (si no existe se crea con el correo verificado por Google). Solo se muestra si el servidor tiene las credenciales configuradas. */
-export function GoogleSection({ next, back }: { next?: string; back: "ingresar" | "registro" }) {
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState("");
-  async function go() {
-    setBusy(true);
-    setErr("");
-    const { error } = await authClient.signIn.social({ provider: "google", callbackURL: safeNext(next), errorCallbackURL: `/cuenta/${back === "registro" ? "registro" : "ingresar"}${next ? `?next=${encodeURIComponent(next)}` : ""}` });
-    if (error) {
-      setBusy(false);
-      setErr(authMessage(error));
-    }
-  }
-  return (
-    <div className="mb-5" data-testid="google-seccion">
-      <button type="button" onClick={go} disabled={busy} className="flex min-h-12 w-full items-center justify-center gap-3 border border-ink bg-white px-6 font-bold hover:bg-paper-2 disabled:opacity-50" data-testid="continuar-google">
-        <span aria-hidden="true" className="grid h-6 w-6 place-items-center rounded-full border border-ink/40 text-sm font-extrabold">G</span>
-        {busy ? "Abriendo Google…" : "Continuar con Google"}
-      </button>
-      {err && <p role="alert" className="mt-2 text-sm font-semibold text-vermilion">{err}</p>}
-      <p className="mt-3 flex items-center gap-3 text-xs text-ink/60" aria-hidden="true"><span className="h-px flex-1 bg-ink/20" />o con tu correo<span className="h-px flex-1 bg-ink/20" /></p>
-    </div>
-  );
-}

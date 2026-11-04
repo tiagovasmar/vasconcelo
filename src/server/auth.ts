@@ -7,7 +7,6 @@ import { nextCookies } from "better-auth/next-js";
 import { getDb } from "../db/client";
 import * as schema from "../db/schema";
 import { sendMail } from "./mail";
-import { googleCredentials } from "./google";
 
 /** Secreto de firma: variable de entorno; en desarrollo se genera una vez en `.local/auth-secret` (ignorado por Git). */
 function authSecret(): string {
@@ -65,11 +64,6 @@ function createAuth() {
         });
       },
     },
-    // Ingreso con Google (solo si hay credenciales en el entorno: sin ellas el botón no aparece y la ruta no existe).
-    ...(googleCredentials() ? { socialProviders: { google: { ...googleCredentials()!, prompt: "select_account" as const } } } : {}),
-    // Vinculación segura: una cuenta de Google se une a una cuenta existente SOLO si el correo es el mismo, Google lo informa verificado Y la cuenta local también lo tiene verificado
-    // (`requireLocalEmailVerified`). A propósito NO se declara a Google «proveedor de confianza»: así, si Google no informa el correo verificado, no se vincula. Así nadie se apropia de una cuenta registrando antes el correo ajeno sin confirmarlo. Nunca se vincula con otro correo.
-    account: { accountLinking: { enabled: true, allowDifferentEmails: false, requireLocalEmailVerified: true } },
     session: { expiresIn: 60 * 60 * 24 * 14, updateAge: 60 * 60 * 24 },
     advanced: {
       useSecureCookies: prod,
