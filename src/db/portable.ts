@@ -60,6 +60,8 @@ export const TABLES: TableSpec[] = [
   { name: "applied_costs", pk: ["id"], identity: "id", optional: true },
   { name: "sale_commissions", pk: ["id"], identity: "id", optional: true },
   { name: "wholesale_tiers", pk: ["product_id", "min_qty"], optional: true },
+  { name: "accounting_expenses", pk: ["id"], optional: true },
+  { name: "storefront_visits", pk: ["day", "browser"], optional: true },
 ];
 
 export const dataTables = (withVolatile = false) => TABLES.filter((t) => withVolatile || !t.volatile);

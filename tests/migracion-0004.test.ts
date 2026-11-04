@@ -31,8 +31,8 @@ describe("migración 0004 sobre datos existentes", () => {
     dirs.push(part);
     fs.mkdirSync(path.join(part, "meta"));
     const journal = JSON.parse(fs.readFileSync(path.join(full, "meta", "_journal.json"), "utf8")) as { entries: Array<{ tag: string }> };
-    const upTo3 = { ...journal, entries: journal.entries.filter((e) => !e.tag.startsWith("0004")) };
-    expect(upTo3.entries.length).toBe(journal.entries.length - 1);
+    const upTo3 = { ...journal, entries: journal.entries.filter((e) => e.tag < "0004") };
+    expect(upTo3.entries.length).toBe(4);
     fs.writeFileSync(path.join(part, "meta", "_journal.json"), JSON.stringify(upTo3));
     for (const e of upTo3.entries) fs.copyFileSync(path.join(full, `${e.tag}.sql`), path.join(part, `${e.tag}.sql`));
     const db = createDb(url, { max: 1 });
