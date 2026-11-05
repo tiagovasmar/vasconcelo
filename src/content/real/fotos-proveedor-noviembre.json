@@ -1,0 +1,44 @@
+{
+  "storm-caja": [
+    {
+      "src": "/images/products/storm-caja/proveedor-noviembre-front.webp",
+      "width": 960,
+      "height": 1280,
+      "view": "front"
+    },
+    {
+      "src": "/images/products/storm-caja/proveedor-noviembre-detail.webp",
+      "width": 960,
+      "height": 1280,
+      "view": "detail"
+    }
+  ],
+  "zh-30-zhounian-set-monedas": [
+    {
+      "src": "/images/products/zh-30-zhounian-set-monedas/proveedor-noviembre-front.webp",
+      "width": 960,
+      "height": 1280,
+      "view": "front"
+    },
+    {
+      "src": "/images/products/zh-30-zhounian-set-monedas/proveedor-noviembre-back.webp",
+      "width": 960,
+      "height": 1280,
+      "view": "back"
+    }
+  ],
+  "mega-dream-ex-caja": [
+    {
+      "src": "/images/products/mega-dream-ex-caja/proveedor-noviembre-front.webp",
+      "width": 960,
+      "height": 1280,
+      "view": "front"
+    },
+    {
+      "src": "/images/products/mega-dream-ex-caja/proveedor-noviembre-detail.webp",
+      "width": 960,
+      "height": 1280,
+      "view": "detail"
+    }
+  ]
+}

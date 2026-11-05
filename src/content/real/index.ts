@@ -8,6 +8,7 @@ import * as jaCajas from "./japon-cajas";
 import { products as accesorios } from "./accesorios";
 import { products as china151Slim } from "./china-151-slim";
 import { pullRates } from "./pull-rates";
+import { withSupplierPhotos } from "./fotos-proveedor";
 
 /**
  * Catálogo comercial real: 8 colecciones japonesas (caja y sobre individual por separado, 16 fichas) y las ediciones en chino simplificado
@@ -18,7 +19,7 @@ export const realCatalog: Catalog = {
   featuredIds: ["storm-caja", "storm-sobre", "abyss-eye-caja", "30th-celebration-caja"],
   sources: [...sourcesJa, ...jaCajas.sources, ...zh.sources],
   expansions: [...expansionsJa, ...jaCajas.expansions, ...zh.expansions],
-  products: [...productsJa, ...jaCajas.products, ...zh.products, ...china151Slim, ...accesorios],
+  products: [...productsJa, ...jaCajas.products, ...zh.products, ...china151Slim, ...accesorios].map(withSupplierPhotos),
   pullRates,
   guarantees: [...guaranteesJa, ...jaCajas.guarantees, ...zh.guarantees],
 };
