@@ -131,7 +131,7 @@ export default async function Home() {
           <ul className="mt-5 grid grid-cols-2 gap-3 max-[359px]:grid-cols-1 sm:gap-5 lg:grid-cols-4">
             {upcoming.map((product) => <li key={product.id} className="min-w-0 overflow-hidden rounded-xl border border-ink/15 bg-white">
               <Link href={`/productos/${product.slug}`} className="group flex h-full flex-col">
-                <div className="relative aspect-[4/3] bg-paper-2"><ProductImage product={product} sizes="(min-width:1024px) 320px, 45vw" /></div>
+                <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden bg-paper-2 p-3"><ProductImage product={product} className="h-full w-full object-contain" sizes="(min-width:1024px) 320px, 45vw" /></div>
                 <div className="flex flex-1 flex-col p-3 sm:p-4">
                   <span className="self-start rounded-full bg-emerald px-2.5 py-1 text-xs font-semibold text-white">{incoming.get(product.id)!.traveling > 0 ? "En camino" : "Próximamente"}</span>
                   <h3 className="mt-3 break-words text-sm font-semibold sm:text-base">{product.title}</h3>
