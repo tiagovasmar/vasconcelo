@@ -2,6 +2,7 @@ import type { Expansion, Guarantee, ImageAsset, NameInfo, Product, Source } from
 import datos from "../colecciones/origen/china/productos.json";
 import imagenes from "../colecciones/imagenes-china.json";
 import commercial from "./commercial.json";
+import celebrationCards from "../colecciones/cartas/zh-30-zhounian.json";
 
 /**
  * Catálogo chino (chino simplificado, China continental): se arma desde `origen/china/productos.json` (definición revisada a mano,
@@ -46,7 +47,7 @@ const nombreEnTexto = (x: NameData, nombreEs?: string) => {
   return `Nombre principal en inglés «${x.nombreEnPrincipal}»: ${tipo}.${dudas}${variantes}${nombreEs ? ` Nombre anterior en español: «${nombreEs}».` : ""}`;
 };
 
-export const sources: Source[] = [...datos.fuentes.map((f) => ({
+export const sources: Source[] = [{ id: "zh-30th-cartas-oficial", url: "https://campaign-30th.pokemon.cn/products/30th-celebration/", publisher: "Pokémon China", consultedAt: "2026-11-05", scope: "Selección de cartas mostradas en la campaña oficial china del 30 aniversario." }, ...datos.fuentes.map((f) => ({
   id: sourceId(f.id),
   url: f.url,
   publisher: `Publicación en ${f.plataforma === "tmall" ? "Tmall" : "Taobao"} · tienda «${f.tienda}»${f.tienda.includes("官方旗舰店") ? " (se presenta como tienda oficial; no verificado)" : " (revendedor)"}`,
@@ -72,11 +73,11 @@ export const expansions: Expansion[] = datos.colecciones.map((c) => {
     region: "CN",
     series: c.serie,
     summary: `Colección de la edición china simplificada (China continental) de la serie ${c.serie}. Nombre original: ${c.nombre}. ${nombreEnTexto(c, c.nombreEs)}${c.codigoEnvase ? ` Código impreso en el envase: ${c.codigoEnvase}.` : ""} No equivale a ninguna expansión japonesa ni internacional.`,
-    cardListStatus: "unavailable",
-    cardListNote: "Todavía no hay una lista de cartas cargada para esta edición china. No se reutiliza la lista de una expansión japonesa porque no es equivalente.",
-    cards: [],
+    cardListStatus: c.id === "zh-30-zhounian" ? "partial" : "unavailable",
+    cardListNote: c.id === "zh-30-zhounian" ? "Selección de cartas mostradas por Pokémon China en su campaña oficial, consultada el 5 de noviembre de 2026. Lista parcial. Las cartas son aleatorias y ninguna de estas imágenes garantiza su aparición en una caja." : "Todavía no hay una lista de cartas cargada para esta edición china. No se reutiliza la lista de una expansión japonesa porque no es equivalente.",
+    cards: c.id === "zh-30-zhounian" ? celebrationCards.map((card) => ({ id: `zh-30th-${card.number}`, expansionId: c.id, name: `30th Celebration · ${card.number}`, number: card.number, image: { src: card.src, alt: `Carta ${card.number} de 30th Celebration en chino simplificado`, width: card.width, height: card.height, status: "reference" as const, origin: card.source, license: "Imagen de referencia publicada por Pokémon China. Sin permiso de uso concedido por el enlace." }, sourceIds: ["zh-30th-cartas-oficial"], pullRateIds: [], isDemo: false })) : [],
     isDemo: false,
-    sourceIds: [...fuentes, ...c.nombreEnFuentes.map(sourceName)],
+    sourceIds: [...fuentes, ...c.nombreEnFuentes.map(sourceName), ...(c.id === "zh-30-zhounian" ? ["zh-30th-cartas-oficial"] : [])],
     tone: c.tone as Expansion["tone"],
   } satisfies Expansion;
 });
@@ -136,17 +137,17 @@ products.push({
   sku: "ZH-30TH-CN-BOX",
   priceUsdMinor: 14_000,
   stockQuantity: null,
-  title: "30th Celebration · Caja (chino tradicional)",
-  originalTitle: "30週年慶典",
-  language: "zh-TW",
-  region: "Asia",
-  expansionIds: [],
-  aliases: ["30 aniversario", "30th Celebration", "caja chino tradicional"],
+  title: "30th Celebration · Caja (chino simplificado)",
+  originalTitle: "30周年庆典",
+  language: "zh",
+  region: "CN",
+  expansionIds: ["zh-30-zhounian"],
+  aliases: ["30 aniversario", "30th Celebration", "30周年庆典"],
   kind: "box",
   variant: "Caja",
   images: [{
     src: "/images/products/ZH-30TH-CN-BOX/caja-transparente.png",
-    alt: "Caja abierta de 30th Celebration en chino tradicional",
+    alt: "Imagen de referencia de la caja abierta de 30th Celebration",
     width: 1254,
     height: 1254,
     opaque: false,
@@ -156,7 +157,7 @@ products.push({
     origin: "Imagen aportada por el dueño y restaurada con edición generativa.",
     license: "Imagen de referencia para el catálogo.",
   }],
-  description: "Caja de 30th Celebration en chino tradicional. La imagen de referencia muestra el exhibidor abierto. Cantidad de sobres a confirmar con el proveedor.",
+  description: "Caja de 30th Celebration en chino simplificado, según la publicación del proveedor de la compra. La imagen de referencia muestra el exhibidor abierto. Cantidad de sobres a confirmar con el proveedor.",
   contents: [],
   guaranteeIds: [],
 });

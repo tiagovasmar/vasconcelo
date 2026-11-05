@@ -1,3 +1,4 @@
+import { arrivalEstimate } from "@/content/incoming-arrivals";
 import { PreorderForm } from "@/components/preorder-form";
 import { preorderOffers } from "@/features/importaciones/preorders";
 import { incomingProducts } from "@/features/importaciones/service";
@@ -141,7 +142,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
             <PaymentBenefits kind={product.kind} />
             {(state === "available" || !offers.length) && <AddToCartPanel productId={product.id} title={product.title} imageSrc={product.images[0] && hasAsset(product.images[0].src) ? product.images[0].src : null} priceMinor={product.priceMinor ?? 0} max={maxFor(product)} state={state} stockKnown={isInStock(product)} orderOnly={Boolean(product.orderOnly)} packSize={product.packSize ?? null} addons={addons} />}
             {(incoming || offers.length > 0) && <aside className="my-4 rounded-xl border border-emerald/30 bg-emerald/10 p-4 text-sm">
-              <p><strong>{incoming?.traveling || offers.length ? "En camino" : "Próximamente"}</strong>{incoming && ` · ${incoming.quantity} u. anunciadas`}. Todavía no disponibles para entrega inmediata.</p>
+              <p><strong>{incoming?.traveling || offers.length ? "En camino" : "Próximamente"}</strong>. Todavía no disponibles para entrega inmediata.</p><p className="mt-2 font-semibold">{arrivalEstimate(product.id)}</p>
               {offers.map((offer) => <PreorderForm key={offer.parcelId} {...offer} productPath={`/productos/${product.slug}`} />)}
               <Link href="/proximamente" className="mt-2 inline-block font-semibold underline">Ver próximamente</Link>
             </aside>}

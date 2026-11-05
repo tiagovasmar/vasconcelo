@@ -15,7 +15,7 @@ import { applyOverrides } from "@/features/catalog/overrides";
 
 // Lote chino: 16 carpetas de Tmall/Taobao → fichas del catálogo real. Ninguna prueba depende de la carpeta Downloads del equipo.
 const all = realCatalog.products;
-const zh = all.filter((p) => p.language === "zh" && !p.id.startsWith("zh-151-"));
+const zh = all.filter((p) => p.language === "zh" && !p.id.startsWith("zh-151-") && p.id !== "zh-30-zhounian-caja");
 /** Fichas chinas publicadas (sin las retiradas). */
 const zhPub = zh.filter((p) => p.active);
 const zhExp = realCatalog.expansions.filter((e) => e.language === "zh");
@@ -32,7 +32,7 @@ describe("catálogo chino: cobertura de las 16 fuentes y formatos", () => {
     expect(zhPub).toHaveLength(28);
     expect(zh.filter((p) => p.retired)).toHaveLength(8);
     expect(zh.filter((p) => p.retired).every((p) => !p.active)).toBe(true);
-    expect(zhExp.every((e) => e.region === "CN" && !e.isDemo && e.cards.length === 0 && e.cardListStatus === "unavailable")).toBe(true);
+    expect(zhExp.filter((e) => e.id !== "zh-30-zhounian").every((e) => e.region === "CN" && !e.isDemo && e.cards.length === 0 && e.cardListStatus === "unavailable")).toBe(true);
     for (const k of ["id", "sku", "slug"] as const) expect(new Set(all.map((p) => p[k])).size, k).toBe(all.length);
     expect(new Set(all.map((p) => p.sku)).size).toBe(64);
   });
@@ -184,16 +184,16 @@ describe("catálogo chino: fotos propias del proyecto, con procedencia", () => {
 
 describe("catálogo chino: búsqueda y filtros", () => {
   it("idioma, formato y colección", () => {
-    expect(f({ idioma: "zh" })).toHaveLength(30);
+    expect(f({ idioma: "zh" })).toHaveLength(31);
     expect(f({ idioma: "ja" })).toHaveLength(22); // 16 + las seis cajas del 14/10/2026
     expect(f({ formato: "kit" })).toHaveLength(3);
     expect(f({ formato: "especial" })).toHaveLength(2);
     expect(f({ formato: "ilustraciones" })).toHaveLength(2);
-    expect(f({ formato: "caja", idioma: "zh" })).toHaveLength(6);
+    expect(f({ formato: "caja", idioma: "zh" })).toHaveLength(7);
     expect(f({ formato: "caja" })).toHaveLength(21);
     expect(f({ formato: "sobre" })).toHaveLength(24); // 8 japoneses + 16 chinos
     expect(f({ expansion: "zh-gongzhu-rongguang" })).toHaveLength(1); // el de 20 cartas fue retirado
-    expect(f({ expansion: "zh-30-zhounian" })).toHaveLength(4);
+    expect(f({ expansion: "zh-30-zhounian" })).toHaveLength(5);
   });
   it("se busca por nombre chino, por romanización, por código del envase y por texto en español", () => {
     expect(f({ q: "真实玄虚" }).map((p) => p.id)).toEqual(["zh-zhenshi-xuanxu-sobre-5"]);
@@ -250,7 +250,9 @@ describe("catálogo chino: nombre principal en inglés, nombres anteriores como 
     expect(zh30.name).toBe("30th Celebration");
     expect(ja30.language).toBe("ja");
     expect(zh30.language).toBe("zh");
-    expect(zh30.cards).toHaveLength(0);
+    expect(zh30.cards).toHaveLength(76);
+    expect(zh30.cardListStatus).toBe("partial");
+    expect(zh30.cards.every((card) => card.sourceIds.includes("zh-30th-cartas-oficial"))).toBe(true);
     expect(ja30.cards.length).toBeGreaterThan(0);
     expect(f({ expansion: "zh-30-zhounian" }).every((p) => p.language === "zh")).toBe(true);
   });

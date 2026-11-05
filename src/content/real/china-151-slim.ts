@@ -12,8 +12,8 @@ export const products: Product[] = [
   kind: "box", variant: "Slim · 15 sobres de 5 cartas", language: "zh", region: "CN",
   expansionIds: [], currency: "ARS", priceBase: "usd", priceUsdMinor: 6000,
   priceMinor: null, stockQuantity: 0, active: true, isDemo: false,
-  createdAt: "2026-11-05", images: [{ src: "/images/products/foto-pendiente.svg", alt: "Foto del producto pendiente", width: 600, height: 450, status: "demo", source: "illustration", origin: "Marcador de posición de Vasconcelo; no representa el producto.", license: "Diseño propio de Vasconcelo." }], fallbackTone: "paper",
-  description: `Caja 151 ${name}, versión Slim en chino simplificado. Contiene 15 sobres de 5 cartas según la información del proveedor aportada por el dueño. ${name} es una denominación descriptiva en inglés. Foto de referencia pendiente.`,
+  createdAt: "2026-11-05", images: [{ src: `/images/products/zh-151-${code}-slim-caja/referencia.webp`, alt: `Sobre oficial de 151 ${name}, referencia del diseño de la colección. La compra incluye una caja de 15 sobres.`, width: 1000, height: 1775, status: "reference", source: "manufacturer", view: "front", origin: code === "wang" ? "https://www.pokemon.cn/tcg/product/15541.html" : "https://www.pokemon.cn/tcg/product/15486.html", license: "Imagen de referencia del fabricante. Sin permiso de uso concedido por el enlace." }], fallbackTone: "paper",
+  description: `Caja 151 ${name}, versión Slim en chino simplificado. Contiene 15 sobres de 5 cartas según la información del proveedor aportada por el dueño. ${name} es una denominación descriptiva en inglés. La imagen oficial muestra el sobre de esta colección; la unidad vendida es la caja de 15 sobres.`,
   contents: [{ label: "Sobres", quantity: 15, unit: "sobres", note: "5 cartas por sobre. Contenido informado por el proveedor; cartas aleatorias." }],
   guaranteeIds: [],
 }));

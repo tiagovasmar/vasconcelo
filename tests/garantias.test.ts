@@ -42,7 +42,7 @@ describe("qué garantiza cada caja (contenido físico / rarezas documentadas / o
       expect(p.rarityReview!.sourceIds, p.id).toEqual([`box-${p.expansionIds[0]}`, `exp-${p.expansionIds[0]}`]);
       expect(p.rarityReview!.note).toMatch(/Pokémon Center Online/);
     }
-    for (const p of products.filter((x) => ["box", "special-box", "kit"].includes(x.kind) && x.language === "zh" && !x.id.startsWith("zh-151-"))) {
+    for (const p of products.filter((x) => ["box", "special-box", "kit"].includes(x.kind) && x.language === "zh" && !x.id.startsWith("zh-151-") && x.id !== "zh-30-zhounian-caja")) {
       expect(p.rarityReview!.sourceIds, p.id).toHaveLength(1);
       expect(p.rarityReview!.sourceIds[0]).toMatch(/^zh-src-/);
       expect(p.rarityReview!.note).toMatch(/no declara rarezas garantizadas/);

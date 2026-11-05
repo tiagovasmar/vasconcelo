@@ -1,3 +1,4 @@
+import { arrivalEstimate } from "@/content/incoming-arrivals";
 import Link from "next/link";
 import { ProductImage } from "@/components/product-image";
 import { getDb } from "@/db/client";
@@ -22,7 +23,7 @@ export default async function UpcomingPage() {
           <div className="p-4">
             <p className="text-xs font-bold uppercase tracking-wide text-emerald">{quantities.get(p.id)?.traveling ? "En camino" : "Próximamente"}</p>
             <h2 className="mt-1 break-words text-base font-semibold">{p.title}</h2>
-            <p className="mt-1 text-sm">{quantities.get(p.id)?.quantity} u. anunciadas</p>
+            <p className="mt-1 text-sm">{arrivalEstimate(p.id)}</p>
           </div>
         </Link>
       </li>)}

@@ -1,3 +1,4 @@
+import { arrivalEstimate } from "@/content/incoming-arrivals";
 import Link from "next/link";
 import { store } from "@/content/store";
 import { SafeImage } from "@/components/safe-image";
@@ -135,7 +136,7 @@ export default async function Home() {
                 <div className="flex flex-1 flex-col p-3 sm:p-4">
                   <span className="self-start rounded-full bg-emerald px-2.5 py-1 text-xs font-semibold text-white">{incoming.get(product.id)!.traveling > 0 ? "En camino" : "Próximamente"}</span>
                   <h3 className="mt-3 break-words text-sm font-semibold sm:text-base">{product.title}</h3>
-                  <p className="mt-2 text-sm text-ink/75">{incoming.get(product.id)!.quantity} unidades anunciadas</p>
+                  <p className="mt-2 text-sm text-ink/75">{arrivalEstimate(product.id)}</p>
                   <span className="mt-4 text-sm font-semibold underline">Ver producto ↗</span>
                 </div>
               </Link>
