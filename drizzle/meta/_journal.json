@@ -50,6 +50,13 @@
       "when": 1793750862451,
       "tag": "0006_visitas_tienda",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793848630413,
+      "tag": "0007_compras_importaciones",
+      "breakpoints": true
     }
   ]
 }

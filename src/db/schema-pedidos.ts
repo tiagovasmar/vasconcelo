@@ -1,7 +1,7 @@
 import { sql } from "drizzle-orm";
-import { bigint, check, index, integer, pgTable, primaryKey, text, uniqueIndex } from "drizzle-orm/pg-core";
+import { bigint, boolean, check, index, integer, pgTable, primaryKey, text, uniqueIndex } from "drizzle-orm/pg-core";
 import { user } from "./auth-schema";
-import { inquiries, inquiryLines, sales } from "./schema";
+import { inquiries, inquiryLines, sales, saleLines, accountingExpenses } from "./schema";
 
 /**
  * Cuentas Google, avisos de reposición, seguimiento de pedidos y encargos, pagos, envíos agrupados, costos privados y catálogo mayorista (migración 0004).
@@ -180,6 +180,8 @@ export const shipments = pgTable("shipments", {
   /** preparando | enviado_proveedor | recibido_origen | en_transito | recibido_argentina */
   status: text("status").notNull().default("preparando"),
   sentAt: ms("sent_at"),
+  carrier: text("carrier"),
+  trackingNumber: text("tracking_number"),
   originReceivedAt: ms("origin_received_at"),
   transitAt: ms("transit_at"),
   arrivedAt: ms("arrived_at"),
@@ -253,6 +255,9 @@ export const notificationOutbox = pgTable(
 /** Compra o lote a un proveedor. Confirmada = costos congelados (no se edita). */
 export const costPurchases = pgTable("cost_purchases", {
   id: text("id").primaryKey(),
+  managedImport: boolean("managed_import").notNull().default(false),
+  reference: text("reference"),
+  orderedAt: ms("ordered_at"),
   supplier: text("supplier").notNull(),
   purchasedAt: ms("purchased_at").notNull(),
   /** Moneda del precio original: RMB | USD | ARS. */
@@ -281,6 +286,8 @@ export const costPurchaseItems = pgTable(
     allocatedExpensesMinor: ms("allocated_expenses_minor"),
     totalCostMinor: ms("total_cost_minor"),
     finalUnitCostMinor: ms("final_unit_cost_minor"),
+    commercialQuantity: integer("commercial_quantity"),
+    commercialCostMinor: ms("commercial_cost_minor"),
   },
   (t) => [index("cost_purchase_items_purchase_idx").on(t.purchaseId), index("cost_purchase_items_product_idx").on(t.productId), check("cost_purchase_items_qty_check", sql`${t.quantity} > 0`)],
 );
@@ -294,14 +301,88 @@ export const costExpenses = pgTable(
     /** envio | impuestos | otros */
     kind: text("kind").notNull(),
     description: text("description"),
-    amountMinor: ms("amount_minor").notNull(),
+    amountMinor: ms("amount_minor"),
+    certainty: text("certainty").notNull().default("definitivo"),
     /** unidades | valor | manual */
     allocation: text("allocation").notNull(),
     /** Solo en `manual`: JSON { "<posición del artículo>": centavos }; debe sumar el importe. */
     manualJson: text("manual_json"),
   },
-  (t) => [index("cost_expenses_purchase_idx").on(t.purchaseId), check("cost_expenses_amount_check", sql`${t.amountMinor} >= 0`)],
+  (t) => [index("cost_expenses_purchase_idx").on(t.purchaseId), check("cost_expenses_amount_check", sql`
+    (${t.certainty} = 'pendiente' and ${t.amountMinor} is null) or
+    (${t.certainty} in ('estimado', 'definitivo') and ${t.amountMinor} is not null and ${t.amountMinor} >= 0)`)],
 );
+
+/** Destinos de un artículo de compra. Cada fila puede repartirse en varios envíos. */
+export const importAllocations = pgTable("import_allocations", {
+  id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
+  itemId: integer("item_id").notNull().references(() => costPurchaseItems.id),
+  destination: text("destination").notNull(),
+  quantity: integer("quantity").notNull(),
+  orderLineId: integer("order_line_id").references(() => inquiryLines.id),
+  saleLineId: integer("sale_line_id").references(() => saleLines.id),
+  visibility: text("visibility").notNull().default("privado"),
+  offerMinor: ms("offer_minor"),
+}, (t) => [
+  index("import_allocations_item_idx").on(t.itemId),
+  index("import_allocations_order_idx").on(t.orderLineId),
+  check("import_allocations_qty_check", sql`${t.quantity} >= 0 and (${t.quantity} > 0 or ${t.destination} = 'reventa')`),
+]);
+
+export const importParcels = pgTable("import_parcels", {
+  id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
+  allocationId: integer("allocation_id").notNull().references(() => importAllocations.id),
+  shipmentId: text("shipment_id").notNull().references(() => shipments.id),
+  quantity: integer("quantity").notNull(),
+  accepted: integer("accepted").notNull().default(0),
+  missing: integer("missing").notNull().default(0),
+  damaged: integer("damaged").notNull().default(0),
+  revision: integer("revision").notNull().default(0),
+}, (t) => [
+  uniqueIndex("import_parcels_shipment_allocation").on(t.shipmentId, t.allocationId),
+  index("import_parcels_allocation_idx").on(t.allocationId),
+  check("import_parcels_qty_check", sql`${t.quantity} >= 0 and ${t.accepted} >= 0 and ${t.missing} >= 0 and ${t.damaged} >= 0 and ${t.accepted} + ${t.missing} + ${t.damaged} <= ${t.quantity}`),
+]);
+
+export const importReceipts = pgTable("import_receipts", {
+  operationKey: text("operation_key").primaryKey(),
+  parcelId: integer("parcel_id").notNull().references(() => importParcels.id),
+  accepted: integer("accepted").notNull(),
+  missing: integer("missing").notNull(),
+  damaged: integer("damaged").notNull(),
+  revision: integer("revision").notNull(),
+  reason: text("reason").notNull(),
+  occurredAt: ms("occurred_at").notNull(),
+  createdAt: ms("created_at").notNull(),
+  actorEmail: text("actor_email").notNull(),
+}, (t) => [uniqueIndex("import_receipts_parcel_revision").on(t.parcelId, t.revision)]);
+
+/** Una retención de preventa siempre apunta a unidades de un tramo concreto. */
+export const importReservations = pgTable("import_reservations", {
+  inquiryId: text("inquiry_id").primaryKey().references(() => inquiries.id),
+  sourceParcelId: integer("source_parcel_id").notNull().references(() => importParcels.id),
+  heldParcelId: integer("held_parcel_id").references(() => importParcels.id),
+  quantity: integer("quantity").notNull(),
+  unitPriceMinor: ms("unit_price_minor").notNull(),
+  expiresAt: ms("expires_at").notNull(),
+  releasedAt: ms("released_at"),
+}, (t) => [
+  index("import_reservations_source_idx").on(t.sourceParcelId),
+  uniqueIndex("import_reservations_held_idx").on(t.heldParcelId),
+]);
+
+export const importDocuments = pgTable("import_documents", {
+  id: text("id").primaryKey(),
+  purchaseId: text("purchase_id").notNull().references(() => costPurchases.id),
+  filename: text("filename").notNull(),
+  mime: text("mime").notNull(),
+  createdAt: ms("created_at").notNull(),
+}, (t) => [index("import_documents_purchase_idx").on(t.purchaseId)]);
+
+export const importDisbursements = pgTable("import_disbursements", {
+  expenseId: text("expense_id").primaryKey().references(() => accountingExpenses.id),
+  purchaseId: text("purchase_id").notNull().references(() => costPurchases.id),
+}, (t) => [index("import_disbursements_purchase_idx").on(t.purchaseId)]);
 
 /** Reparto verificable de cada gasto entre los artículos (se escribe al confirmar). */
 export const costExpenseShares = pgTable(

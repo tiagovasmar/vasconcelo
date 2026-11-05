@@ -1,3 +1,5 @@
+import { holdState } from "@/features/importaciones/hold-state";
+import { importShipmentItems } from "@/features/importaciones/tracking";
 import { createHash, randomBytes } from "node:crypto";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -85,10 +87,18 @@ export async function lineProgress(q: Db | Tx, inquiryId: string): Promise<LineP
   const lines = await q.select().from(inquiryLines).where(eq(inquiryLines.inquiryId, inquiryId)).orderBy(inquiryLines.id);
   if (!lines.length) return [];
   const ids = lines.map((l) => l.id);
-  const [sh, dl] = await Promise.all([
+  const [legacy, dl, imports] = await Promise.all([
     q.select({ lineId: shipmentItems.lineId, qty: shipmentItems.quantity, id: shipments.id, label: shipments.label, status: shipments.status }).from(shipmentItems).innerJoin(shipments, eq(shipments.id, shipmentItems.shipmentId)).where(inArray(shipmentItems.lineId, ids)),
     q.select({ lineId: lineDeliveries.lineId, qty: sql<number>`sum(${lineDeliveries.quantity})::int` }).from(lineDeliveries).where(inArray(lineDeliveries.lineId, ids)).groupBy(lineDeliveries.lineId),
+    importShipmentItems(q, { lineIds: ids }),
   ]);
+  const sh = [...legacy, ...imports.flatMap((r) => {
+    if (r.status !== "recibido_argentina") return [r];
+    return [
+      { ...r, qty: r.accepted },
+      { ...r, qty: r.pending, status: "pendiente_revision" },
+    ].filter((row) => row.qty > 0);
+  })];
   return lines.map((l) => {
     const mine = sh.filter((s) => s.lineId === l.id);
     const delivered = dl.find((d) => d.lineId === l.id)?.qty ?? 0;
@@ -221,6 +231,7 @@ export async function setAgreedAmount(db: Db, inquiryId: string, body: unknown, 
   return db.transaction(async (tx) => {
     await trackLock(tx, inquiryId);
     const track = await ensureTrack(tx, inquiryId, now);
+    if (await holdState(tx, inquiryId, now) && agreedMinor !== track.agreedMinor) return fail(409, "order_rule", "El importe de la preventa quedó acordado al solicitar la reserva.");
     if (track.cancelledAt) return fail(409, "order_rule", "El pedido está cancelado.");
     if (track.agreedMinor === agreedMinor) return { agreedMinor, changed: false };
     const { confirmedMinor } = await paymentTotals(tx, inquiryId);
@@ -294,6 +305,7 @@ export function canView(inq: { userId: string | null; sessionTokenHash: string }
 /* ---------- Vistas ---------- */
 
 export type CustomerOrderView = {
+  preorder?: { expiresAt: number; status: "retenida" | "confirmada" | "liberada" | "cancelada" };
   reference: string; kind: TrackKind; stage: string; stageLabel: string; cancelled: boolean; createdAt: number; agreedMinor: number | null;
   steps: Array<{ stage: string; label: string; reachedAt: number | null; current: boolean }>;
   timeline: Array<{ at: number; text: string; kind: string }>;
@@ -317,7 +329,7 @@ export async function customerOrderView(db: Db, inquiryId: string): Promise<Cust
   if (!track) return null;
   const [inq] = await db.select().from(inquiries).where(eq(inquiries.id, inquiryId));
   const kind = track.kind as TrackKind;
-  const [events, pays, receipts, incidents, refunds, items, totals] = await Promise.all([
+  const [events, pays, receipts, incidents, refunds, items, totals, hold] = await Promise.all([
     db.select().from(orderEvents).where(eq(orderEvents.inquiryId, inquiryId)).orderBy(orderEvents.occurredAt, orderEvents.id),
     db.select().from(orderPayments).where(and(eq(orderPayments.inquiryId, inquiryId), eq(orderPayments.status, "confirmado"))).orderBy(orderPayments.paidAt),
     db.select().from(paymentReceipts).where(eq(paymentReceipts.inquiryId, inquiryId)).orderBy(desc(paymentReceipts.createdAt)),
@@ -325,24 +337,27 @@ export async function customerOrderView(db: Db, inquiryId: string): Promise<Cust
     db.select().from(orderRefunds).where(eq(orderRefunds.inquiryId, inquiryId)).orderBy(orderRefunds.createdAt),
     lineProgress(db, inquiryId),
     paymentTotals(db, inquiryId),
+    holdState(db, inquiryId),
   ]);
   const reachedAt = new Map<string, number>();
   for (const e of events) if (e.kind === "stage" && e.stage && !reachedAt.has(e.stage)) reachedAt.set(e.stage, e.occurredAt);
   const stages = stagesFor(kind).filter((s) => !(kind !== "stock" && s === "listo_retiro" && track.stage !== "listo_retiro" && !reachedAt.has("listo_retiro") && reachedAt.has("enviado")));
   const pay = summarizePayments({ agreedMinor: track.agreedMinor, ...totals });
+  const cancelled = track.cancelledAt !== null || Boolean(hold?.expired);
   return {
-    reference: inquiryId, kind, stage: track.stage, stageLabel: STAGE_LABEL[track.stage as Stage] ?? track.stage, cancelled: track.cancelledAt !== null, createdAt: inq?.createdAt ?? track.createdAt, agreedMinor: track.agreedMinor,
+    preorder: hold ? { expiresAt: hold.expiresAt, status: hold.expired ? "liberada" : track.cancelledAt ? "cancelada" : totals.confirmedMinor >= (senaFor(track.agreedMinor) ?? Infinity) ? "confirmada" : "retenida" } : undefined,
+    reference: inquiryId, kind, stage: track.stage, stageLabel: STAGE_LABEL[track.stage as Stage] ?? track.stage, cancelled: cancelled, createdAt: inq?.createdAt ?? track.createdAt, agreedMinor: track.agreedMinor,
     steps: stages.map((s) => ({ stage: s, label: STAGE_LABEL[s], reachedAt: reachedAt.get(s) ?? null, current: s === track.stage })),
     // Solo texto PÚBLICO: `internalText` no se selecciona hacia afuera.
     timeline: events.filter((e) => e.publicText).map((e) => ({ at: e.occurredAt, text: e.publicText as string, kind: e.kind })),
     payments: pays.map((p) => ({ id: p.id, kind: p.kind, amountMinor: p.amountMinor, method: p.method, paidAt: p.paidAt })),
     paymentStatus: pay.status, paymentStatusLabel: ({ sin_pago: "Sin pagos confirmados", comprobante_en_revision: "Comprobante en revisión", parcial: "Pago parcial confirmado", completo: "Pago completo confirmado" } as const)[pay.status], pendingReceipts: totals.pendingReceipts,
     receipts: receipts.map((r) => ({ id: r.id, status: r.status, createdAt: r.createdAt, declaredAmountMinor: r.declaredAmountMinor, rejectReason: r.status === "rechazado" ? r.rejectReason : null })),
-    action: nextAction({ kind, stage: track.stage, agreedMinor: track.agreedMinor, confirmedMinor: totals.confirmedMinor, pendingReceipts: totals.pendingReceipts, cancelled: track.cancelledAt !== null }, formatARS),
+    action: nextAction({ kind, stage: track.stage, agreedMinor: track.agreedMinor, confirmedMinor: totals.confirmedMinor, pendingReceipts: totals.pendingReceipts, cancelled: cancelled }, formatARS),
     items: items.map(({ productId, ...l }) => { void productId; return l; }),
     incidents: incidents.map((i) => ({ id: i.id, kind: i.kind, publicText: i.publicText, status: i.status, openedAt: i.openedAt })),
     refunds: refunds.map((r) => ({ id: r.id, amountMinor: r.amountMinor, status: r.status, refundedAt: r.refundedAt })),
-    canUploadReceipt: track.cancelledAt === null && track.stage !== "entregado",
+    canUploadReceipt: !cancelled && track.stage !== "entregado",
   };
 }
 

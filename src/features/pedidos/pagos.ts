@@ -1,3 +1,5 @@
+import { assertHoldActive } from "@/features/importaciones/hold-state";
+import { syncPaidPreorder } from "@/features/importaciones/preorders";
 import { and, eq, sql } from "drizzle-orm";
 import { randomBytes } from "node:crypto";
 import { z } from "zod";
@@ -91,6 +93,10 @@ export async function uploadReceipt(db: Db, store: ReceiptStore, p: { inquiryId:
   try {
     await db.transaction(async (tx) => {
       await trackLock(tx, p.inquiryId);
+      const [current] = await tx.select().from(orderTracks).where(eq(orderTracks.inquiryId, p.inquiryId));
+      if (!current || current.cancelledAt || current.stage === "entregado") return fail(409, "order_rule", "Este pedido ya no admite comprobantes.");
+      const hold = await assertHoldActive(tx, p.inquiryId, now);
+      if (hold && (await paymentTotals(tx, p.inquiryId)).pendingReceipts) return fail(409, "order_rule", "Ya hay un comprobante de preventa en revisión.");
       await tx.insert(paymentReceipts).values({ id, inquiryId: p.inquiryId, uploadedByUserId: p.viewer.userId ?? null, uploaderKind: p.viewer.kind, storageKey: key, contentType: type, bytes: clean.length, sha256: digest, originalName, declaredAmountMinor: p.declaredAmountMinor ?? null, note, status: "pendiente_revision", createdAt: now });
       await tx.insert(orderEvents).values({ inquiryId: p.inquiryId, kind: "receipt", publicText: "Recibimos tu comprobante. Está en revisión: todavía no confirma el pago.", internalText: `Comprobante ${id}${p.declaredAmountMinor ? ` · dice haber transferido ${formatARS(p.declaredAmountMinor)}` : ""}`, occurredAt: now, createdAt: now });
     });
@@ -161,6 +167,7 @@ export async function confirmPayment(db: Db, inquiryId: string, body: unknown, a
       }
       const track = await ensureTrack(tx, inquiryId, now);
       if (track.cancelledAt) return fail(409, "order_rule", "El pedido está cancelado: no se registran pagos nuevos.");
+      const hold = await assertHoldActive(tx, inquiryId, now);
       if (input.receiptId) {
         const [rc] = await tx.select().from(paymentReceipts).where(eq(paymentReceipts.id, input.receiptId));
         if (!rc || rc.inquiryId !== inquiryId) return fail(404, "not_found", "Ese comprobante no pertenece a este pedido.");
@@ -168,6 +175,7 @@ export async function confirmPayment(db: Db, inquiryId: string, body: unknown, a
       }
       const { confirmedMinor } = await paymentTotals(tx, inquiryId);
       if (track.agreedMinor === null) return fail(409, "order_rule", "Primero confirmá el importe acordado del pedido.");
+      if (hold && confirmedMinor === 0 && input.amountMinor !== senaFor(track.agreedMinor)) return fail(409, "order_rule", "El primer pago de preventa debe coincidir con la seña del 20%.");
       if (confirmedMinor + input.amountMinor > track.agreedMinor) return fail(409, "order_rule", `El pago superaría el importe acordado (${formatARS(track.agreedMinor)}): ya hay confirmado ${formatARS(confirmedMinor)}.`);
       const id = newId("PG");
       const [payment] = await tx.insert(orderPayments).values({ id, inquiryId, kind: input.kind, amountMinor: input.amountMinor, method: input.method, status: "confirmado", receiptId: input.receiptId, paidAt: input.paidAt, internalNote: input.internalNote, idempotencyKey: input.idempotencyKey, createdAt: now, createdByEmail: actor.email }).returning();
@@ -179,6 +187,7 @@ export async function confirmPayment(db: Db, inquiryId: string, body: unknown, a
       if (kind !== "stock" && sena !== null && confirmedMinor + input.amountMinor >= sena && rank(kind, track.stage) >= rank(kind, "confirmado_tienda") && rank(kind, track.stage) < rank(kind, "sena_confirmada")) {
         await advanceFromFacts(tx, inquiryId, "sena_confirmada", input.paidAt, actor, now, id, `Abonaste la seña del ${encargo.senaPercent}%.`);
       }
+      if (hold) await syncPaidPreorder(tx, inquiryId, actor, now);
       return { payment, replayed: false };
     });
   } catch (e) {

@@ -61,6 +61,12 @@ export const TABLES: TableSpec[] = [
   { name: "sale_commissions", pk: ["id"], identity: "id", optional: true },
   { name: "wholesale_tiers", pk: ["product_id", "min_qty"], optional: true },
   { name: "accounting_expenses", pk: ["id"], optional: true },
+  { name: "import_allocations", pk: ["id"], identity: "id", optional: true },
+  { name: "import_parcels", pk: ["id"], identity: "id", optional: true },
+  { name: "import_receipts", pk: ["operation_key"], optional: true },
+  { name: "import_documents", pk: ["id"], optional: true },
+  { name: "import_disbursements", pk: ["expense_id"], optional: true },
+  { name: "import_reservations", pk: ["inquiry_id"], optional: true },
   { name: "storefront_visits", pk: ["day", "browser"], optional: true },
 ];
 

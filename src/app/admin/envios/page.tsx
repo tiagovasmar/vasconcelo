@@ -27,6 +27,8 @@ export default async function AdminEnvios() {
         <AdminForm endpoint={EP} fixed={{ action: "create" }} fields={[
           { name: "label", label: "Nombre del envío", required: true, placeholder: "Ej.: Lote noviembre" },
           { name: "supplier", label: "Proveedor (opcional)", optional: true },
+          { name: "carrier", label: "Transportista", optional: true },
+          { name: "trackingNumber", label: "Número de seguimiento", optional: true },
           { name: "internalNote", label: "Nota interna (opcional)", optional: true },
         ]} submit="Crear envío" ok="Envío creado." testId="form-envio-nuevo" />
       </section>
@@ -36,13 +38,22 @@ export default async function AdminEnvios() {
         const prep = s.status === "preparando";
         const nextOptions = SHIPMENT_STATUSES.filter((x) => x !== "preparando" && shipmentRank(x) > shipmentRank(s.status)).map((x) => ({ value: x, label: SHIPMENT_LABEL[x] }));
         return (
-          <section key={s.id} className={card} data-testid="envio">
+          <section key={s.id} id={s.id} className={card} data-testid="envio">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <h2 className="text-base font-semibold">{s.label} <span className="font-mono text-xs text-ink/75">{s.id}</span></h2>
               <span className="rounded-full bg-gold/30 px-3 py-1 text-sm font-semibold ring-1 ring-gold" data-testid="envio-estado">{SHIPMENT_LABEL[s.status as ShipmentStatus]}</span>
             </div>
             <ol className="mt-2 flex flex-wrap gap-2 text-xs">{SHIPMENT_STATUSES.map((st) => { const at = dateOf(s, st); return <li key={st} className={`rounded-full px-2.5 py-1 ring-1 ${at && shipmentRank(st) <= shipmentRank(s.status) ? "bg-emerald/10 ring-emerald/40" : "ring-ink/20 text-ink/75"}`}>{SHIPMENT_LABEL[st]}{at && shipmentRank(st) <= shipmentRank(s.status) ? ` · ${when(at)}` : ""}</li>; })}</ol>
             {s.supplier && <p className="mt-1 text-xs text-ink/75">Proveedor: {s.supplier}</p>}
+            <details className="mt-3 text-sm">
+              <summary className="cursor-pointer font-semibold">Transportista, seguimiento y nota interna</summary>
+              {(s.carrier || s.trackingNumber) && <p className="my-2 break-words">{s.carrier} {s.trackingNumber}</p>}
+              <AdminForm endpoint={EP} fixed={{ action: "metadata", shipmentId: s.id }} fields={[
+                { name: "carrier", label: "Transportista", defaultValue: s.carrier ?? "", maxLength: 80 },
+                { name: "trackingNumber", label: "Número de seguimiento", defaultValue: s.trackingNumber ?? "", maxLength: 100 },
+                { name: "internalNote", label: "Nota interna", type: "textarea", defaultValue: s.internalNote ?? "", maxLength: 500 },
+              ]} submit="Guardar datos del envío" />
+            </details>
             <ul className="mt-3 divide-y divide-ink/10 text-sm" aria-label="Artículos del envío">
               {s.items.map((it) => (
                 <li key={it.lineId} className="flex flex-wrap items-center justify-between gap-2 py-1.5" data-testid="envio-item">
@@ -50,7 +61,8 @@ export default async function AdminEnvios() {
                   {prep && <AdminButton endpoint={EP} body={{ action: "remove_item", shipmentId: s.id, lineId: it.lineId }} label="Quitar" ok="Quitado." />}
                 </li>
               ))}
-              {s.items.length === 0 && <li className="py-1.5 text-ink/75">Sin artículos todavía.</li>}
+              {s.importedUnits > 0 && <li className="py-1.5"><Link href="/admin/compras" className="underline">{s.importedUnits} unidades de compras</Link></li>}
+              {s.items.length === 0 && !s.importedUnits && <li className="py-1.5 text-ink/75">Sin artículos todavía.</li>}
             </ul>
             {prep && lines.length > 0 && (
               <div className="mt-3 border-t border-ink/10 pt-3">
@@ -61,7 +73,7 @@ export default async function AdminEnvios() {
                 ]} submit="Sumar al envío" ok="Artículo sumado." />
               </div>
             )}
-            {nextOptions.length > 0 && s.items.length > 0 && (
+            {nextOptions.length > 0 && (s.items.length > 0 || s.importedUnits > 0) && (
               <div className="mt-3 border-t border-ink/10 pt-3">
                 <h3 className="text-sm font-semibold">Avanzar el envío</h3>
                 <p className="mb-2 text-xs text-ink/70">Se refleja solo en los artículos de este envío. Si con esto todas las unidades de un pedido alcanzaron la etapa, el pedido avanza; si no, los demás artículos siguen como «todavía no viajaron».</p>

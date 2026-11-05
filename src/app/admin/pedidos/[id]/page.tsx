@@ -4,7 +4,7 @@ import { AccessLinkButton } from "@/components/access-link-button";
 import { AdminButton, AdminForm } from "@/components/admin-form";
 import { getDb } from "@/db/client";
 import { when } from "@/features/consultas/ui";
-import { SHIPMENT_LABEL, STAGE_LABEL, stagesFor, type ShipmentStatus, type Stage, type TrackKind } from "@/features/pedidos/etapas";
+import { shipmentProgressLabel, STAGE_LABEL, stagesFor, type Stage, type TrackKind } from "@/features/pedidos/etapas";
 import { adminOrderDetail, INCIDENT_KIND_LABEL } from "@/features/pedidos/service";
 import { PAYMENT_STATUS_LABEL, summarizePayments } from "@/features/pedidos/etapas";
 import { averageCosts } from "@/features/costos/service";
@@ -131,7 +131,7 @@ export default async function AdminPedidoDetalle({ params }: { params: Promise<{
                 <tbody>
                   {items.map((l) => (
                     <tr key={l.lineId} className="border-t border-ink/10" data-testid="admin-articulo">
-                      <td className="py-1.5 pr-2">{l.title}<span className="block text-xs text-ink/75">{l.fulfillment}{l.shipments.length ? ` · ${l.shipments.map((s) => `${s.quantity} en ${s.label} (${SHIPMENT_LABEL[s.status as ShipmentStatus]})`).join(", ")}` : ""}</span></td>
+                      <td className="py-1.5 pr-2">{l.title}<span className="block text-xs text-ink/75">{l.fulfillment}{l.shipments.length ? ` · ${l.shipments.map((s) => `${s.quantity} en ${s.label} (${shipmentProgressLabel(s.status)})`).join(", ")}` : ""}</span></td>
                       <td className="pr-2">{l.quantity}</td><td className="pr-2">{l.arrived}</td><td className="pr-2">{l.inTransit}</td><td className="pr-2">{l.notShipped}</td><td className="pr-2">{l.delivered}</td>
                       <td className="text-xs">{avg.has(l.productId) ? `Prom. ${formatARS(avg.get(l.productId)!)}` : <b>Costo pendiente</b>}{kind !== "stock" && avg.has(l.productId) && <span className="ml-1"><AdminButton endpoint={ep} body={{ action: "apply_cost", lineId: l.lineId }} label="Aplicar" ok="Costo aplicado." /></span>}</td>
                     </tr>

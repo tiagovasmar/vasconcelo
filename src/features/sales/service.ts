@@ -1,3 +1,4 @@
+import type { Tx } from "@/db/lock";
 import { createHash, randomBytes } from "node:crypto";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -325,31 +326,34 @@ export type StockMoveInput = z.input<typeof StockMoveSchema>;
 export async function moveStock(db: Db, body: unknown, actor: Actor, now = Date.now()): Promise<{ stockBefore: number | null; stockAfter: number; replayed: boolean }> {
   const r = StockMoveSchema.safeParse(body);
   if (!r.success) throw new SaleError(400, "invalid_input", r.error.issues[0]?.message ?? "Revisá los datos.", r.error.issues.map((i) => ({ path: i.path.join("."), message: i.message })));
-  const input = r.data;
+  return db.transaction((tx) => moveStockInTransaction(tx, r.data, actor, now));
+}
+
+/** La recepción usa la misma entrada de stock, en su propia transacción. */
+export async function moveStockInTransaction(tx: Tx, input: StockMoveInput, actor: Actor, now: number, correctionDelta?: number) {
   const p = productOf(input.productId);
   const mark = `[op:${input.idempotencyKey}]`;
   try {
-    return await db.transaction(async (tx) => {
-      await lockKey(tx, `override:${p.id}`);
-      const done = await tx.select().from(stockMovements).where(sql`${stockMovements.productId} = ${p.id} and position(${mark} in ${stockMovements.reason}) > 0`);
-      if (done.length) return { stockBefore: done[0].stockBefore, stockAfter: done[0].stockAfter, replayed: true };
-      const [row] = await tx.select().from(productOverrides).where(eq(productOverrides.productId, p.id));
-      const stock = row ? row.stockQuantity : defaultStock(p);
-      let after: number;
-      if (input.kind === "entrada") {
-        if (stock === null) throw new SaleError(409, "stock_pending", "El stock de este producto está pendiente: usá «Ajuste» para fijar la cantidad contada.");
-        after = stock + input.quantity;
-      } else {
-        after = input.newQuantity;
-        if (stock === after) throw new SaleError(400, "invalid_input", "El stock ya es esa cantidad: no hay nada que ajustar.");
-      }
-      const orderOnly = row ? row.orderOnly : Boolean(p.orderOnly);
-      if (orderOnly && after > 0) throw new SaleError(409, "order_only", "Este producto está marcado «solo por encargo»: desmarcalo en Productos antes de cargarle stock.");
-      const label = input.kind === "entrada" ? "entrada" : "ajuste";
-      const w = await writeStock(tx, p, row, after, actor, `${actor.email} (${label} de stock)`, now);
-      await tx.insert(stockMovements).values({ productId: p.id, sku: p.sku, title: row?.title ?? p.title, kind: input.kind, delta: after - (stock ?? 0), stockBefore: stock, stockAfter: after, reason: `${input.reason} ${mark}`, saleId: null, userId: actor.id, userEmail: actor.email, createdAt: w.version });
-      return { stockBefore: stock, stockAfter: after, replayed: false };
-    });
+    await lockKey(tx, `override:${p.id}`);
+    const done = await tx.select().from(stockMovements).where(sql`${stockMovements.productId} = ${p.id} and position(${mark} in ${stockMovements.reason}) > 0`);
+    if (done.length) return { stockBefore: done[0].stockBefore, stockAfter: done[0].stockAfter, replayed: true };
+    const [row] = await tx.select().from(productOverrides).where(eq(productOverrides.productId, p.id));
+    const stock = row ? row.stockQuantity : defaultStock(p);
+    let after: number;
+    if (input.kind === "entrada") {
+      if (stock === null) throw new SaleError(409, "stock_pending", "El stock de este producto está pendiente: usá «Ajuste» para fijar la cantidad contada.");
+      after = stock + input.quantity;
+    } else {
+      after = correctionDelta === undefined ? input.newQuantity : (stock ?? 0) + correctionDelta;
+      if (correctionDelta !== undefined && (stock === null || after < 0)) throw new SaleError(409, "stock_pending", "La corrección supera el stock contado. Revisá los movimientos antes de corregir.");
+      if (stock === after) throw new SaleError(400, "invalid_input", "El stock ya es esa cantidad: no hay nada que ajustar.");
+    }
+    const orderOnly = row ? row.orderOnly : Boolean(p.orderOnly);
+    if (orderOnly && after > 0) throw new SaleError(409, "order_only", "Este producto está marcado «solo por encargo»: desmarcalo en Productos antes de cargarle stock.");
+    const label = input.kind === "entrada" ? "entrada" : "ajuste";
+    const w = await writeStock(tx, p, row, after, actor, `${actor.email} (${label} de stock)`, now);
+    await tx.insert(stockMovements).values({ productId: p.id, sku: p.sku, title: row?.title ?? p.title, kind: input.kind, delta: after - (stock ?? 0), stockBefore: stock, stockAfter: after, reason: `${input.reason} ${mark}`, saleId: null, userId: actor.id, userEmail: actor.email, createdAt: w.version });
+    return { stockBefore: stock, stockAfter: after, replayed: false };
   } catch (e) {
     if (e instanceof AdminError) throw new SaleError(e.status, "invalid_input", e.message);
     throw e;

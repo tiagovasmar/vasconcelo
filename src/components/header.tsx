@@ -9,6 +9,7 @@ const nav = [
   { href: "/", label: "Inicio" },
   { href: "/sellados", label: "Explorar" },
   { href: "/sellados?disp=stock", label: "En stock" },
+  { href: "/proximamente", label: "Próximamente" },
   { href: "/expansiones", label: "Expansiones" },
   { href: "/como-comprar", label: "Cómo comprar" },
   { href: "/mayoristas", label: "Mayoristas" },
@@ -34,7 +35,7 @@ export function Header() {
             <span className="display text-[1.7rem] italic tracking-wide">{store.name}</span>
             <span className="mono-label mt-1 text-[.55rem] text-ink/70">{store.descriptor}</span>
           </Link>
-          <nav aria-label="Principal" className="hidden gap-8 text-sm font-medium lg:flex">
+          <nav aria-label="Principal" className="hidden flex-wrap gap-x-4 gap-y-1 text-sm xl:gap-x-7 font-medium lg:flex">
             {nav.map((n) => (
               <Link key={n.href} href={n.href} className="border-b-2 border-transparent py-1 hover:border-ink">
                 {n.label}

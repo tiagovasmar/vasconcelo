@@ -7,7 +7,7 @@ import { SaleError } from "@/features/sales/service";
  * Envoltorio común de las operaciones del panel: mismo origen, SOLO el administrador configurado (401/403 desde el servidor), límite de uso y JSON válido.
  * Nada que mande el navegador decide quién es administrador. Los errores de negocio de ventas/stock salen con su código y mensaje en español.
  */
-export async function adminAction(req: Request, name: string, run: (ctx: { user: { id: string; email: string }; body: unknown }) => Promise<unknown>, opts: { body?: boolean; limit?: number } = {}) {
+export async function adminAction(req: Request, name: string, run: (ctx: { user: { id: string; email: string }; body: unknown }) => Promise<unknown>, opts: { body?: boolean; limit?: number; bodyLimit?: number } = {}) {
   if (!sameOrigin(req)) return errorJson(403, "forbidden", "Origen no permitido.");
   const auth = await adminFromRequest(req);
   if (!("user" in auth)) return errorJson(auth.status, auth.code, auth.message);
@@ -15,7 +15,7 @@ export async function adminAction(req: Request, name: string, run: (ctx: { user:
   let body: unknown = undefined;
   if (opts.body !== false) {
     try {
-      body = await readJson(req);
+      body = await readJson(req, opts.bodyLimit);
     } catch {
       return errorJson(400, "invalid_input", "La solicitud no es válida.");
     }

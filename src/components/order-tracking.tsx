@@ -1,5 +1,5 @@
 import { INCIDENT_KIND_LABEL, REFUND_STATUS_LABEL, type CustomerOrderView } from "@/features/pedidos/service";
-import { SHIPMENT_LABEL, senaFor, transferDue, type ShipmentStatus } from "@/features/pedidos/etapas";
+import { shipmentProgressLabel, senaFor, transferDue } from "@/features/pedidos/etapas";
 import { encargo, mayorista } from "@/content/politicas";
 import { transferencia } from "@/content/transferencia";
 import { formatARS } from "@/lib/format";
@@ -23,10 +23,17 @@ export function OrderTracking({ view, whatsappNumber, linkToken }: { view: Custo
   const due = transferDue({ ...view, confirmedMinor: view.payments.reduce((sum, p) => sum + p.amountMinor, 0) });
   return (
     <section aria-labelledby="seguimiento-title" className="mt-8 border border-ink/25 bg-white/80 p-5" data-testid="seguimiento">
-      <p className="eyebrow text-vermilion">{kindName[view.kind]} · {view.reference}</p>
+      <p className="eyebrow text-vermilion">{view.preorder ? "Preventa" : kindName[view.kind]} · {view.reference}</p>
       <h2 id="seguimiento-title" className="display mt-1 text-3xl normal-case sm:text-4xl">Seguimiento de tu pedido</h2>
       <p className="mt-2 text-lg font-bold" data-testid="etapa-actual">{view.cancelled ? "Pedido cancelado" : view.stageLabel}</p>
       {view.cancelled && <p className="mt-1 text-sm">Cancelar un pedido no significa que el dinero ya se haya devuelto: si abonaste algo, el estado del reintegro figura más abajo.</p>}
+
+      {view.preorder && <p className="mt-2 text-sm font-semibold">{view.preorder.status === "confirmada"
+        ? "Reserva confirmada"
+        : view.preorder.status === "liberada" ? "La retención terminó. Si ya transferiste, contactá a la tienda con esta referencia."
+        : view.preorder.status === "cancelada" ? "La solicitud de preventa fue cancelada."
+        : view.pendingReceipts ? "Unidades retenidas mientras revisamos tu comprobante."
+        : `Unidades retenidas hasta ${new Intl.DateTimeFormat("es-AR", { dateStyle: "medium", timeStyle: "short", hourCycle: "h23", timeZone: "America/Argentina/Buenos_Aires" }).format(view.preorder.expiresAt)}. Cargá el comprobante dentro de ese plazo.`}</p>}
 
       <ol className="mt-5 space-y-3" aria-label="Etapas del pedido" data-testid="linea-seguimiento">
         {view.steps.map((s) => (
@@ -95,7 +102,7 @@ export function OrderTracking({ view, whatsappNumber, linkToken }: { view: Custo
                   ? `Entregadas: ${i.delivered} de ${i.quantity}`
                   : <>Llegaron a Argentina: {i.arrived}{i.inTransit ? ` · En camino: ${i.inTransit}` : ""}{i.notShipped ? ` · Todavía no viajaron: ${i.notShipped}` : ""} · Entregadas: {i.delivered} de {i.quantity}</>}
               </p>
-              {i.shipments.length > 0 && <p className="mt-0.5 text-xs text-ink/75">{i.shipments.map((s) => `${s.quantity} en «${s.label}» (${SHIPMENT_LABEL[s.status as ShipmentStatus] ?? s.status})`).join(" · ")}</p>}
+              {i.shipments.length > 0 && <p className="mt-0.5 text-xs text-ink/75">{i.shipments.map((s) => `${s.quantity} en «${s.label}» (${shipmentProgressLabel(s.status)})`).join(" · ")}</p>}
             </li>
           ))}
         </ul>

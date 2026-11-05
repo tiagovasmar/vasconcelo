@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ConsultaDetail } from "@/components/consulta-detail";
 import { OrderTracking } from "@/components/order-tracking";
 import { getWhatsappNumber } from "@/features/inquiries/config";
@@ -25,6 +25,7 @@ export default async function ConsultaPage({ params, searchParams }: { params: P
   });
   if (!inquiry) notFound();
   const view = await customerOrderView(getDb(), ref);
+  if (view?.preorder && user) redirect(`/cuenta/consultas/${ref}`);
 
   return (
     <ConsultaDetail

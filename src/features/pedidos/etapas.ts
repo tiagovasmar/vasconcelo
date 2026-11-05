@@ -60,7 +60,10 @@ export const SHIPMENT_LABEL: Record<ShipmentStatus, string> = {
   en_transito: "En tránsito a Argentina",
   recibido_argentina: "Recibido en Argentina",
 };
-export const shipmentRank = (s: string): number => SHIPMENT_STATUSES.indexOf(s as ShipmentStatus);
+export const shipmentRank = (s: string): number => SHIPMENT_STATUSES.indexOf((s === "pendiente_revision" ? "en_transito" : s) as ShipmentStatus);
+export const shipmentProgressLabel = (status: string): string => status === "pendiente_revision"
+  ? "En Argentina · pendiente de revisión"
+  : SHIPMENT_LABEL[status as ShipmentStatus] ?? status;
 
 /* ---------- Pago (separado de la logística) ---------- */
 

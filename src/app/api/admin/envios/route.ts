@@ -1,6 +1,6 @@
 import { getDb } from "@/db/client";
 import { flushQuietly } from "@/features/avisos/outbox";
-import { createShipment, removeShipmentItem, setShipmentItem, updateShipmentStatus } from "@/features/pedidos/envios";
+import { createShipment, removeShipmentItem, setShipmentItem, updateShipmentMetadata, updateShipmentStatus } from "@/features/pedidos/envios";
 import { SaleError } from "@/features/sales/errors";
 import { adminAction } from "@/server/admin-api";
 
@@ -17,6 +17,7 @@ export async function POST(req: Request) {
         case "create": return createShipment(db, b, actor);
         case "item": return setShipmentItem(db, String(b.shipmentId ?? ""), { lineId: Number(b.lineId), quantity: b.quantity });
         case "remove_item": return removeShipmentItem(db, String(b.shipmentId ?? ""), Number(b.lineId));
+        case "metadata": return updateShipmentMetadata(db, String(b.shipmentId ?? ""), b);
         case "status": return updateShipmentStatus(db, String(b.shipmentId ?? ""), b, actor);
         default: throw new SaleError(400, "invalid_input", "Acción desconocida.");
       }

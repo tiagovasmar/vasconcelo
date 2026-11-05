@@ -1,8 +1,9 @@
+import { importShipmentItems } from "@/features/importaciones/tracking";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { Db } from "@/db/client";
 import { lockKey } from "@/db/lock";
-import { inquiries, inquiryLines, lineDeliveries, orderEvents, orderTracks, shipmentItems, shipments } from "@/db/schema";
+import { costPurchases, costPurchaseItems, importAllocations, importParcels, inquiries, inquiryLines, lineDeliveries, orderEvents, orderTracks, shipmentItems, shipments } from "@/db/schema";
 import type { Actor } from "@/features/catalog/overrides";
 import { noticeForOrder } from "@/features/avisos/outbox";
 import { SaleError, type SaleErrorCode } from "@/features/sales/errors";
@@ -33,7 +34,7 @@ const DATE_COLUMN: Record<Exclude<ShipmentStatus, "preparando">, "sentAt" | "ori
 
 const shipmentIdFor = (key: string) => `EN-${sha(key).slice(0, 10).toUpperCase()}`;
 
-export const NewShipmentSchema = z.object({ label: z.string().trim().min(2, "Poné un nombre al envío.").max(80), supplier: TEXT(80), internalNote: TEXT(500), idempotencyKey: KEY });
+export const NewShipmentSchema = z.object({ label: z.string().trim().min(2, "Poné un nombre al envío.").max(80), supplier: TEXT(80), internalNote: TEXT(500), carrier: TEXT(80), trackingNumber: TEXT(100), idempotencyKey: KEY });
 
 export async function createShipment(db: Db, body: unknown, actor: Actor, now = Date.now()): Promise<{ id: string; replayed: boolean }> {
   const input = parseOr400(NewShipmentSchema, body);
@@ -42,8 +43,18 @@ export async function createShipment(db: Db, body: unknown, actor: Actor, now = 
     const [again] = await tx.select().from(shipments).where(eq(shipments.id, shipmentIdFor(input.idempotencyKey)));
     if (again) return { id: again.id, replayed: true };
     const id = shipmentIdFor(input.idempotencyKey);
-    await tx.insert(shipments).values({ id, label: input.label, supplier: input.supplier, internalNote: input.internalNote, status: "preparando", createdAt: now, createdByEmail: actor.email, updatedAt: now });
+    await tx.insert(shipments).values({ id, label: input.label, supplier: input.supplier, internalNote: input.internalNote, carrier: input.carrier, trackingNumber: input.trackingNumber, status: "preparando", createdAt: now, createdByEmail: actor.email, updatedAt: now });
     return { id, replayed: false };
+  });
+}
+
+export async function updateShipmentMetadata(db: Db, shipmentId: string, body: unknown, now = Date.now()) {
+  const fields = parseOr400(z.object({ carrier: TEXT(80), trackingNumber: TEXT(100), internalNote: TEXT(500) }), body);
+  return db.transaction(async (tx) => {
+    await lockKey(tx, `shipment:${shipmentId}`);
+    const [row] = await tx.update(shipments).set({ ...fields, updatedAt: now }).where(eq(shipments.id, shipmentId)).returning({ id: shipments.id });
+    if (!row) return fail(404, "not_found", "El envío no existe.");
+    return { changed: true };
   });
 }
 
@@ -65,6 +76,8 @@ export async function setShipmentItem(db: Db, shipmentId: string, body: unknown,
     if (!track || track.cancelledAt) return fail(409, "order_rule", "El pedido no tiene seguimiento activo.");
     if (rank(track.kind as TrackKind, track.stage) < rank(track.kind as TrackKind, "comprado_proveedor")) return fail(409, "order_rule", "El pedido todavía no figura como comprado al proveedor.");
     const [others] = await tx.select({ n: sql<number>`coalesce(sum(${shipmentItems.quantity}), 0)::int` }).from(shipmentItems).where(and(eq(shipmentItems.lineId, lineId), sql`${shipmentItems.shipmentId} <> ${shipmentId}`));
+    const [assigned] = await tx.select({ n: sql<number>`coalesce(sum(${importAllocations.quantity}), 0)::int` }).from(importAllocations).where(eq(importAllocations.orderLineId, lineId));
+    others.n += assigned.n;
     if (others.n + quantity > line.quantity) return fail(409, "order_rule", `Se pidieron ${line.quantity} unidades y ya hay ${others.n} en otros envíos: en este solo caben ${line.quantity - others.n}.`);
     const [mine] = await tx.select().from(shipmentItems).where(and(eq(shipmentItems.shipmentId, shipmentId), eq(shipmentItems.lineId, lineId)));
     if (mine && mine.quantity === quantity) return { changed: false };
@@ -108,14 +121,27 @@ export async function updateShipmentStatus(db: Db, shipmentId: string, body: unk
     if (!sh) return fail(404, "not_found", "El envío no existe.");
     if (sh.status === input.status) return { status: sh.status, changed: false, orders: 0 };
     if (shipmentRank(input.status) < shipmentRank(sh.status)) return fail(409, "order_rule", "El envío ya pasó por esa etapa: los estados solo avanzan.");
-    const items = await tx.select({ si: shipmentItems, line: inquiryLines }).from(shipmentItems).innerJoin(inquiryLines, eq(inquiryLines.id, shipmentItems.lineId)).where(eq(shipmentItems.shipmentId, shipmentId));
-    if (!items.length) return fail(409, "order_rule", "El envío no tiene artículos: agregá al menos uno antes de marcarlo como enviado.");
-    const inquiryIds = [...new Set(items.map((i) => i.line.inquiryId))].sort();
+    const legacy = await tx.select({ si: shipmentItems, line: inquiryLines }).from(shipmentItems).innerJoin(inquiryLines, eq(inquiryLines.id, shipmentItems.lineId)).where(eq(shipmentItems.shipmentId, shipmentId));
+    const linked = await importShipmentItems(tx, { shipmentId });
+    const parcels = await tx.selectDistinct({ purchaseId: costPurchaseItems.purchaseId }).from(importParcels)
+      .innerJoin(importAllocations, eq(importParcels.allocationId, importAllocations.id))
+      .innerJoin(costPurchaseItems, eq(importAllocations.itemId, costPurchaseItems.id))
+      .where(eq(importParcels.shipmentId, shipmentId)).orderBy(costPurchaseItems.purchaseId);
+    if (!legacy.length && !parcels.length) return fail(409, "order_rule", "El envío no tiene artículos: agregá al menos uno antes de marcarlo como enviado.");
+    for (const p of parcels) await lockKey(tx, `cost-purchase:${p.purchaseId}`);
+    const dates = parcels.length ? await tx.select({ orderedAt: costPurchases.orderedAt }).from(costPurchases)
+      .where(inArray(costPurchases.id, parcels.map((p) => p.purchaseId))) : [];
+    if ([sh.sentAt, sh.originReceivedAt, sh.transitAt, ...dates.map((p) => p.orderedAt)].some((at) => at !== null && at > input.occurredAt)) {
+      return fail(409, "order_rule", "La fecha no puede ser anterior a la compra o a una etapa ya registrada.");
+    }
+    const items = [...legacy.map(({ si, line }) => ({ inquiryId: line.inquiryId, title: line.title, qty: si.quantity })),
+      ...(input.status === "recibido_argentina" ? [] : linked)];
+    const inquiryIds = [...new Set(items.map((i) => i.inquiryId))].sort();
     for (const id of inquiryIds) await trackLock(tx, id);
     await tx.update(shipments).set({ status: input.status, [DATE_COLUMN[input.status]]: input.occurredAt, updatedAt: now }).where(eq(shipments.id, shipmentId));
     for (const inquiryId of inquiryIds) {
-      const mine = items.filter((i) => i.line.inquiryId === inquiryId);
-      const detail = mine.map((i) => `${i.si.quantity} × ${i.line.title}`).join(", ");
+      const mine = items.filter((i) => i.inquiryId === inquiryId);
+      const detail = mine.map((i) => `${i.qty} × ${i.title}`).join(", ");
       await tx.insert(orderEvents).values({ inquiryId, kind: "shipment", publicText: `${SHIPMENT_LABEL[input.status]}: ${detail}.${input.publicNote ? ` ${input.publicNote}` : ""}`, internalText: `Envío ${shipmentId} (${sh.label}) → ${input.status}`, occurredAt: input.occurredAt, createdAt: now, actorEmail: actor.email, opKey: `ship:${input.idempotencyKey}:${inquiryId}` });
       let advanced = false;
       try {
@@ -186,7 +212,13 @@ export async function listShipments(db: Db) {
   const rows = await db.select().from(shipments).orderBy(desc(shipments.createdAt));
   if (!rows.length) return [];
   const items = await db.select({ si: shipmentItems, line: inquiryLines }).from(shipmentItems).innerJoin(inquiryLines, eq(inquiryLines.id, shipmentItems.lineId)).where(inArray(shipmentItems.shipmentId, rows.map((r) => r.id)));
-  return rows.map((s) => ({ ...s, items: items.filter((i) => i.si.shipmentId === s.id).map((i) => ({ lineId: i.line.id, inquiryId: i.line.inquiryId, title: i.line.title, sku: i.line.sku, quantity: i.si.quantity })) }));
+  const imported = await txShipmentSummary(db, rows.map((r) => r.id));
+  return rows.map((s) => ({ ...s, importedUnits: imported.find((i) => i.shipmentId === s.id)?.quantity ?? 0, items: items.filter((i) => i.si.shipmentId === s.id).map((i) => ({ lineId: i.line.id, inquiryId: i.line.inquiryId, title: i.line.title, sku: i.line.sku, quantity: i.si.quantity })) }));
+}
+
+async function txShipmentSummary(db: Db, ids: string[]) {
+  return db.select({ shipmentId: importParcels.shipmentId, quantity: sql<number>`sum(${importParcels.quantity})::int` })
+    .from(importParcels).where(inArray(importParcels.shipmentId, ids)).groupBy(importParcels.shipmentId);
 }
 
 /** Artículos de encargos y mayoristas que pueden sumarse a un envío (pedido comprado al proveedor, con unidades sin enviar). */
@@ -198,6 +230,8 @@ export async function shippableLines(db: Db) {
     const kind = r.track.kind as TrackKind;
     if (rank(kind, r.track.stage) < rank(kind, "comprado_proveedor")) continue;
     const [used] = await db.select({ n: sql<number>`coalesce(sum(${shipmentItems.quantity}), 0)::int` }).from(shipmentItems).where(eq(shipmentItems.lineId, r.line.id));
+    const [assigned] = await db.select({ n: sql<number>`coalesce(sum(${importAllocations.quantity}), 0)::int` }).from(importAllocations).where(eq(importAllocations.orderLineId, r.line.id));
+    used.n += assigned.n;
     if (r.line.quantity - used.n > 0) out.push({ lineId: r.line.id, inquiryId: r.line.inquiryId, name: r.name, title: r.line.title, sku: r.line.sku, quantity: r.line.quantity, notShipped: r.line.quantity - used.n });
   }
   return out;

@@ -1,3 +1,5 @@
+import { describeDelivery } from "@/features/inquiries/message";
+import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ConsultaDetail } from "@/components/consulta-detail";
@@ -18,6 +20,12 @@ export default async function ConsultaDeCuenta({ params }: { params: Promise<{ r
   const inquiry = await getInquiryFor(getDb(), ref, { userId: user.id });
   if (!inquiry) notFound();
   const view = await customerOrderView(getDb(), ref);
+  if (view?.preorder) return <div className="mx-auto max-w-[900px] px-4 py-8 sm:px-8">
+    <Link href="/cuenta/consultas" className="text-sm font-semibold underline">Volver a mis pedidos</Link>
+    <h1 className="mt-3 text-3xl font-semibold">Tu preventa</h1>
+    <p className="mt-2 text-sm">Entrega elegida · {describeDelivery(inquiry.delivery)}</p>
+    <OrderTracking view={view} whatsappNumber={getWhatsappNumber()} />
+  </div>;
   return (
     <ConsultaDetail
       tracking={view ? <OrderTracking view={view} whatsappNumber={getWhatsappNumber()} /> : null}

@@ -31,6 +31,7 @@ export default async function AdminCostos({ searchParams }: { searchParams: Prom
       <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Costos, compras y ganancia</h1>
       <p className="mt-2 max-w-3xl text-sm text-ink/75">Los costos, proveedores y márgenes se ven solo acá. El costo de cada venta se congela cuando se registra: una reposición o un cambio de cotización posterior no modifica la ganancia anterior. Un producto sin compra confirmada figura «Costo pendiente», nunca costo cero.</p>
 
+      <p className="mt-3 text-sm"><Link href="/admin/compras" className="font-semibold underline">Gestionar compras e importaciones</Link></p>
       <section className={card} data-testid="ganancia">
         <h2 className="text-base font-semibold">Ganancia</h2>
         <form className="mt-2 flex flex-wrap items-end gap-3" method="get">
@@ -94,7 +95,8 @@ export default async function AdminCostos({ searchParams }: { searchParams: Prom
                 <tbody>{p.items.map((i) => <tr key={i.id} className="border-t border-ink/10"><td className="py-1 pr-2">{title(i.productId)}</td><td className="pr-2 text-right">{i.quantity}</td><td className="pr-2 text-right">{cur(p.currency, i.unitPriceOriginalMinor)}</td><td className="pr-2 text-right">{i.allocatedExpensesMinor === null ? "—" : formatARS(i.allocatedExpensesMinor)}</td><td className="pr-2 text-right">{i.totalCostMinor === null ? "—" : formatARS(i.totalCostMinor)}</td><td className="text-right font-semibold">{i.finalUnitCostMinor === null ? "Se calcula al confirmar" : formatARS(i.finalUnitCostMinor)}</td></tr>)}</tbody>
               </table>
             </div>
-            {p.expenses.length > 0 && <ul className="mt-2 text-xs text-ink/75">{p.expenses.map((e) => <li key={e.id}>{e.kind}{e.description ? ` (${e.description})` : ""}: {formatARS(e.amountMinor)} · regla de reparto: <b>{e.allocation}</b>{e.shares.length > 0 && <> → {e.shares.map((s, k) => formatARS(s.shareMinor) + (k < e.shares.length - 1 ? " + " : "")).join("")}</>}</li>)}</ul>}
+            {p.expenses.length > 0 && <ul className="mt-2 text-xs text-ink/75">{p.expenses.map((e) => <li key={e.id}>{e.kind}{e.description ? ` (${e.description})` : ""}: {(e.amountMinor === null ? "Pendiente" : formatARS(e.amountMinor))} · regla de reparto: <b>{e.allocation}</b>{e.shares.length > 0 && <> → {e.shares.map((s, k) => formatARS(s.shareMinor) + (k < e.shares.length - 1 ? " + " : "")).join("")}</>}</li>)}</ul>}
+            <p className="mt-2 text-sm"><Link href={`/admin/compras/${p.id}`} className="font-semibold underline">Ver compra</Link></p>
             {p.status === "borrador" && <div className="mt-3"><AdminButton endpoint="/api/admin/costos" body={{ action: "confirm_purchase", purchaseId: p.id }} label="Confirmar y calcular costos" ok="Compra confirmada." confirmText="Al confirmar se calculan y congelan los costos. ¿Continuar?" /></div>}
           </article>
         ))}

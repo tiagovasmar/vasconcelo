@@ -1,6 +1,7 @@
 import { and, desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { Db } from "@/db/client";
+import type { Tx } from "@/db/lock";
 import { accountingExpenses, sales, storefrontVisits } from "@/db/schema";
 import { accountingDateFilter, accountingDay, saleAccountingDay, type AccountingPeriod } from "./period";
 import { SaleError } from "@/features/sales/errors";
@@ -13,7 +14,7 @@ const ExpenseInput = z.object({
   paymentMethod: z.enum(["efectivo", "transferencia", "tarjeta", "otro"]),
 });
 
-export async function registerExpense(db: Db, body: unknown, email: string) {
+export async function registerExpense(db: Db | Tx, body: unknown, email: string) {
   const parsed = ExpenseInput.safeParse(body);
   if (!parsed.success) throw new SaleError(400, "invalid_input", "Revisá la fecha, el importe, el concepto y el medio de pago del gasto.");
   const { idempotencyKey: id, ...data } = parsed.data;

@@ -4,7 +4,7 @@ import { z } from "zod";
 import type { Db } from "@/db/client";
 import { lockKey, type Tx } from "@/db/lock";
 import {
-  appliedCosts, costExpenses, costExpenseShares, costPurchaseItems, costPurchases, inquiries, inquiryLines, inquirySales, orderPayments, orderRefunds, orderTracks, saleCommissions, saleLines, sales,
+  appliedCosts, costExpenses, costExpenseShares, costPurchaseItems, costPurchases, importAllocations, importReservations, inquiries, inquiryLines, inquirySales, orderPayments, orderRefunds, orderTracks, saleCommissions, saleLines, sales,
 } from "@/db/schema";
 import { catalog } from "@/content/catalog";
 import type { Actor } from "@/features/catalog/overrides";
@@ -37,12 +37,14 @@ export const divRound = (num: bigint, den: bigint): number => Number((num * 2n +
 
 /** Reparte `total` (centavos) entre `weights` en proporción, con el método del mayor resto: la suma es EXACTA y el resultado es determinista. */
 export function allocateProportional(total: number, weights: number[]): number[] {
-  const sum = weights.reduce((a, b) => a + b, 0);
   if (!weights.length) return [];
-  if (sum <= 0) return fail(400, "invalid_input", "No hay base para repartir el gasto (cantidades o valores en cero).");
-  const base = weights.map((w) => Math.floor((total * w) / sum));
+  const exact = weights.map(BigInt);
+  const sum = exact.reduce((a, b) => a + b, 0n);
+  if (sum <= 0n) return fail(400, "invalid_input", "No hay base para repartir el gasto (cantidades o valores en cero).");
+  const weighted = exact.map((w) => BigInt(total) * w);
+  const base = weighted.map((w) => Number(w / sum));
   let rest = total - base.reduce((a, b) => a + b, 0);
-  const order = weights.map((w, i) => ({ i, frac: (total * w) % sum })).sort((a, b) => b.frac - a.frac || a.i - b.i);
+  const order = weighted.map((w, i) => ({ i, frac: w % sum })).sort((a, b) => a.frac === b.frac ? a.i - b.i : a.frac > b.frac ? -1 : 1);
   for (const o of order) { if (rest <= 0) break; base[o.i] += 1; rest--; }
   return base;
 }
@@ -52,6 +54,7 @@ const PRICE_ORIG = z.number({ error: "Escribí el precio unitario." }).int("El p
 
 export const PurchaseSchema = z.object({
   supplier: z.string().trim().min(2, "Escribí el proveedor.").max(80),
+  reference: z.string().trim().max(120).nullish().transform((v) => v || null),
   purchasedAt: z.number().int().positive().max(4_102_444_800_000),
   currency: z.enum(CURRENCIES, { error: "Elegí la moneda del precio original." }),
   /** Pesos por unidad de la moneda × 10.000 (obligatorio si no es ARS). */
@@ -62,7 +65,8 @@ export const PurchaseSchema = z.object({
   expenses: z.array(z.object({
     kind: z.enum(["envio", "impuestos", "otros"], { error: "Elegí el tipo de gasto." }),
     description: z.string().trim().max(120).nullish().transform((v) => (v ? v : null)),
-    amountMinor: z.number().int().min(0).max(1_000_000_000_00),
+    amountMinor: z.number().int().min(0).max(1_000_000_000_00).nullable(),
+    certainty: z.enum(["pendiente", "estimado", "definitivo"]).default("definitivo"),
     allocation: z.enum(["unidades", "valor", "manual"], { error: "Elegí la regla de reparto del gasto." }),
     /** Solo manual: centavos por posición de artículo (0-based). */
     manual: z.record(z.string(), z.number().int().min(0)).nullish().transform((v) => v ?? null),
@@ -73,29 +77,51 @@ export const PurchaseSchema = z.object({
 export type PurchaseInput = z.input<typeof PurchaseSchema>;
 const purchaseId = (key: string) => `CO-${sha(key).slice(0, 10).toUpperCase()}`;
 
-/** Crea la compra en BORRADOR (idempotente por clave). Los costos finales se calculan al confirmar. */
-export async function createPurchase(db: Db, body: unknown, actor: Actor, now = Date.now()): Promise<{ id: string; replayed: boolean }> {
+/** Crea o edita el mismo borrador que usa Costos. Las líneas conservan su identidad una vez asignadas. */
+export async function createPurchase(db: Db, body: unknown, actor: Actor, now = Date.now(), options: { managedImport?: boolean; editId?: string } = {}): Promise<{ id: string; replayed: boolean }> {
   const v = parseOr400(PurchaseSchema, body);
-  const unknown = v.items.find((i) => !catalog.products.some((p) => p.id === i.productId));
-  if (unknown) return fail(400, "invalid_input", "Hay productos que no existen en el catálogo.");
-  const id = purchaseId(v.idempotencyKey);
+  if (v.items.some((i) => !catalog.products.some((p) => p.id === i.productId))) return fail(400, "invalid_input", "Hay productos que no existen en el catálogo.");
+  const base = v.items.map((i) => itemBaseCostMinor(v, i.unitPriceOriginalMinor, i.quantity));
+  const total = base.reduce((a, b) => a + b, 0) + v.expenses.reduce((a, e) => a + (e.amountMinor ?? 0), 0);
+  if (!Number.isSafeInteger(total)) return fail(400, "invalid_input", "El costo convertido supera el importe admitido.");
+  for (const e of v.expenses) {
+    if ((e.amountMinor === null) !== (e.certainty === "pendiente")) return fail(400, "invalid_input", "Dejá sin importe los gastos pendientes y cargá un importe para los demás.");
+    if (e.allocation === "valor" && e.amountMinor && !base.some((x) => x > 0)) return fail(400, "invalid_input", "La mercadería convertida no tiene valor para repartir ese gasto.");
+    if (e.allocation === "manual" && e.amountMinor !== null) {
+      const m = e.manual ?? {};
+      if (Object.keys(m).some((k) => !/^(0|[1-9][0-9]*)$/.test(k) || Number(k) >= v.items.length)) return fail(400, "invalid_input", "El reparto manual apunta a un artículo que no existe.");
+      if (Object.values(m).reduce((a, b) => a + b, 0) !== e.amountMinor) return fail(400, "invalid_input", "El reparto manual debe sumar el importe del gasto.");
+    }
+  }
+  const id = options.editId ?? purchaseId(v.idempotencyKey);
+  const fields = { supplier: v.supplier, reference: v.reference, purchasedAt: v.purchasedAt, currency: v.currency, rateToArs10k: v.currency === "ARS" ? null : v.rateToArs10k, rateNote: v.rateNote, note: v.note };
   return db.transaction(async (tx) => {
     await lockKey(tx, `cost-purchase:${id}`);
     const [again] = await tx.select().from(costPurchases).where(eq(costPurchases.id, id));
-    if (again) return { id, replayed: true };
-    await tx.insert(costPurchases).values({ id, supplier: v.supplier, purchasedAt: v.purchasedAt, currency: v.currency, rateToArs10k: v.currency === "ARS" ? null : v.rateToArs10k, rateNote: v.rateNote, note: v.note, status: "borrador", createdAt: now, createdByEmail: actor.email });
-    await tx.insert(costPurchaseItems).values(v.items.map((i) => ({ purchaseId: id, productId: i.productId, quantity: i.quantity, unitPriceOriginalMinor: i.unitPriceOriginalMinor })));
-    if (v.expenses.length) {
-      for (const e of v.expenses) {
-        if (e.allocation === "manual") {
-          const m = e.manual ?? {};
-          const total = Object.values(m).reduce((a, b) => a + b, 0);
-          if (total !== e.amountMinor) return fail(400, "invalid_input", `El reparto manual del gasto «${e.kind}» suma ${total} y el gasto es ${e.amountMinor}: tiene que coincidir.`);
-          if (Object.keys(m).some((k) => !(Number.isInteger(Number(k)) && Number(k) >= 0 && Number(k) < v.items.length))) return fail(400, "invalid_input", "El reparto manual apunta a un artículo que no existe.");
-        }
+    if (options.editId) {
+      if (!again) return fail(404, "not_found", "La compra no existe.");
+      if (again.status !== "borrador") return fail(409, "order_rule", "El costo de esta compra ya se cerró.");
+      const existing = await tx.select().from(costPurchaseItems).where(eq(costPurchaseItems.purchaseId, id)).orderBy(costPurchaseItems.id);
+      const sameShape = existing.length === v.items.length && existing.every((i, k) => i.productId === v.items[k].productId && i.quantity === v.items[k].quantity);
+      if (sameShape) {
+        for (const [k, i] of existing.entries()) await tx.update(costPurchaseItems).set({ unitPriceOriginalMinor: v.items[k].unitPriceOriginalMinor }).where(eq(costPurchaseItems.id, i.id));
+      } else {
+        const [allocation] = await tx.select({ id: importAllocations.id }).from(importAllocations).where(inArray(importAllocations.itemId, existing.map((i) => i.id))).limit(1);
+        if (allocation) return fail(409, "order_rule", "Quitá las asignaciones del borrador antes de cambiar productos o cantidades.");
+        await tx.delete(costPurchaseItems).where(eq(costPurchaseItems.purchaseId, id));
       }
-      await tx.insert(costExpenses).values(v.expenses.map((e) => ({ purchaseId: id, kind: e.kind, description: e.description, amountMinor: e.amountMinor, allocation: e.allocation, manualJson: e.allocation === "manual" ? JSON.stringify(e.manual ?? {}) : null })));
+      if (!sameShape) await tx.insert(costPurchaseItems).values(v.items.map((i) => ({ purchaseId: id, ...i })));
+      await tx.update(costPurchases).set({ ...fields, managedImport: again.managedImport || Boolean(options.managedImport) }).where(eq(costPurchases.id, id));
+      await tx.delete(costExpenses).where(eq(costExpenses.purchaseId, id));
+    } else {
+      if (again) return { id, replayed: true };
+      await tx.insert(costPurchases).values({ id, ...fields, managedImport: options.managedImport ?? false, createdAt: now, createdByEmail: actor.email });
+      await tx.insert(costPurchaseItems).values(v.items.map((i) => ({ purchaseId: id, ...i })));
     }
+    if (v.expenses.length) await tx.insert(costExpenses).values(v.expenses.map((e) => ({
+      purchaseId: id, kind: e.kind, description: e.description, amountMinor: e.amountMinor, certainty: e.certainty,
+      allocation: e.allocation, manualJson: e.allocation === "manual" ? JSON.stringify(e.manual ?? {}) : null,
+    })));
     return { id, replayed: false };
   });
 }
@@ -104,6 +130,17 @@ export async function createPurchase(db: Db, body: unknown, actor: Actor, now = 
 export function itemBaseCostMinor(p: { currency: string; rateToArs10k: number | null }, unitPriceOriginalMinor: number, quantity: number): number {
   if (p.currency === "ARS") return unitPriceOriginalMinor * quantity;
   return divRound(BigInt(unitPriceOriginalMinor) * BigInt(quantity) * BigInt(p.rateToArs10k ?? 0), BigInt(RATE_SCALE));
+}
+
+export function expenseShares(items: { quantity: number }[], base: number[], expense: {
+  allocation: string; amountMinor: number | null; manualJson: string | null;
+}): number[] {
+  if (expense.amountMinor === null || expense.amountMinor === 0) return items.map(() => 0);
+  if (expense.allocation === "manual") {
+    const manual = JSON.parse(expense.manualJson ?? "{}") as Record<string, number>;
+    return items.map((_, k) => manual[k] ?? 0);
+  }
+  return allocateProportional(expense.amountMinor, expense.allocation === "unidades" ? items.map((i) => i.quantity) : base);
 }
 
 /** Confirma la compra: calcula y congela el reparto de gastos, el costo total y el costo final por unidad. Idempotente (confirmar dos veces no recalcula). */
@@ -117,10 +154,13 @@ export async function confirmPurchase(db: Db, id: string, actor: Actor, now = Da
     const items = await tx.select().from(costPurchaseItems).where(eq(costPurchaseItems.purchaseId, id)).orderBy(costPurchaseItems.id);
     const exps = await tx.select().from(costExpenses).where(eq(costExpenses.purchaseId, id)).orderBy(costExpenses.id);
     const base = items.map((i) => itemBaseCostMinor(p, i.unitPriceOriginalMinor, i.quantity));
+    if (exps.some((e) => e.certainty !== "definitivo")) return fail(409, "order_rule", "Completá los gastos pendientes y estimados antes de cerrar los costos.");
+    if (p.managedImport && ["envio", "impuestos"].some((kind) => !exps.some((e) => e.kind === kind))) return fail(409, "order_rule", "Registrá envío y aduana como definitivos, aunque el importe real sea cero.");
+    const destinations = p.managedImport ? await tx.select().from(importAllocations).where(inArray(importAllocations.itemId, items.map((i) => i.id))) : [];
+    if (p.managedImport && items.some((i) => destinations.filter((d) => d.itemId === i.id).reduce((n, d) => n + d.quantity, 0) !== i.quantity)) return fail(409, "order_rule", "Asigná todos los destinos antes de cerrar los costos.");
     const allocated = items.map(() => 0);
     for (const e of exps) {
-      const weights = e.allocation === "unidades" ? items.map((i) => i.quantity) : e.allocation === "valor" ? base : items.map((_, idx) => (JSON.parse(e.manualJson ?? "{}") as Record<string, number>)[String(idx)] ?? 0);
-      const shares = e.allocation === "manual" ? weights : allocateProportional(e.amountMinor, weights);
+      const shares = expenseShares(items, base, e);
       if (shares.reduce((a, b) => a + b, 0) !== e.amountMinor) return fail(409, "order_rule", "El reparto de un gasto no suma su importe.");
       for (let k = 0; k < items.length; k++) {
         allocated[k] += shares[k];
@@ -129,7 +169,12 @@ export async function confirmPurchase(db: Db, id: string, actor: Actor, now = Da
     }
     for (let k = 0; k < items.length; k++) {
       const total = base[k] + allocated[k];
-      await tx.update(costPurchaseItems).set({ allocatedExpensesMinor: allocated[k], totalCostMinor: total, finalUnitCostMinor: divRound(BigInt(total), BigInt(items[k].quantity)) }).where(eq(costPurchaseItems.id, items[k].id));
+      const i = items[k];
+      const personal = destinations.filter((d) => d.itemId === i.id && d.destination === "personal").reduce((n, d) => n + d.quantity, 0);
+      const commercialQuantity = i.quantity - personal;
+      const commercialCostMinor = divRound(BigInt(total) * BigInt(commercialQuantity), BigInt(i.quantity));
+      await tx.update(costPurchaseItems).set({ allocatedExpensesMinor: allocated[k], totalCostMinor: total,
+        finalUnitCostMinor: divRound(BigInt(total), BigInt(i.quantity)), commercialQuantity, commercialCostMinor }).where(eq(costPurchaseItems.id, i.id));
     }
     await tx.update(costPurchases).set({ status: "confirmada", confirmedAt: now }).where(eq(costPurchases.id, id));
     return { changed: true };
@@ -141,7 +186,7 @@ type Q = Db | Tx;
 /** Costo promedio ponderado (centavos de ARS por unidad) de las compras CONFIRMADAS de un producto; null = «Costo pendiente». */
 export async function averageCosts(q: Q, productIds: string[]): Promise<Map<string, number>> {
   if (!productIds.length) return new Map();
-  const rows = await q.select({ productId: costPurchaseItems.productId, total: sql<string>`sum(${costPurchaseItems.totalCostMinor})`, qty: sql<string>`sum(${costPurchaseItems.quantity})` })
+  const rows = await q.select({ productId: costPurchaseItems.productId, total: sql<string>`sum(coalesce(${costPurchaseItems.commercialCostMinor}, ${costPurchaseItems.totalCostMinor}))`, qty: sql<string>`sum(coalesce(${costPurchaseItems.commercialQuantity}, ${costPurchaseItems.quantity}))` })
     .from(costPurchaseItems).innerJoin(costPurchases, eq(costPurchases.id, costPurchaseItems.purchaseId)).where(and(eq(costPurchases.status, "confirmada"), inArray(costPurchaseItems.productId, productIds))).groupBy(costPurchaseItems.productId);
   return new Map(rows.filter((r) => Number(r.qty) > 0).map((r) => [r.productId, divRound(BigInt(r.total), BigInt(r.qty))]));
 }
@@ -235,6 +280,12 @@ export async function profitReport(db: Db, f: { from?: number; to?: number } = {
   const orders = await db.select({ t: orderTracks, name: inquiries.contactName }).from(orderTracks).innerJoin(inquiries, eq(inquiries.id, orderTracks.inquiryId))
     .where(and(inArray(orderTracks.kind, ["encargo", "mayorista"]), sql`${orderTracks.cancelledAt} is null`, sql`${orderTracks.agreedMinor} is not null`, f.from !== undefined ? gte(orderTracks.createdAt, f.from) : undefined, f.to !== undefined ? lt(orderTracks.createdAt, f.to) : undefined));
   for (const { t, name } of orders) {
+    const [hold] = await db.select({ inquiryId: importReservations.inquiryId }).from(importReservations).where(eq(importReservations.inquiryId, t.inquiryId));
+    if (hold) {
+      const [payment] = await db.select({ n: sql<number>`coalesce(sum(${orderPayments.amountMinor}),0)::bigint` }).from(orderPayments)
+        .where(and(eq(orderPayments.inquiryId, t.inquiryId), eq(orderPayments.status, "confirmado")));
+      if (Number(payment.n) * 5 < t.agreedMinor!) continue;
+    }
     const [active] = await db.select({ id: inquirySales.id }).from(inquirySales).where(and(eq(inquirySales.inquiryId, t.inquiryId), eq(inquirySales.active, true)));
     if (active) continue;
     const ls = await db.select().from(inquiryLines).where(eq(inquiryLines.inquiryId, t.inquiryId));
@@ -257,8 +308,8 @@ export async function profitReport(db: Db, f: { from?: number; to?: number } = {
   return { rows, totals };
 }
 
-export async function listPurchases(db: Db) {
-  const ps = await db.select().from(costPurchases).orderBy(desc(costPurchases.purchasedAt));
+export async function listPurchases(db: Db, id?: string) {
+  const ps = await db.select().from(costPurchases).where(id ? eq(costPurchases.id, id) : undefined).orderBy(desc(costPurchases.purchasedAt));
   if (!ps.length) return [];
   const items = await db.select().from(costPurchaseItems).where(inArray(costPurchaseItems.purchaseId, ps.map((p) => p.id))).orderBy(costPurchaseItems.id);
   const exps = await db.select().from(costExpenses).where(inArray(costExpenses.purchaseId, ps.map((p) => p.id))).orderBy(costExpenses.id);
