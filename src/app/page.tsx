@@ -13,6 +13,8 @@ import { hasAsset } from "@/components/slot";
 
 import { kindSlug, type Expansion, type Product } from "@/content/schema";
 import { LanguageBadge } from "@/components/language-badge";
+import { getDb } from "@/db/client";
+import { incomingProducts } from "@/features/importaciones/service";
 
 /** Colecciones japonesas del inicio (las ocho originales, en el orden del catálogo). */
 const COLECCIONES_JA_INICIO = ["black-bolt", "white-flare", "heat-wave-arena", "inferno-x", "mega-dream-ex", "30th-celebration", "storm-emeralda", "abyss-eye"];
@@ -41,7 +43,8 @@ function ArrowLink({ href, children, className = "" }: { href: string; children:
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [products, enStock, expansions, destacados] = await Promise.all([listProducts(), inStockProducts(), listExpansions(), featuredProducts(4)]);
+  const [products, enStock, expansions, destacados, incoming] = await Promise.all([listProducts(), inStockProducts(), listExpansions(), featuredProducts(4), incomingProducts(getDb())]);
+  const upcoming = products.filter((product) => incoming.has(product.id));
   // Un banner por colección que exista en el catálogo (arranca con Storm Emeralda).
   const slides = banners.filter((b) => expansions.some((e) => e.id === b.expansionId));
   // Cajas: Inferno X y MEGA Dream ex. Sobres: Black Bolt y White Flare. (Con respaldo por formato si faltara alguna.)
@@ -117,6 +120,29 @@ export default async function Home() {
           </div>
         </section>
       )}
+
+      {upcoming.length > 0 && <section aria-labelledby="upcoming-title" className="border-b border-ink/10 bg-white" data-testid="home-proximamente">
+        <div className="mx-auto max-w-[1440px] px-4 py-8 sm:px-8 sm:py-11">
+          <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
+            <div><p className="eyebrow kicker text-emerald">Nuestros próximos ingresos</p><h2 id="upcoming-title" className="title-rule mt-2 text-2xl font-semibold leading-tight tracking-tight sm:text-3xl">Próximamente.</h2></div>
+            <ArrowLink href="/proximamente">Ver todos los próximos ingresos ({upcoming.length})</ArrowLink>
+          </div>
+          <p className="mt-3 text-sm text-ink/75">Estas cajas todavía no están disponibles para entrega inmediata.</p>
+          <ul className="mt-5 grid grid-cols-2 gap-3 max-[359px]:grid-cols-1 sm:gap-5 lg:grid-cols-4">
+            {upcoming.map((product) => <li key={product.id} className="min-w-0 overflow-hidden rounded-xl border border-ink/15 bg-white">
+              <Link href={`/productos/${product.slug}`} className="group flex h-full flex-col">
+                <div className="relative aspect-[4/3] bg-paper-2"><ProductImage product={product} sizes="(min-width:1024px) 320px, 45vw" /></div>
+                <div className="flex flex-1 flex-col p-3 sm:p-4">
+                  <span className="self-start rounded-full bg-emerald px-2.5 py-1 text-xs font-semibold text-white">{incoming.get(product.id)!.traveling > 0 ? "En camino" : "Próximamente"}</span>
+                  <h3 className="mt-3 break-words text-sm font-semibold sm:text-base">{product.title}</h3>
+                  <p className="mt-2 text-sm text-ink/75">{incoming.get(product.id)!.quantity} unidades anunciadas</p>
+                  <span className="mt-4 text-sm font-semibold underline">Ver producto ↗</span>
+                </div>
+              </Link>
+            </li>)}
+          </ul>
+        </div>
+      </section>}
 
       <section aria-labelledby="cat-title" className="bg-paper">
         <div className="mx-auto max-w-[1440px] px-4 py-8 sm:px-8 sm:py-11">
