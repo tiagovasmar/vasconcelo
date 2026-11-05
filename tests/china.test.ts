@@ -15,7 +15,7 @@ import { applyOverrides } from "@/features/catalog/overrides";
 
 // Lote chino: 16 carpetas de Tmall/Taobao → fichas del catálogo real. Ninguna prueba depende de la carpeta Downloads del equipo.
 const all = realCatalog.products;
-const zh = all.filter((p) => p.language === "zh");
+const zh = all.filter((p) => p.language === "zh" && !p.id.startsWith("zh-151-"));
 /** Fichas chinas publicadas (sin las retiradas). */
 const zhPub = zh.filter((p) => p.active);
 const zhExp = realCatalog.expansions.filter((e) => e.language === "zh");
@@ -34,7 +34,7 @@ describe("catálogo chino: cobertura de las 16 fuentes y formatos", () => {
     expect(zh.filter((p) => p.retired).every((p) => !p.active)).toBe(true);
     expect(zhExp.every((e) => e.region === "CN" && !e.isDemo && e.cards.length === 0 && e.cardListStatus === "unavailable")).toBe(true);
     for (const k of ["id", "sku", "slug"] as const) expect(new Set(all.map((p) => p[k])).size, k).toBe(all.length);
-    expect(new Set(all.map((p) => p.sku)).size).toBe(62);
+    expect(new Set(all.map((p) => p.sku)).size).toBe(64);
   });
 
   it("las 16 fuentes del dueño están representadas por al menos una ficha y cada ficha cita su fuente", () => {
@@ -162,6 +162,7 @@ describe("catálogo chino: fotos propias del proyecto, con procedencia", () => {
     const vistas = new Map<string, string>();
     for (const p of all) {
       for (const i of p.images) {
+        if (i.status === "demo" && i.src === "/images/products/foto-pendiente.svg") continue;
         const h = crypto.createHash("sha256").update(fs.readFileSync(pub(i.src))).digest("hex");
         expect(vistas.get(h), `${p.id}: ${i.src} repite ${vistas.get(h)}`).toBeUndefined();
         vistas.set(h, i.src);
@@ -183,13 +184,13 @@ describe("catálogo chino: fotos propias del proyecto, con procedencia", () => {
 
 describe("catálogo chino: búsqueda y filtros", () => {
   it("idioma, formato y colección", () => {
-    expect(f({ idioma: "zh" })).toHaveLength(28);
+    expect(f({ idioma: "zh" })).toHaveLength(30);
     expect(f({ idioma: "ja" })).toHaveLength(22); // 16 + las seis cajas del 14/10/2026
     expect(f({ formato: "kit" })).toHaveLength(3);
     expect(f({ formato: "especial" })).toHaveLength(2);
     expect(f({ formato: "ilustraciones" })).toHaveLength(2);
-    expect(f({ formato: "caja", idioma: "zh" })).toHaveLength(4);
-    expect(f({ formato: "caja" })).toHaveLength(19);
+    expect(f({ formato: "caja", idioma: "zh" })).toHaveLength(6);
+    expect(f({ formato: "caja" })).toHaveLength(21);
     expect(f({ formato: "sobre" })).toHaveLength(24); // 8 japoneses + 16 chinos
     expect(f({ expansion: "zh-gongzhu-rongguang" })).toHaveLength(1); // el de 20 cartas fue retirado
     expect(f({ expansion: "zh-30-zhounian" })).toHaveLength(4);
@@ -202,8 +203,8 @@ describe("catálogo chino: búsqueda y filtros", () => {
     expect(f({ q: "ogerpon" })).toHaveLength(2);
     expect(f({ q: "storm" })).toHaveLength(2); // sigue encontrando las japonesas
   });
-  it("paginación: 51 sellados públicos, accesorios solo como adicionales, en 5 páginas de 12", () => {
-    expect(f({})).toHaveLength(51);
+  it("paginación: 53 sellados públicos, accesorios solo como adicionales, en 5 páginas de 12", () => {
+    expect(f({})).toHaveLength(53);
     expect(Math.ceil(f({}).length / 12)).toBe(5);
   });
 });

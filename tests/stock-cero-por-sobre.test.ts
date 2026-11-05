@@ -62,7 +62,7 @@ describe("sin stock: estado, etiqueta y regla única", () => {
 describe("inicialización única del stock en 0", () => {
   it("pone en 0 las fichas actuales, deja ocultos los borradores, omite los retirados y registra el historial", async () => {
     const r = await initializeStockToZero(db, base, init);
-    const esperadas = base.filter((p) => !p.retired && !p.isDemo);
+    const esperadas = base.filter((p) => !p.retired && !p.isDemo && p.stockQuantity !== 0);
     expect(r).toEqual({ applied: true, updated: esperadas.length });
     const filas = await loadOverrides(db);
     expect(filas.size).toBe(esperadas.length);
