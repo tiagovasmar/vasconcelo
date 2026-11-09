@@ -14,89 +14,39 @@ const seed = async (page: Page, items: Array<Record<string, unknown>>, payment =
 };
 const pago = (page: Page, name: RegExp) => page.getByRole("radio", { name });
 
-test.describe("promociones: mínimo de una caja", () => {
-  test("inicio: franja visible con la condición y sin anunciar el efectivo", async ({ page }) => {
-    await go(page, "/");
-    const franja = page.getByTestId("franja-promos");
-    await expect(franja).toBeVisible();
-    await expect(franja).toContainText("3 cuotas sin interés o 10% OFF por transferencia");
-    await expect(franja).toContainText("compras que incluyan al menos una caja");
-    await expect(page.locator("main")).not.toContainText(/transferencia o efectivo/);
+test.describe("transferencia sin descuento", () => {
+  test("inicio, catálogo y ficha dejaron de anunciar el descuento", async ({ page }) => {
+    for (const url of ["/", "/sellados", "/productos/storm-emeralda-caja"]) {
+      await go(page, url);
+      await expect(page.locator("main")).not.toContainText(/10% OFF por transferencia/i);
+    }
   });
 
-  test("tarjetas: la caja muestra el beneficio con su condición; el sobre dice que se alcanza al sumar una caja", async ({ page }) => {
-    await go(page, "/sellados");
-    const card = (t: string) => page.locator("article").filter({ has: page.getByRole("heading", { name: t, exact: true }) });
-    const c = card("Storm Emeralda · Caja");
-    await expect(c.getByTestId("promo-caja")).toContainText("3 cuotas sin interés");
-    await expect(c.getByTestId("promo-caja")).toContainText("10% OFF por transferencia");
-    await expect(c.getByTestId("promo-caja")).toContainText("al menos una caja");
-    const s = card("Storm Emeralda · Sobre");
-    await expect(s.getByTestId("promo-condicion")).toContainText("Disponible al sumar una caja a tu pedido");
-    await expect(s.getByTestId("promo-caja")).toHaveCount(0);
-  });
-
-  test("fichas: caja con beneficio condicionado, sobre y bundle sin beneficio propio", async ({ page }) => {
-    await go(page, "/productos/storm-emeralda-caja");
-    await expect(page.getByTestId("promo-caja")).toContainText("En compras que incluyan al menos una caja");
-    await go(page, "/productos/storm-emeralda-sobre");
-    await expect(page.getByTestId("promo-condicion").first()).toContainText("Disponible al sumar una caja a tu pedido");
-    await go(page, "/productos/set-parcial-de-ejemplo-bundle");
-    await expect(page.getByTestId("promo-condicion").first()).toContainText("no cuenta como caja");
-  });
-
-  test("carrito con sobres solos: cuotas y transferencia bloqueadas, sin descuento", async ({ page }) => {
-    await seed(page, [sobres]);
-    await expect(page.getByTestId("promo-estado")).toContainText("para compras que incluyan al menos una caja");
-    await expect(pago(page, /Transferencia/)).toBeDisabled();
-    await expect(pago(page, /Tarjeta de crédito/)).toBeDisabled();
-    await expect(pago(page, /Efectivo/)).toBeEnabled();
-    await expect(pago(page, /Efectivo/)).toBeChecked();
-    await expect(page.getByTestId("resumen-descuento")).toHaveCount(0);
-    await expect(page.getByTestId("resumen-subtotal")).toContainText("19.000");
-  });
-
-  test("carrito con una caja sola y con caja + sobres: habilita la promoción y aplica el 10% por transferencia (el envío queda aparte)", async ({ page }) => {
-    await seed(page, [caja]);
-    await expect(page.getByTestId("promo-estado")).toContainText("incluye una caja");
+  test("el total se mantiene y el medio de pago sigue elegido al quitar la última caja", async ({ page }) => {
+    await seed(page, [caja, sobres]);
+    await expect(page.getByTestId("resumen-subtotal")).toContainText("204.000");
     await pago(page, /Transferencia/).check();
-    await expect(page.getByTestId("resumen-descuento")).toContainText("18.500");
-    await expect(page.getByTestId("resumen-total-descuento")).toContainText("166.500");
-    await expect(page.getByTestId("resumen-envio")).toHaveText("A coordinar");
-    // cuotas y descuento no se acumulan: con tarjeta no hay descuento
-    await pago(page, /Tarjeta de crédito/).check();
-    await expect(page.getByTestId("resumen-descuento")).toHaveCount(0);
-    // caja + sobres: el 10% alcanza a todos los productos del pedido que califica
-    await seed(page, [caja, sobres], "transferencia");
-    await expect(page.getByTestId("resumen-descuento")).toContainText("20.400");
-    await expect(page.getByTestId("resumen-total-descuento")).toContainText("183.600");
-  });
-
-  test("al quitar la última caja desaparecen los beneficios y se recalcula el resumen", async ({ page }) => {
-    await seed(page, [caja, sobres], "transferencia");
-    await expect(page.getByTestId("resumen-descuento")).toBeVisible();
+    await expect(page.getByTestId("resumen-subtotal")).toContainText("204.000");
+    await expect(page.getByTestId("resumen-total-descuento")).toHaveCount(0);
     await page.getByRole("button", { name: /Quitar Storm Emeralda · Caja/ }).click();
-    await expect(page.getByTestId("resumen-descuento")).toHaveCount(0);
-    await expect(pago(page, /Transferencia/)).toBeDisabled();
-    // El método de promoción deja de estar elegido y hay que elegir uno vigente (no vuelve a una opción que ya no existe).
-    await expect(page.getByRole("radio", { checked: true })).toHaveCount(0);
-    await expect(page.getByTestId("resumen-pago")).toHaveText("Sin elegir");
+    await expect(pago(page, /Transferencia/)).toBeChecked();
     await expect(page.getByTestId("resumen-subtotal")).toContainText("19.000");
     await expect(page.getByTestId("vista-previa")).not.toContainText("Descuento por transferencia");
   });
 
-  test("servidor: sobres solos con promoción se rechazan (409) aunque el navegador lo intente; con una caja se acepta", async ({ page, request }) => {
-    await go(page, "/");
-    const base = { delivery: { method: "retiro" }, contactName: "Ana Pérez", idempotencyKey: `promo-${Date.now()}-${Math.random().toString(36).slice(2)}` };
-    const mal = await request.post("/api/inquiries", { data: { ...base, items: [{ productId: "storm-sobre", quantity: 1 }], payment: "transferencia" } });
-    expect(mal.status()).toBe(409);
-    expect((await mal.json()).error.code).toBe("promo_not_eligible");
-    const v = await (await request.post("/api/cart/validate", { data: { items: [{ productId: "storm-sobre", quantity: 1 }] } })).json();
-    expect(v.qualifiesForPromo).toBe(false);
-    const v2 = await (await request.post("/api/cart/validate", { data: { items: [{ productId: "storm-caja", quantity: 1 }] } })).json();
-    expect(v2.qualifiesForPromo).toBe(true);
-    const bien = await request.post("/api/inquiries", { data: { ...base, idempotencyKey: base.idempotencyKey + "b", items: [{ productId: "storm-caja", quantity: 1 }], payment: "transferencia" } });
-    expect(bien.status()).toBe(201);
+  test("el servidor acepta sobres solos y devuelve los mismos importes", async ({ request }) => {
+    const items = [{ productId: "storm-sobre", quantity: 1 }];
+    const validation = await request.post("/api/cart/validate", { data: { items } });
+    expect(validation.ok()).toBe(true);
+    const { pricing } = await validation.json();
+    expect(pricing.transferencia).toEqual(pricing.base);
+    expect(pricing.base.totalMinor).toBe(950000);
+
+    const res = await request.post("/api/inquiries", { data: {
+      delivery: { method: "retiro" }, contactName: "Ana Pérez", idempotencyKey: `promo-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      items, payment: "transferencia",
+    } });
+    expect(res.status()).toBe(201);
   });
 });
 

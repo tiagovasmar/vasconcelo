@@ -170,14 +170,3 @@ export function ageLabel(ms: number): string {
   if (h < 48) return `hace ${h} h`;
   return `hace ${Math.floor(h / 24)} días`;
 }
-
-/**
- * Cuotas sin interés: reparte el total en `n` partes enteras cuya suma es EXACTAMENTE el total (el residuo se distribuye de a un
- * centavo desde la primera cuota). No se redondea cada cuota por separado.
- */
-export function splitInstallments(totalMinor: number, n: number): number[] {
-  if (!Number.isInteger(totalMinor) || totalMinor < 0 || !Number.isInteger(n) || n < 1) return [];
-  const base = Math.floor(totalMinor / n);
-  const rest = totalMinor - base * n;
-  return Array.from({ length: n }, (_, i) => base + (i < rest ? 1 : 0));
-}

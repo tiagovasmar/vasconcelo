@@ -86,8 +86,8 @@ export function AdminComboSettings({ enabled: enabled0, boxes, boosters, boxIds:
         <p className="mt-2 max-w-3xl text-sm text-ink/80">«{headline}». Cada caja participante del pedido habilita 10% de descuento en hasta 5 sobres participantes (2 cajas, hasta 10, y así). Si hay más sobres que cupos, el descuento va primero a los de mayor precio unitario.</p>
         <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-ink/70">
           <li>No cambia los precios normales de ningún producto: es un descuento que se calcula en el pedido.</li>
-          <li>No se suma al 10% por transferencia sobre un mismo sobre: rige el más favorable. Los accesorios no participan.</li>
-          <li>No aplica a mayoristas en esta etapa. Las cajas conservan sus condiciones actuales (cuotas y transferencia).</li>
+          <li>El descuento del combo es el mismo con cualquier medio de pago. Los accesorios no participan.</li>
+          <li>La promoción es para pedidos minoristas.</li>
           <li>Mientras esté desactivada o sin productos elegidos, el carrito no aplica ningún descuento de combo.</li>
         </ul>
         <p className="mt-2 text-xs text-ink/65">{updatedLabel ? `Último cambio: ${updatedLabel}.` : "Todavía no se configuró: está apagada."}</p>

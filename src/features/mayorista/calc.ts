@@ -52,6 +52,15 @@ export type WholesaleRow = {
   tiers: Array<{ minQty: number; unitUsdMinor: number; unitArsMinor: number | null }>;
 };
 
+/** Primer tramo publicado: precio base por producto, independiente del descuento por volumen. */
+export function baseTier(row: WholesaleRow) {
+  return row.tiers.reduce<WholesaleRow["tiers"][number] | null>((first, tier) => !first || tier.minQty < first.minQty ? tier : first, null);
+}
+export function hasBasePrice(row: WholesaleRow): boolean {
+  const tier = baseTier(row);
+  return !!tier && Number.isSafeInteger(tier.unitUsdMinor) && tier.unitUsdMinor > 0;
+}
+
 export type QuoteLine = { productId: string; quantity: number };
 export type Quote = {
   lines: Array<{ productId: string; title: string; quantity: number; tier: Tier | null; unitUsdMinor: number | null; unitArsMinor: number | null; totalArsMinor: number | null; status: "ok" | "a_cotizar" }>;

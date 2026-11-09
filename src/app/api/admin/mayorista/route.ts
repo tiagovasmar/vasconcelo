@@ -2,8 +2,21 @@ import { getDb } from "@/db/client";
 import { deleteTier, publishTiers, saveRules, saveTier, unpublishTiers } from "@/features/mayorista/precios";
 import { SaleError } from "@/features/sales/errors";
 import { adminAction } from "@/server/admin-api";
+import { adminFromRequest } from "@/server/admin";
+import { errorJson, json } from "@/server/http";
+import { wholesaleTiers } from "@/db/schema";
+import { asc, eq } from "drizzle-orm";
 
 export const runtime = "nodejs";
+
+export async function GET(req: Request) {
+  const auth = await adminFromRequest(req);
+  if (!("user" in auth)) return errorJson(auth.status, auth.code, auth.message);
+  const productId = new URL(req.url).searchParams.get("productId");
+  if (!productId || productId.length > 80) return errorJson(400, "invalid_input", "Elegí un producto.");
+  const tiers = await getDb().select({ minQty: wholesaleTiers.minQty, unitPriceUsdMinor: wholesaleTiers.unitPriceUsdMinor, state: wholesaleTiers.state }).from(wholesaleTiers).where(eq(wholesaleTiers.productId, productId)).orderBy(asc(wholesaleTiers.minQty));
+  return json({ tiers });
+}
 
 /** Catálogo mayorista (solo el dueño): condiciones comerciales y tramos de precio por cantidad, en borrador hasta publicarlos. */
 export async function POST(req: Request) {

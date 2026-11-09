@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowIcon, CartIcon, ChatIcon, CubeIcon } from "@/components/icons";
+import { PAY_ON_DELIVERY_NOTICE } from "@/content/checkout-options";
 
 export const metadata: Metadata = {
   title: "Cómo comprar",
@@ -9,13 +10,13 @@ export const metadata: Metadata = {
 
 const steps = [
   { icon: <CartIcon />, title: "Armá tu carrito", text: "Sumá los productos sellados que quieras. No hace falta cuenta: podés comprar como invitado." },
-  { icon: <CubeIcon />, title: "Elegí entrega y pago", text: "Andreani, moto en CABA y AMBA o retiro en Av. Rivadavia 14600. En compras que incluyan al menos una caja: tarjeta de crédito en 3 cuotas sin interés o 10% OFF por transferencia. El pago se coordina por WhatsApp." },
+  { icon: <CubeIcon />, title: "Elegí entrega y pago", text: `Andreani, moto en CABA y AMBA o retiro en Av. Rivadavia 14600. ${PAY_ON_DELIVERY_NOTICE} Confirmá la cobertura por WhatsApp.` },
   { icon: <ChatIcon />, title: "Continuá por WhatsApp", text: "Se abre el chat con tu pedido ya escrito. Solo tenés que enviarlo (o copiarlo si preferís)." },
   { icon: <ArrowIcon />, title: "Confirmamos con vos", text: "La tienda confirma disponibilidad e importe final. Ahí se acuerdan el pago y la entrega." },
 ];
 
 const faqs: Array<[string, React.ReactNode]> = [
-  ["¿Qué formas de pago aceptan?", "Las compras que incluyan al menos una caja pueden elegir 3 cuotas sin interés con tarjeta de crédito o 10% OFF por transferencia (son alternativas: no se acumulan). Con sobres solos esas promociones no aplican. El descuento se calcula sobre los productos del pedido; el envío se coordina por separado. Elegí tu preferencia en el carrito y confirmamos el importe en WhatsApp."],
+  ["¿Qué formas de pago aceptan?", `Podés pagar por transferencia o en efectivo. Coordinamos el pago por WhatsApp. ${PAY_ON_DELIVERY_NOTICE}`],
   ["¿Qué es un encargo?", "Es una consulta por un producto sin precio o stock confirmado (o agotado). Consultar no reserva mercadería ni compromete el pedido: el proveedor, la disponibilidad, la cotización y la fecha se confirman antes. Una vez cotizado, podés encargar abonando una seña del 20%; el saldo (80%) y la entrega se coordinan con la tienda. Los plazos, la devolución de la seña y la vigencia de la cotización se informan cuando estén definidos."],
   ["¿Hay precios mayoristas?", <>Hay un catálogo mayorista solo por pedido, con precios según la cantidad, para cuentas que la tienda aprueba a mano (la compra mínima y las demoras todavía las define la tienda). <Link href="/mayoristas" className="underline">Más información y solicitud</Link>.</>],
   ["¿Pago en la web?", "No. En el sitio no se cobra nada ni se piden datos bancarios. El pago se acuerda con la tienda por WhatsApp."],

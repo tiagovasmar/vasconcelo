@@ -14,14 +14,19 @@ describe("galerías de producto: fuentes separadas y sin relleno", () => {
   // Solo el lote japonés (fotos del fabricante); las fotos de proveedor de las fichas chinas se prueban en tests/china.test.ts.
   const productos = realCatalog.products.filter((p) => p.language === "ja" && loteOriginal.collections.some((e) => p.expansionIds.includes(e.id))); // las seis cajas nuevas tienen fotos de sobre y se prueban en japon-cajas.test.ts
 
-  it("todas las imágenes de referencia declaran fuente «fabricante» y qué vista muestran, y cumplen el esquema", () => {
+  it("las galerías distinguen fotos oficiales y fotos adicionales del proveedor", () => {
     for (const p of productos) {
       for (const i of p.images) {
         expect(ImageAssetSchema.safeParse(i).success, `${p.id} ${i.src}`).toBe(true);
         if (i.source === "store") continue;
-        expect(i.source, p.id).toBe("manufacturer");
         expect(i.view, `${p.id} ${i.src}`).toBeDefined();
         expect(i.status).toBe("reference");
+        if (i.source === "supplier") {
+          expect(i.origin).toContain("Fotografía aportada por el dueño");
+          expect(p.images.indexOf(i)).toBeGreaterThan(0);
+          continue;
+        }
+        expect(i.source, p.id).toBe("manufacturer");
         expect(i.origin).toMatch(/^https:\/\/www\.(30th\.)?pokemon(center-online|-card)\.com\//);
       }
     }
@@ -42,7 +47,7 @@ describe("galerías de producto: fuentes separadas y sin relleno", () => {
     for (const p of productos) {
       const propias = new Set<string>();
       for (const i of p.images) {
-        expect(i.src.includes(`/${p.expansionIds[0]}/`), `${p.id}: ${i.src} no es de su colección`).toBe(true);
+        expect(i.src.includes(`/${i.source === "supplier" ? p.id : p.expansionIds[0]}/`), `${p.id}: ${i.src} no es de su colección`).toBe(true);
         const h = sha(i.src);
         expect(propias.has(h), `${p.id}: imagen repetida dentro del producto (${i.src})`).toBe(false);
         propias.add(h);

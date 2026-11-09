@@ -23,7 +23,7 @@ export const GalleryEditSchema = z.object({
     /** Quién sacó la foto. Solo se usa para imágenes subidas desde el panel; el resto conserva el origen que ya tiene registrado. */
     source: z.enum(sources).optional(),
     view: z.enum(views).optional(),
-  })).min(1, "El producto necesita al menos una foto.").max(MAX_GALLERY, `Una ficha admite hasta ${MAX_GALLERY} fotos.`),
+  })).max(MAX_GALLERY, `Una ficha admite hasta ${MAX_GALLERY} fotos.`),
   expectedVersion: z.number().int().min(0),
 });
 export type GalleryEdit = z.input<typeof GalleryEditSchema>;

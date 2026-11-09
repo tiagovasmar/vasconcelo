@@ -2,27 +2,16 @@
 
 Fuente única de la configuración: `src/content/politicas.ts`. Los cálculos viven en `src/features/politicas/` y el criterio monetario en `src/lib/money.ts`. **Lo confirmado por el dueño está como valor; lo que sigue sin definir es `null`/`false` y no se inventa.**
 
-## 1. Promociones minoristas (confirmadas)
+## 1. Promociones minoristas
 
-| Regla | Valor | Dónde se configura |
-| --- | --- | --- |
-| Beneficios | 3 cuotas sin interés **o** 10% OFF por transferencia (alternativas: no se acumulan entre sí) | `promo.installments`, `promo.transferDiscountPercent` |
-| Mínimo | **al menos una caja** en el pedido (una caja sola o caja + sobres; sobres solos no califican) | `promo.minBoxes` |
-| Qué es «caja» | solo `kind: "box"`. **Kits, bundles, cajas especiales, packs y sets NO cuentan** hasta que el dueño lo defina | `promo.boxKinds` |
-| Efectivo | **no** tiene descuento (el dueño solo pidió «transferencia»; la regla vieja «transferencia o efectivo» se retiró) | `checkout-options.ts` |
+Transferencia y efectivo tienen el mismo precio. El descuento histórico por transferencia se conserva en las consultas ya guardadas.
 
-**Interpretación de trabajo (a confirmar):** la elegibilidad depende del **pedido completo** y el 10% se calcula sobre el **subtotal de todos los productos disponibles** de un pedido que califica (también los sobres que acompañan a la caja). El envío nunca entra. Es configurable: `promo.discountScope = "boxes-only"` descuenta solo las cajas.
-
-**Una sola regla para todo el sitio:** `features/politicas/promociones.ts` (`qualifiesForBoxPromo`, `paymentAllowed`, `transferDiscountMinor`). La usan la franja del inicio, tarjetas, ficha, carrito y el servidor. El servidor la vuelve a evaluar al preparar la consulta: cuotas o transferencia sin una caja **disponible** → 409 `promo_not_eligible`; el descuento se calcula y se guarda del lado del servidor (`inquiries.discount_minor`).
-
-- Una caja que solo se consulta por encargo, está agotada o no tiene precio **no** habilita la promoción.
-- Carrito: al quitar la última caja, la preferencia vuelve sola a «a coordinar» y el resumen se recalcula.
-- Las promociones **no** se aplican a un encargo ni a una seña.
+La promoción caja + sobres se configura en el panel. Por cada caja participante, hasta cinco sobres participantes reciben el 10% de descuento, con cualquier medio de pago. Los encargos y accesorios quedan fuera del combo.
 
 ## 2. Cuenta mayorista (solo el 30% está definido)
 
 - **30% sobre el precio minorista de catálogo** (interpretación de trabajo: la base de comparación es el precio de lista). `precio mayorista = minorista − 30%`, redondeado al peso (`wholesalePriceMinor`).
-- **Pendiente de definir por el dueño** (en `politicas.ts`, hoy `null`): compra mínima por importe/unidades · si el 30% se acumula con el 10% por transferencia · aprobación manual o automática.
+- **Pendiente de definir por el dueño** (en `politicas.ts`, hoy `null`): compra mínima por importe/unidades · aprobación manual o automática.
 - **Activación apagada** (`mayorista.activationEnabled = false`): las solicitudes se guardan y quedan **pendientes**; ningún usuario tiene precio mayorista (`wholesalePriceFor` devuelve `null`), el servidor rechaza cambiar estados (409 `policy_pending`) y el sitio no presenta la solicitud como descuento activo. No se aplica ningún descuento acumulado.
 - Sin precio minorista → «Precio a confirmar»; no se inventa un precio mayorista.
 

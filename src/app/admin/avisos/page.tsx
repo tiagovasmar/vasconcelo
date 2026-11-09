@@ -27,7 +27,7 @@ export default async function AdminAvisos({ searchParams }: { searchParams: Prom
           <thead><tr className="bg-paper-2 text-left text-xs uppercase tracking-wide"><th className="p-2">Cuándo</th><th className="p-2">Aviso</th><th className="p-2">Para</th><th className="p-2">Estado</th><th className="p-2"></th></tr></thead>
           <tbody>
             {rows.map((n) => (
-              <tr key={n.id} className="border-t border-ink/10 align-top" data-testid="aviso-correo-fila">
+              <tr key={n.id} id={`aviso-${n.id}`} className="border-t border-ink/10 align-top" data-testid="aviso-correo-fila">
                 <td className="p-2 text-xs">{when(n.createdAt)}</td>
                 <td className="p-2">{n.subject}{n.inquiryId && <Link href={`/admin/pedidos/${n.inquiryId}`} className="ml-1 font-mono text-xs underline">{n.inquiryId}</Link>}</td>
                 <td className="p-2 text-xs">{n.toEmail}</td>

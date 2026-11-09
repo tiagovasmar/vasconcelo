@@ -5,7 +5,7 @@ import { realCatalog } from "@/content/catalog";
 import { applyOverrides } from "@/features/catalog/overrides";
 import { commercialState } from "@/features/catalog/commercial";
 import { evaluateCart } from "@/features/inquiries/pricing";
-import { qualifiesForBoxPromo } from "@/features/politicas/promociones";
+import { priceCart } from "@/features/promos/combo";
 import registro from "@/content/colecciones/imagenes-china.json";
 import datos from "@/content/colecciones/origen/china/productos.json";
 
@@ -95,7 +95,7 @@ describe("ficha nueva de Bulbasaur (borrador sin confirmar)", () => {
     expect(text).not.toMatch(/marco magnético|星彩晶璃|共逐荣光|sobre de 5/i);
   });
   it("una ficha en borrador no cuenta como caja ni activa promociones", () => {
-    expect(qualifiesForBoxPromo([{ kind: bulba.kind, quantity: 3 }])).toBe(false);
+    expect(priceCart([{ productId: bulba.id, kind: bulba.kind, quantity: 3, unitPriceMinor: 100 }], { enabled: true, boxIds: [bulba.id], boosterIds: [] }).combo.slots).toBe(0);
   });
   it("el catálogo público no la lista, pero el panel la puede publicar (con precio y stock cargados por el dueño)", () => {
     const publicas = applyOverrides(all, new Map()).filter((p) => p.active);

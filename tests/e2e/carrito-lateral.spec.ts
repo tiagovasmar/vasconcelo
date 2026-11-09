@@ -161,13 +161,13 @@ test.describe("pedido: nombre y apellido, retiro y método de pago", () => {
     await expect(page.locator("#err-payment")).toHaveText("Elegí cómo preferís pagar.");
     await expect(page).toHaveURL(/\/carrito$/);
     await page.getByRole("radio", { name: /Transferencia/ }).check();
-    await expect(page.getByTestId("resumen-descuento")).toContainText("18.500"); // las reglas de descuento siguen igual
+    await expect(page.getByTestId("resumen-descuento")).toHaveCount(0);
     await page.getByRole("button", { name: /Continuar por WhatsApp/ }).click();
     await expect(page).toHaveURL(/\/carrito\/consulta\/TT-/);
     const msg = page.getByTestId("mensaje");
     await expect(msg).toContainText("*Subtotal: $ 185.000*");
-    await expect(msg).toContainText("*Total: $ 166.500*");
-    await expect(msg).toContainText("Método de pago: Transferencia · 10% OFF (con una caja)");
+    await expect(msg).toContainText("*Total: $ 185.000*");
+    await expect(msg).toContainText("Método de pago: Transferencia");
   });
 
   test("retiro no lleva envío: el resumen y la vista previa dicen «No aplica: retiro»; al pasar a moto o Andreani vuelve la aclaración", async ({ page }) => {

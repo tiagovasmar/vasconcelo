@@ -1,13 +1,16 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AccessLinkButton } from "@/components/access-link-button";
+import { AdminWholesaleOrder } from "@/components/admin-wholesale-order";
 import { AdminButton, AdminForm } from "@/components/admin-form";
 import { getDb } from "@/db/client";
 import { when } from "@/features/consultas/ui";
 import { shipmentProgressLabel, STAGE_LABEL, stagesFor, type Stage, type TrackKind } from "@/features/pedidos/etapas";
 import { adminOrderDetail, INCIDENT_KIND_LABEL } from "@/features/pedidos/service";
-import { PAYMENT_STATUS_LABEL, summarizePayments } from "@/features/pedidos/etapas";
+import { linkedSaleCommission, listWholesaleOrderCosts, orderUsdEquivalent } from "@/features/pedidos/mayorista-admin";
+import { PAYMENT_STATUS_LABEL, senaFor, summarizePayments } from "@/features/pedidos/etapas";
 import { averageCosts } from "@/features/costos/service";
+import { formatRate, formatUSD } from "@/features/fx/convert";
 import { formatARS } from "@/lib/format";
 import { requireAdmin } from "@/server/admin";
 
@@ -32,13 +35,25 @@ export default async function AdminPedidoDetalle({ params }: { params: Promise<{
   const pendingReceipts = receipts.filter((r) => r.status === "pendiente_revision");
   const avg = await averageCosts(db, [...new Set(items.map((x) => x.productId))]);
   const refunded = refunds.reduce((n, r) => n + r.amountMinor, 0);
+  const [wholesaleCosts, saleCommission] = track?.kind === "mayorista"
+    ? await Promise.all([listWholesaleOrderCosts(db, id), linkedSaleCommission(db, id)])
+    : [[], 0] as const;
+  const paidRefunds = refunds.filter((r) => r.status === "reintegrado").reduce((sum, r) => sum + r.amountMinor, 0);
+  const wholesaleRate = kind === "mayorista" ? i.fxRate10k : null;
+  const confirmedUsd = wholesaleRate ? orderUsdEquivalent(totals.confirmedMinor, wholesaleRate) : null;
+  const depositUsd = wholesaleRate && d.senaMinor !== null ? senaFor(track?.agreedUsdMinor ?? null) ?? orderUsdEquivalent(d.senaMinor, wholesaleRate) : null;
+  const agreedInPesosForm = <AdminForm endpoint={ep} compact fixed={{ action: "agreed" }} fields={[{
+    name: "agreedMinor", label: "Importe acordado", type: "pesos", required: true,
+    defaultValue: track?.agreedMinor ? String(track.agreedMinor / 100) : "",
+  }]} submit="Guardar importe" ok="Importe guardado." idempotent={false} testId="form-importe" />;
 
   return (
     <div className="mx-auto max-w-[1000px] px-4 py-8 sm:px-8 sm:py-10">
-      <p className="text-sm"><Link href="/admin/pedidos" className="underline underline-offset-4">← Pedidos</Link> · <Link href={`/admin/consultas/${id}`} className="underline underline-offset-4">Ver la consulta original</Link></p>
+      <p className="text-sm"><Link href={kind === "mayorista" ? "/admin/pedidos?tipo=mayorista" : "/admin/pedidos"} className="underline underline-offset-4">← {kind === "mayorista" ? "Pedidos mayoristas" : "Pedidos"}</Link> · <Link href={`/admin/consultas/${id}`} className="underline underline-offset-4">Ver la consulta original</Link></p>
       <p className="eyebrow mt-3 text-emerald">{kindName[kind]} <span className="font-mono">{id}</span></p>
       <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">{i.contactName ?? "Sin nombre"}</h1>
       <p className="mt-1 text-sm text-ink/75">{i.userId ? "Con cuenta" : "Invitado"} · {i.contactPhone ?? "sin teléfono"} · {when(i.createdAt)}</p>
+      {track && kind === "mayorista" && <p className="mt-2 text-sm"><a className="font-semibold underline" href="#admin-mayorista-costos">Ir a costos y ganancia</a></p>}
 
       {!track ? (
         <section className={card}>
@@ -48,7 +63,7 @@ export default async function AdminPedidoDetalle({ params }: { params: Promise<{
         </section>
       ) : (
         <>
-          <section className={card} data-testid="admin-etapa">
+          <section className={card} id="entrega" data-testid="admin-etapa">
             <h2 className={h2}>Etapa del pedido</h2>
             <p className="mt-1 text-lg font-bold" data-testid="admin-etapa-actual">{track.cancelledAt ? "Cancelado" : STAGE_LABEL[track.stage as Stage]}</p>
             <ol className="mt-2 flex flex-wrap gap-2 text-xs" aria-label="Etapas">
@@ -68,19 +83,33 @@ export default async function AdminPedidoDetalle({ params }: { params: Promise<{
             )}
           </section>
 
+          {kind === "mayorista" && <AdminWholesaleOrder id={id} carrier={track.customerCarrier} trackingNumber={track.customerTrackingNumber}
+            costs={wholesaleCosts} agreed={track.agreedMinor} agreedUsd={track.agreedUsdMinor} received={totals.confirmedMinor}
+            refunded={paidRefunds} rate={wholesaleRate} cancelled={track.cancelledAt !== null} saleCommission={saleCommission} />}
+
           <section className={card} data-testid="admin-pago">
             <h2 className={h2}>Pago (separado de la logística)</h2>
             <dl className="mt-2 grid gap-2 text-sm sm:grid-cols-3">
-              <div><dt className="text-xs text-ink/75">Importe acordado</dt><dd className="font-extrabold">{track.agreedMinor === null ? "A confirmar" : formatARS(track.agreedMinor)}</dd></div>
-              <div><dt className="text-xs text-ink/75">Confirmado</dt><dd className="font-extrabold">{formatARS(totals.confirmedMinor)}</dd></div>
+              <div><dt className="text-xs text-ink/75">Importe acordado</dt><dd className="font-extrabold">{track.agreedMinor === null ? "A confirmar" : track.agreedUsdMinor === null ? formatARS(track.agreedMinor) : <>{formatUSD(track.agreedUsdMinor)} <span className="block text-xs font-normal">Equivalente {formatARS(track.agreedMinor)}</span></>}</dd></div>
+              <div><dt className="text-xs text-ink/75">Confirmado</dt><dd className="font-extrabold">{formatARS(totals.confirmedMinor)}{confirmedUsd !== null && <span className="block text-xs font-normal">Equivale a {formatUSD(confirmedUsd)}</span>}</dd></div>
               <div><dt className="text-xs text-ink/75">Estado</dt><dd className="font-semibold">{PAYMENT_STATUS_LABEL[pay.status]}</dd></div>
             </dl>
-            {d.senaMinor !== null && kind !== "stock" && <p className="mt-1 text-xs text-ink/70">Seña del 20%: {formatARS(d.senaMinor)} · saldo del 80% al llegar a Argentina, antes del despacho o del retiro.</p>}
+            {d.senaMinor !== null && kind !== "stock" && <p className="mt-1 text-xs text-ink/70">Seña del 20% {depositUsd === null ? formatARS(d.senaMinor) : `${formatUSD(depositUsd)} (${formatARS(d.senaMinor)})`} · saldo del 80% al llegar a Argentina, antes del despacho o del retiro.</p>}
             {!track.cancelledAt && (
               <div className="mt-4 border-t border-ink/10 pt-4">
                 <h3 className="text-sm font-semibold">Importe acordado</h3>
                 <p className="mb-2 text-xs text-ink/70">Lo confirma la tienda (producto, disponibilidad e importe). Después del primer pago confirmado ya no se puede cambiar.</p>
-                <AdminForm endpoint={ep} compact fixed={{ action: "agreed" }} fields={[{ name: "agreedMinor", label: "Importe acordado", type: "pesos", required: true, defaultValue: track.agreedMinor ? String(track.agreedMinor / 100) : "" }]} submit="Guardar importe" ok="Importe guardado." idempotent={false} testId="form-importe" />
+                {wholesaleRate ? <>
+                  <AdminForm endpoint={ep} compact fixed={{ action: "agreed" }} fields={[{
+                    name: "agreedUsdMinor", label: "Importe acordado en USD", type: "usd", required: true,
+                    defaultValue: track.agreedUsdMinor === null ? "" : String(track.agreedUsdMinor / 100),
+                    help: `Se calcula el equivalente para la seña y el saldo a ${formatRate(wholesaleRate)} por dólar.`,
+                  }]} submit="Guardar importe en USD" ok="Importe guardado." idempotent={false} testId="form-importe-usd" />
+                  <details className="mt-3">
+                    <summary className="mb-2 cursor-pointer text-sm font-semibold underline">Acordé el importe en pesos</summary>
+                    {agreedInPesosForm}
+                  </details>
+                </> : agreedInPesosForm}
               </div>
             )}
             <ul className="mt-4 divide-y divide-ink/10 text-sm" aria-label="Pagos">
@@ -107,7 +136,7 @@ export default async function AdminPedidoDetalle({ params }: { params: Promise<{
             )}
           </section>
 
-          <section className={card} data-testid="admin-comprobantes">
+          <section className={card} id="comprobantes" data-testid="admin-comprobantes">
             <h2 className={h2}>Comprobantes subidos</h2>
             <p className="mt-1 text-xs text-ink/70">Son archivos privados. Subirlos no confirma nada: vos confirmás el ingreso arriba.</p>
             {receipts.length === 0 ? <p className="mt-2 text-sm text-ink/75">Ninguno todavía.</p> : (
@@ -206,7 +235,7 @@ export default async function AdminPedidoDetalle({ params }: { params: Promise<{
                 ]} submit="Agregar nota" ok="Nota agregada." />
               </div>
               <div className="space-y-4">
-                {!i.userId && (
+                {!i.userId && kind !== "mayorista" && (
                   <div>
                     <h3 className="text-sm font-semibold">Acceso de invitado</h3>
                     <p className="mb-2 text-xs text-ink/70">Esta persona compró sin cuenta. Solo ve su pedido desde el mismo navegador o con un enlace privado que le compartas.</p>

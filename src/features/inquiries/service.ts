@@ -9,14 +9,13 @@ import { getComboConfig } from "@/features/promos/settings";
 import type { ComboConfig } from "@/features/promos/combo";
 import type { Language, Product } from "@/content/schema";
 import { legacyPaymentLabels, paymentMethods } from "@/content/checkout-options";
-import { isPromoPayment } from "@/features/politicas/promociones";
 import { evaluateCart, type EvaluatedLine } from "./pricing";
 import { buildLaunch, buildMessage, type Launch, type MessageData } from "./message";
 import { CreateInquirySchema, type Delivery } from "./schemas";
 
 export type ServiceError = {
   status: number;
-  code: "invalid_input" | "promo_not_eligible" | "price_changed" | "pending_commercial" | "out_of_stock" | "unavailable" | "over_limit" | "idempotency_conflict" | "rate_limited" | "persistence_error";
+  code: "invalid_input" | "price_changed" | "pending_commercial" | "out_of_stock" | "unavailable" | "over_limit" | "idempotency_conflict" | "rate_limited" | "persistence_error";
   message: string;
   details?: unknown;
 };
@@ -32,7 +31,7 @@ export type InquiryView = {
   createdAt: number;
   /** Subtotal de los productos disponibles (sin los por encargo), antes de descuentos. */
   subtotalMinor: number;
-  /** 10% OFF por transferencia (solo con al menos una caja). 0 = sin descuento. */
+  /** Descuento por transferencia de consultas históricas. 0 = sin descuento. */
   discountMinor: number;
   /** Descuento del combo caja + sobres (0 = sin combo). El total es subtotal − combo − transferencia. */
   comboDiscountMinor: number;
@@ -194,11 +193,7 @@ export async function createInquiry(
     throw new InquiryError({ status: 409, code: "price_changed", message: "Cambió el precio de algún producto. Revisalo antes de continuar.", details: changed.map(describeIssue) });
   }
 
-  // Cuotas y transferencia con descuento solo valen con al menos una caja DISPONIBLE en el pedido (los encargos no cuentan).
-  if (isPromoPayment(input.payment) && !ev.qualifiesForPromo) {
-    throw new InquiryError({ status: 409, code: "promo_not_eligible", message: "Las cuotas sin interés y el 10% OFF por transferencia valen para compras que incluyan al menos una caja. Elegí otra preferencia de pago o sumá una caja.", details: [{ path: "payment", message: "El pedido no incluye una caja" }] });
-  }
-  const pr = ev.pricing(input.payment);
+  const pr = ev.pricing;
   const lines = ev.lines.map((l) => {
     const priced = pr.lines.find((x) => x.productId === l.productId);
     return {

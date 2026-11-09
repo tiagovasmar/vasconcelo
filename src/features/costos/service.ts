@@ -1,15 +1,17 @@
-import { and, desc, eq, gte, inArray, lt, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import type { Db } from "@/db/client";
 import { lockKey, type Tx } from "@/db/lock";
 import {
-  appliedCosts, costExpenses, costExpenseShares, costPurchaseItems, costPurchases, importAllocations, importReservations, inquiries, inquiryLines, inquirySales, orderPayments, orderRefunds, orderTracks, saleCommissions, saleLines, sales,
+  appliedCosts, costExpenses, costExpenseShares, costPurchaseItems, costPurchases, importAllocations, importReservations, inquiries, inquiryLines, inquirySales, orderPayments, orderRefunds, orderTracks, saleCommissions, saleLines, sales, wholesaleOrderCosts,
 } from "@/db/schema";
 import { catalog } from "@/content/catalog";
 import type { Actor } from "@/features/catalog/overrides";
 import { SaleError, type SaleErrorCode } from "@/features/sales/errors";
 import { RATE_SCALE } from "@/features/fx/convert";
+import { accountingDateFilter, accountingDay, saleAccountingDay, type AccountingPeriod } from "@/features/contabilidad/period";
+import { wholesaleResult } from "@/features/pedidos/mayorista-costos";
 
 /**
  * Costos PRIVADOS (solo panel). Nada de este módulo se importa desde páginas públicas ni rutas de clientes.
@@ -241,72 +243,109 @@ export async function addCommission(db: Db, body: unknown, actor: Actor, now = D
 /* ---------- Informe de ganancia ---------- */
 
 export type ProfitRow = {
-  kind: "venta" | "pedido"; ref: string; at: number; label: string;
-  /** Importe de venta (lo cobrado/acordado, ya con descuentos). */
+  kind: "venta" | "pedido"; ref: string; at: number; day: string; label: string;
   revenueMinor: number; grossMinor: number; discountMinor: number;
   costMinor: number | null; costPending: boolean; commissionMinor: number;
-  /** Dinero efectivamente cobrado según los pagos confirmados menos lo reintegrado; null = sin registro de cobro. */
-  collectedMinor: number | null;
-  profitMinor: number | null;
+  collectedMinor: number | null; outstandingMinor: number; profitMinor: number | null;
+  wholesale?: { reference: string; profitUsd: number | null; complete: boolean };
 };
-export type ProfitReport = { rows: ProfitRow[]; totals: { billedMinor: number; collectedMinor: number; costMinor: number; commissionMinor: number; profitMinor: number; discountMinor: number; pendingCostRows: number } };
 
-export async function profitReport(db: Db, f: { from?: number; to?: number } = {}): Promise<ProfitReport> {
-  const saleRows = await db.select().from(sales).where(and(eq(sales.status, "registrada"), f.from !== undefined ? gte(sales.createdAt, f.from) : undefined, f.to !== undefined ? lt(sales.createdAt, f.to) : undefined)).orderBy(desc(sales.createdAt));
-  const rows: ProfitRow[] = [];
-  const saleIds = saleRows.map((s) => s.id);
-  const lines = saleIds.length ? await db.select().from(saleLines).where(inArray(saleLines.saleId, saleIds)) : [];
-  const costs = lines.length ? await db.select().from(appliedCosts).where(and(eq(appliedCosts.refKind, "sale_line"), inArray(appliedCosts.refId, lines.map((l) => l.id)))) : [];
-  const comm = saleIds.length ? await db.select({ saleId: saleCommissions.saleId, n: sql<string>`sum(${saleCommissions.amountMinor})` }).from(saleCommissions).where(inArray(saleCommissions.saleId, saleIds)).groupBy(saleCommissions.saleId) : [];
-  const links = saleIds.length ? await db.select().from(inquirySales).where(and(inArray(inquirySales.saleId, saleIds), eq(inquirySales.active, true))) : [];
-  const collectedFor = async (inquiryId: string): Promise<number | null> => {
-    const [p] = await db.select({ n: sql<string>`coalesce(sum(${orderPayments.amountMinor}), 0)` }).from(orderPayments).where(and(eq(orderPayments.inquiryId, inquiryId), eq(orderPayments.status, "confirmado")));
-    const [r] = await db.select({ n: sql<string>`coalesce(sum(${orderRefunds.amountMinor}), 0)` }).from(orderRefunds).where(and(eq(orderRefunds.inquiryId, inquiryId), eq(orderRefunds.status, "reintegrado")));
-    const net = Number(p.n) - Number(r.n);
-    return Number(p.n) === 0 ? null : net;
+export async function profitReport(db: Db, period: AccountingPeriod = {}) {
+  const orderDay = accountingDay(sql`${orderTracks.createdAt}`);
+  const [saleRows, orders] = await Promise.all([
+    db.select({ s: sales, day: sql<string>`${saleAccountingDay}::text` }).from(sales)
+      .where(and(eq(sales.status, "registrada"), accountingDateFilter(saleAccountingDay, period))),
+    db.select({ t: orderTracks, name: inquiries.contactName, rate: inquiries.fxRate10k, day: sql<string>`${orderDay}::text` })
+      .from(orderTracks).innerJoin(inquiries, eq(inquiries.id, orderTracks.inquiryId))
+      .where(and(inArray(orderTracks.kind, ["encargo", "mayorista"]), sql`${orderTracks.cancelledAt} is null`, sql`${orderTracks.agreedMinor} is not null`,
+        accountingDateFilter(orderDay, period),
+        sql`not exists (select 1 from ${inquirySales} where ${inquirySales.inquiryId} = ${orderTracks.inquiryId} and ${inquirySales.active})`)),
+  ]);
+  const saleIds = saleRows.map(({ s }) => s.id);
+  const orderIds = orders.map(({ t }) => t.inquiryId);
+  const [lines, orderLines, comm, links, holds] = await Promise.all([
+    db.select().from(saleLines).where(inArray(saleLines.saleId, saleIds)),
+    db.select().from(inquiryLines).where(inArray(inquiryLines.inquiryId, orderIds)),
+    db.select({ id: saleCommissions.saleId, n: sql<string>`sum(${saleCommissions.amountMinor})` }).from(saleCommissions).where(inArray(saleCommissions.saleId, saleIds)).groupBy(saleCommissions.saleId),
+    db.select({ link: inquirySales, t: orderTracks, rate: inquiries.fxRate10k }).from(inquirySales)
+      .innerJoin(inquiries, eq(inquiries.id, inquirySales.inquiryId)).leftJoin(orderTracks, eq(orderTracks.inquiryId, inquirySales.inquiryId))
+      .where(and(inArray(inquirySales.saleId, saleIds), eq(inquirySales.active, true))),
+    db.select({ id: importReservations.inquiryId }).from(importReservations).where(inArray(importReservations.inquiryId, orderIds)),
+  ]);
+  const inquiryIds = [...orderIds, ...links.map(({ link }) => link.inquiryId)];
+  const [costs, orderCosts, wholesaleCosts, payments, refunds] = await Promise.all([
+    db.select().from(appliedCosts).where(and(eq(appliedCosts.refKind, "sale_line"), inArray(appliedCosts.refId, lines.map((l) => l.id)))),
+    db.select().from(appliedCosts).where(and(eq(appliedCosts.refKind, "order_line"), inArray(appliedCosts.refId, orderLines.map((l) => l.id)))),
+    db.select().from(wholesaleOrderCosts).where(and(inArray(wholesaleOrderCosts.inquiryId, inquiryIds), sql`${wholesaleOrderCosts.voidedAt} is null`)),
+    db.select({ id: orderPayments.inquiryId, n: sql<string>`sum(${orderPayments.amountMinor})` }).from(orderPayments)
+      .where(and(inArray(orderPayments.inquiryId, inquiryIds), eq(orderPayments.status, "confirmado"))).groupBy(orderPayments.inquiryId),
+    db.select({ id: orderRefunds.inquiryId, n: sql<string>`sum(${orderRefunds.amountMinor})` }).from(orderRefunds)
+      .where(and(inArray(orderRefunds.inquiryId, inquiryIds), eq(orderRefunds.status, "reintegrado"))).groupBy(orderRefunds.inquiryId),
+  ]);
+  const paid = new Map(payments.map(({ id, n }) => [id, Number(n)]));
+  const refunded = new Map(refunds.map(({ id, n }) => [id, Number(n)]));
+  const commissions = new Map(comm.map(({ id, n }) => [id, Number(n)]));
+  const collectedFor = (id: string) => (paid.get(id) ?? 0) - (refunded.get(id) ?? 0);
+  const wholesaleFields = (t: typeof orderTracks.$inferSelect, rate: number | null, saleCommission = 0) => {
+    const id = t.inquiryId;
+    const result = wholesaleResult({ costs: wholesaleCosts.filter((c) => c.inquiryId === id), agreed: t.agreedMinor, agreedUsd: t.agreedUsdMinor,
+      received: paid.get(id) ?? 0, refunded: refunded.get(id) ?? 0, rate, cancelled: t.cancelledAt !== null, saleCommission });
+    const ars = (value: number | null) => value === null || !rate ? null : Math.round(value * rate / RATE_SCALE);
+    const profitMinor = ars(result.profit);
+    return {
+      costMinor: ars(result.total), profitMinor, costPending: profitMinor === null || !result.complete,
+      wholesale: { reference: id, profitUsd: result.profit, complete: result.complete },
+    };
   };
-  for (const s of saleRows) {
-    const ls = lines.filter((l) => l.saleId === s.id);
-    const gross = ls.reduce((n, l) => n + l.unitPriceMinor * l.quantity, 0);
-    const discount = ls.reduce((n, l) => n + l.discountMinor, 0);
-    const known = ls.map((l) => costs.find((c) => c.refId === l.id));
-    const pending = known.some((c) => !c);
-    const cost = pending ? null : ls.reduce((n, l, i) => n + known[i]!.unitCostMinor * l.quantity, 0);
-    const commission = Number(comm.find((c) => c.saleId === s.id)?.n ?? 0);
-    const link = links.find((l) => l.saleId === s.id);
-    rows.push({ kind: "venta", ref: s.id, at: s.createdAt, label: ls.map((l) => `${l.quantity} × ${l.title}`).join(", "), revenueMinor: s.totalMinor, grossMinor: gross, discountMinor: discount, costMinor: cost, costPending: pending, commissionMinor: commission, collectedMinor: link ? await collectedFor(link.inquiryId) : null, profitMinor: cost === null ? null : s.totalMinor - cost - commission });
+  const totalCost = (items: { id: number; quantity: number }[], applied: typeof costs) => {
+    const known = items.map((item) => applied.find((cost) => cost.refId === item.id));
+    return items.length && known.every((cost) => cost) ? items.reduce((sum, item, i) => sum + known[i]!.unitCostMinor * item.quantity, 0) : null;
+  };
+  const rows: ProfitRow[] = saleRows.map(({ s, day }) => {
+    const items = lines.filter((line) => line.saleId === s.id);
+    const cost = totalCost(items, costs);
+    const commission = commissions.get(s.id) ?? 0;
+    const linked = links.find(({ link }) => link.saleId === s.id);
+    const track = linked?.t;
+    const tracked = track?.kind === "mayorista" && track.cancelledAt === null && track.agreedMinor !== null;
+    const received = s.paymentMethod.startsWith("tarjeta") ? s.receivedMinor : s.totalMinor;
+    const recorded = linked && paid.has(linked.link.inquiryId);
+    const collected = recorded ? collectedFor(linked.link.inquiryId) : received;
+    const revenue = tracked ? track.agreedMinor! : s.totalMinor;
+    const outstanding = recorded || tracked ? Math.max(0, revenue - (collected ?? 0)) : received === null ? s.totalMinor : 0;
+    return { kind: "venta", ref: s.id, at: s.createdAt, day, label: items.map((l) => `${l.quantity} × ${l.title}`).join(", "),
+      revenueMinor: revenue, grossMinor: items.reduce((sum, l) => sum + l.unitPriceMinor * l.quantity, 0), discountMinor: items.reduce((sum, l) => sum + l.discountMinor, 0),
+      costMinor: cost, costPending: cost === null, commissionMinor: tracked ? 0 : commission, collectedMinor: collected, outstandingMinor: outstanding,
+      profitMinor: cost === null ? null : s.totalMinor - cost - commission,
+      ...(tracked ? wholesaleFields(track, linked?.rate ?? null, commission) : {}),
+    };
+  });
+  for (const { t, name, rate, day } of orders) {
+    const revenue = t.agreedMinor!;
+    if (holds.some(({ id }) => id === t.inquiryId) && (paid.get(t.inquiryId) ?? 0) * 5 < revenue) continue;
+    const cost = totalCost(orderLines.filter((l) => l.inquiryId === t.inquiryId), orderCosts);
+    const collected = paid.has(t.inquiryId) ? collectedFor(t.inquiryId) : null;
+    rows.push({ kind: "pedido", ref: t.inquiryId, at: t.createdAt, day, label: `${t.kind === "mayorista" ? "Mayorista" : "Encargo"}${name ? ` · ${name}` : ""}`,
+      revenueMinor: revenue, grossMinor: revenue, discountMinor: 0, costMinor: cost, costPending: cost === null, commissionMinor: 0, collectedMinor: collected,
+      outstandingMinor: Math.max(0, revenue - (collected ?? 0)), profitMinor: cost === null ? null : revenue - cost,
+      ...(t.kind === "mayorista" ? wholesaleFields(t, rate) : {}),
+    });
   }
-  // Encargos y mayoristas: ingreso = importe acordado; se excluyen los que ya figuran como venta de stock (no se cuentan dos veces).
-  const orders = await db.select({ t: orderTracks, name: inquiries.contactName }).from(orderTracks).innerJoin(inquiries, eq(inquiries.id, orderTracks.inquiryId))
-    .where(and(inArray(orderTracks.kind, ["encargo", "mayorista"]), sql`${orderTracks.cancelledAt} is null`, sql`${orderTracks.agreedMinor} is not null`, f.from !== undefined ? gte(orderTracks.createdAt, f.from) : undefined, f.to !== undefined ? lt(orderTracks.createdAt, f.to) : undefined));
-  for (const { t, name } of orders) {
-    const [hold] = await db.select({ inquiryId: importReservations.inquiryId }).from(importReservations).where(eq(importReservations.inquiryId, t.inquiryId));
-    if (hold) {
-      const [payment] = await db.select({ n: sql<number>`coalesce(sum(${orderPayments.amountMinor}),0)::bigint` }).from(orderPayments)
-        .where(and(eq(orderPayments.inquiryId, t.inquiryId), eq(orderPayments.status, "confirmado")));
-      if (Number(payment.n) * 5 < t.agreedMinor!) continue;
-    }
-    const [active] = await db.select({ id: inquirySales.id }).from(inquirySales).where(and(eq(inquirySales.inquiryId, t.inquiryId), eq(inquirySales.active, true)));
-    if (active) continue;
-    const ls = await db.select().from(inquiryLines).where(eq(inquiryLines.inquiryId, t.inquiryId));
-    const cs = ls.length ? await db.select().from(appliedCosts).where(and(eq(appliedCosts.refKind, "order_line"), inArray(appliedCosts.refId, ls.map((l) => l.id)))) : [];
-    const pending = ls.some((l) => !cs.some((c) => c.refId === l.id));
-    const cost = pending ? null : ls.reduce((n, l) => n + cs.find((c) => c.refId === l.id)!.unitCostMinor * l.quantity, 0);
-    rows.push({ kind: "pedido", ref: t.inquiryId, at: t.createdAt, label: `${t.kind === "mayorista" ? "Mayorista" : "Encargo"}${name ? ` · ${name}` : ""}`, revenueMinor: t.agreedMinor!, grossMinor: t.agreedMinor!, discountMinor: 0, costMinor: cost, costPending: pending, commissionMinor: 0, collectedMinor: await collectedFor(t.inquiryId), profitMinor: cost === null ? null : t.agreedMinor! - cost });
-  }
-  rows.sort((a, b) => b.at - a.at);
+  rows.sort((a, b) => b.day.localeCompare(a.day) || b.at - a.at);
   const totals = {
     billedMinor: rows.reduce((n, r) => n + r.revenueMinor, 0),
     collectedMinor: rows.reduce((n, r) => n + (r.collectedMinor ?? 0), 0),
+    outstandingMinor: rows.reduce((n, r) => n + r.outstandingMinor, 0),
     costMinor: rows.reduce((n, r) => n + (r.costMinor ?? 0), 0),
     commissionMinor: rows.reduce((n, r) => n + r.commissionMinor, 0),
-    // La ganancia total suma SOLO operaciones con costo conocido; las pendientes se cuentan aparte (no se asumen costo cero).
-    profitMinor: rows.reduce((n, r) => n + (r.profitMinor ?? 0), 0),
+    profitMinor: rows.reduce((n, r) => n + (r.costPending ? 0 : r.profitMinor ?? 0), 0),
     discountMinor: rows.reduce((n, r) => n + r.discountMinor, 0),
     pendingCostRows: rows.filter((r) => r.costPending).length,
   };
   return { rows, totals };
 }
+
+export type ProfitReport = Awaited<ReturnType<typeof profitReport>>;
 
 export async function listPurchases(db: Db, id?: string) {
   const ps = await db.select().from(costPurchases).where(id ? eq(costPurchases.id, id) : undefined).orderBy(desc(costPurchases.purchasedAt));

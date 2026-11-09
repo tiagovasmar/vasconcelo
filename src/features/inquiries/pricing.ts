@@ -23,14 +23,8 @@ export type Evaluation = {
   blocking: EvaluatedLine[];
   /** Subtotal de los productos disponibles (no incluye los que se encargan). */
   subtotalMinor: number;
-  /** ¿El pedido califica para cuotas / 10% por transferencia? (al menos una caja disponible; los encargos no cuentan). */
-  qualifiesForPromo: boolean;
-  /** 10% OFF por transferencia para el medio de pago indicado (0 si no corresponde). Ya no suma el de las unidades cubiertas por el combo. */
-  discountFor: (paymentId: string) => number;
-  /** Precios completos (lista, combo caja + sobres, transferencia y total) del pedido para un medio de pago. UNICA fuente de importes. */
-  pricing: (paymentId: string) => Pricing;
-  /** Lo que se puede comprar y entra en el cálculo (con precio y stock válidos). */
-  pricingInput: PricingInput[];
+  /** Importes del pedido, iguales para todos los medios de pago. */
+  pricing: Pricing;
 };
 
 /** Tope de unidades por línea de encargo (no hay stock que limitar: la disponibilidad se consulta). */
@@ -74,6 +68,5 @@ export function evaluateCart(items: CartItemInput[], products: Product[], combo:
   const pricingInput: PricingInput[] = lines
     .filter((l) => l.product && l.unitPriceMinor !== undefined && (l.status === "ok" || l.status === "price_changed"))
     .map((l) => ({ productId: l.productId, kind: l.product!.kind, quantity: l.requestedQuantity, unitPriceMinor: l.unitPriceMinor! }));
-  const pricing = (paymentId: string) => priceCart(pricingInput, paymentId, combo);
-  return { lines, blocking, subtotalMinor, qualifiesForPromo: pricing("").qualifies, discountFor: (paymentId) => pricing(paymentId).transferDiscountMinor, pricing, pricingInput };
+  return { lines, blocking, subtotalMinor, pricing: priceCart(pricingInput, combo) };
 }

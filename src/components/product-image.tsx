@@ -13,7 +13,7 @@ export { toneBg };
  */
 export function tileBg(product: Product, index = 0): string {
   const img = product.images[index] ?? product.images[0];
-  return img.status !== "demo" && hasAsset(img.src) ? "tile-soft" : toneBg[product.fallbackTone];
+  return !img || (img.status !== "demo" && hasAsset(img.src)) ? "tile-soft" : toneBg[product.fallbackTone];
 }
 
 /** ¿El recuadro es oscuro? (para elegir colores de texto superpuestos). */
@@ -28,6 +28,7 @@ export function ProductImage({ product, index = 0, className = "", sizes = "(min
   product: Product; index?: number; className?: string; sizes?: string; priority?: boolean; lowPriority?: boolean; /** Fotos opacas (de proveedor) con calidad 60: menos bytes en la ficha. */ lightPhotos?: boolean;
 }) {
   const img = product.images[index] ?? product.images[0];
+  if (!img) return <span className="px-2 text-center text-xs font-medium text-ink/75">Fotos próximamente</span>;
   const wide = wideKinds.includes(product.kind);
   const label = kindLabel[product.kind].toUpperCase();
   const tilt = ["", "rotate-6 scale-110", "-rotate-3 scale-150 translate-y-8"][index % 3];

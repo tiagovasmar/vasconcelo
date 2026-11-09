@@ -140,7 +140,6 @@ test.describe("accesorios en el catálogo, la ficha y el panel", () => {
     await expect(page.getByTestId("galeria-etiqueta")).toContainText("Imagen ilustrativa de una unidad: no es una foto del stock real");
     await expect(page.getByRole("heading", { name: "Probabilidades" })).toHaveCount(0);
     await expect(page.getByTestId("fx-nota")).toHaveCount(0);
-    await expect(page.getByTestId("promo-condicion")).toContainText("no cuentan como caja");
     await expect(page.locator("body")).not.toContainText(/marca|espesor.*mm|certificad/i.valueOf() === undefined ? "" : "NO-DEBERIA-APARECER");
     await go(page, `/productos/${TOP}`);
     await expect(page.getByTestId("precio")).toHaveText(/\$\s?3\.500/);
@@ -294,7 +293,7 @@ test.describe("carrito lateral: combo, importes y recomendaciones", () => {
     await expect(page.getByTestId("linea-storm-sobre")).toBeVisible();
   });
 
-  test("pedido: importes con combo, transferencia sin doble descuento y alternativa de cuotas; el mensaje y la consulta guardada coinciden", async ({ page }) => {
+  test("pedido: importes con combo, mismo total en transferencia y efectivo; el mensaje y la consulta guardada coinciden", async ({ page }) => {
     await seed(page, [caja(1), sobre(6), sleeves(2)]);
     await go(page, "/carrito");
     await expect(page.getByTestId("linea-storm-sobre")).toBeVisible();
@@ -306,16 +305,15 @@ test.describe("carrito lateral: combo, importes y recomendaciones", () => {
     await expect(page.getByTestId("resumen-productos")).toContainText("244.000"); // 185.000 + 57.000 + 2.000
     await expect(page.getByTestId("resumen-total-descuento")).toContainText("239.250");
     await expect(page.getByTestId("pack-sleeves-transparentes-pack-5")).toContainText("pack de 5 unidades");
-    // transferencia: 10% de los productos de caja y sobres (sin accesorios); el combo no se suma
+    // Los dos medios de pago mantienen el mismo total y el mismo descuento del combo.
     await page.getByRole("radio", { name: /Transferencia/ }).check();
-    await expect(page.getByTestId("resumen-descuento-combo")).toHaveCount(0);
-    await expect(page.getByTestId("resumen-descuento")).toHaveText(/−\s?\$\s?24\.200/); // 10% de (185.000 + 57.000)
-    await expect(page.getByTestId("resumen-total-descuento")).toContainText("219.800"); // 244.000 − 24.200
-    await expect(page.getByTestId("ahorro-sleeves-transparentes-pack-5")).toHaveCount(0); // los accesorios no reciben el 10%
-    // cuotas: vuelve el combo y las cuotas se calculan sobre el total con descuento
-    await page.getByRole("radio", { name: /Tarjeta de crédito/ }).check();
     await expect(page.getByTestId("resumen-descuento-combo")).toHaveText(/−\s?\$\s?4\.750/);
-    await expect(page.getByTestId("resumen-cuotas")).toContainText("= $ 239.250");
+    await expect(page.getByTestId("resumen-descuento")).toHaveCount(0);
+    await expect(page.getByTestId("resumen-total-descuento")).toContainText("239.250");
+    await expect(page.getByTestId("ahorro-sleeves-transparentes-pack-5")).toHaveCount(0);
+    await page.getByRole("radio", { name: /Efectivo/ }).check();
+    await expect(page.getByTestId("resumen-descuento-combo")).toHaveText(/−\s?\$\s?4\.750/);
+    await expect(page.getByTestId("resumen-total-descuento")).toContainText("239.250");
     // la consulta guarda lo mismo que se vio
     await page.getByLabel(/Nombre y apellido/).fill("Inés Muñoz");
     await page.getByRole("radio", { name: /Retiro/ }).check();
@@ -338,7 +336,7 @@ test.describe("carrito lateral: combo, importes y recomendaciones", () => {
     expect(v.lines.map((l: { status: string }) => l.status)).toEqual(["price_changed", "price_changed"]);
     expect(v.pricing.base.comboDiscountMinor).toBe(2 * 95000);
     expect(v.pricing.base.totalMinor).toBe(18500000 + 2 * 950000 - 2 * 95000);
-    expect(v.pricing.transferencia.comboDiscountMinor).toBe(0);
+    expect(v.pricing.transferencia).toEqual(v.pricing.base);
     expect(v.combo).toMatchObject({ enabled: true, boxes: 1, slots: 5, usedSlots: 2, freeSlots: 3 });
     const inquiry = (data: object) => page.request.post(`${BASE}/api/inquiries`, { data: { items: [{ productId: "storm-caja", quantity: 1 }, { productId: "storm-sobre", quantity: 2 }], delivery: { method: "retiro" }, payment: "efectivo", contactName: "Ana Pérez", idempotencyKey: `e2e${Date.now()}${Math.random().toString(36).slice(2, 10)}`, ...data }, headers: { Origin: BASE } });
     const mala = await inquiry({ expectedTotalMinor: 100 });

@@ -4,6 +4,14 @@ import { sales } from "@/db/schema";
 
 export type AccountingPeriod = { from?: string; to?: string };
 
+export function currentAccountingMonth(now = new Date()) {
+  const month = new Intl.DateTimeFormat("sv-SE", { timeZone: "America/Argentina/Buenos_Aires" }).format(now).slice(0, 7);
+  const from = `${month}-01`;
+  const end = new Date(`${from}T00:00:00Z`);
+  end.setUTCMonth(end.getUTCMonth() + 1, 0);
+  return { month, period: { from, to: end.toISOString().slice(0, 10) } };
+}
+
 export function parseAccountingPeriod(from: unknown, to: unknown) {
   const date = z.iso.date();
   const start = date.safeParse(from || undefined);

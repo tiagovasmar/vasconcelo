@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { AddToCartIcon } from "./cart-widgets";
 import { FavoriteButton } from "./favorite-button";
-import { PaymentBenefits } from "./payment-benefits";
 import { ProductTags } from "./product-tags";
 import { ProductImage, tileBg, tileIsDark } from "./product-image";
 import { StockBadge } from "./stock-badge";
@@ -72,16 +71,15 @@ export async function ProductCard({ product: p, index, lowPriority = false }: { 
               {p.title}
             </Link>
           </h3>
-          {p.originalTitle && <p className="mt-0.5 text-[.7rem] leading-tight text-ink/60 sm:text-xs" data-testid="nombre-original"><span lang="zh-Hans">{p.originalTitle}</span></p>}
+          {p.originalTitle && <p className="mt-0.5 text-[.7rem] leading-tight text-ink/60 sm:text-xs" data-testid="nombre-original"><span lang={p.language === "zh" ? "zh-Hans" : p.language}>{p.originalTitle}</span></p>}
           {/* La acción va pegada al precio (si no entra al lado, baja justo debajo) y la disponibilidad queda debajo de ambos. */}
           <div className="mt-1.5 flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5">
             <Price product={p} className="min-w-0" />
             <AddToCartIcon productId={p.id} title={p.title} imageSrc={p.images[0] && hasAsset(p.images[0].src) ? p.images[0].src : null} priceMinor={p.priceMinor ?? 0} max={maxFor(p)} state={state} />
           </div>
           <StockBadge product={p} className="mt-1.5 self-start" />
-          <PaymentBenefits kind={p.kind} compact />
           <Link href={href} className="mt-auto inline-block self-start whitespace-nowrap border-b border-ink pt-2 text-xs font-medium hover:text-emerald sm:text-sm">
-            <span className="sm:hidden">Ver contenido</span><span className="hidden sm:inline">Ver cartas y contenido</span>&nbsp;↗
+            {p.game && p.game !== "pokemon" ? "Ver contenido" : <><span className="sm:hidden">Ver contenido</span><span className="hidden sm:inline">Ver cartas y contenido</span></>}&nbsp;↗
           </Link>
         </div>
       </div>

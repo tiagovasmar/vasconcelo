@@ -1,15 +1,9 @@
-import propuesta from "@/content/real/propuesta-mayorista.json";
+import Link from "next/link";
 import { AdminButton, AdminForm } from "@/components/admin-form";
-import { listProducts } from "@/features/catalog/data";
 import { getDb } from "@/db/client";
-import { catalog } from "@/content/catalog";
 import { mayorista } from "@/content/politicas";
-import { averageCosts } from "@/features/costos/service";
-import { currentRate } from "@/features/fx/service";
-import { formatUSD, usdToArsMinor } from "@/features/fx/convert";
-import { getRules, listTiersForAdmin, missingForOpening, suggestedFromCost } from "@/features/mayorista/precios";
+import { getRules, listTiersForAdmin, missingForOpening } from "@/features/mayorista/precios";
 import { listWholesaleRequests } from "@/features/wholesale/service";
-import { formatARS } from "@/lib/format";
 import { requireAdmin } from "@/server/admin";
 
 export const dynamic = "force-dynamic";
@@ -17,25 +11,21 @@ export const dynamic = "force-dynamic";
 const when = (ms: number) => new Intl.DateTimeFormat("es-AR", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Argentina/Buenos_Aires" }).format(new Date(ms));
 const statusLabel = { pendiente: "Pendiente de revisión", aprobada: "Aprobada", rechazada: "Rechazada" } as const;
 const card = "mt-6 rounded-xl border border-ink/15 bg-white p-4 sm:p-5";
-const title = (id: string) => catalog.products.find((p) => p.id === id)?.title ?? id;
 
 /** Cuentas mayoristas (aprobación manual), condiciones comerciales y precios por tramo. Los tramos están en borrador hasta que los publiques. */
 export default async function AdminMayoristas() {
   await requireAdmin("/admin/mayoristas");
   const db = getDb();
-  const [rows, rules, tiers, fx] = await Promise.all([listWholesaleRequests(db), getRules(db), listTiersForAdmin(db), currentRate(db)]);
+  const [rows, rules, tiers] = await Promise.all([listWholesaleRequests(db), getRules(db), listTiersForAdmin(db)]);
   const published = new Set(tiers.filter((t) => t.state === "publicado").map((t) => t.productId));
   const missing = missingForOpening(rules, published.size);
-  const storeProducts = await listProducts(db);
-  const withTiers = [...new Set(tiers.map((t) => t.productId))];
-  const costs = await averageCosts(db, catalog.products.map((p) => p.id));
-  const rate = fx.rate10k;
   return (
     <div className="mx-auto max-w-[1100px] px-4 py-8 sm:px-8 sm:py-10">
       <p className="eyebrow text-emerald">Panel del dueño</p>
       <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Mayoristas</h1>
+      <Link href="/admin/pedidos?tipo=mayorista" className="mt-3 inline-flex min-h-11 items-center rounded-md bg-emerald px-4 font-bold text-white">Ver pedidos mayoristas</Link>
       <p className="mt-2 max-w-3xl text-sm text-ink/75" data-testid="mayoristas-politica">
-        La aprobación de cuentas es {mayorista.approval === "manual" ? "manual: la hacés vos" : "automática"}. Los precios dependen de la cantidad y se ven solo en cuentas aprobadas. Es siempre por pedido (el stock minorista no cuenta), con transferencia o efectivo sin descuento adicional, y no se aplican el 10% por transferencia ni las cuotas sin interés.
+        La aprobación de cuentas es {mayorista.approval === "manual" ? "manual: la hacés vos" : "automática"}. Los precios dependen de la cantidad y se ven solo en cuentas aprobadas. Es siempre por pedido (el stock minorista no cuenta), con transferencia o efectivo al precio mayorista.
       </p>
 
       <section className={card} data-testid="reglas-mayoristas">
@@ -58,45 +48,10 @@ export default async function AdminMayoristas() {
       </section>
 
       <section className={card} data-testid="tramos">
-        <h2 className="text-base font-semibold">Precios por tramo de cantidad</h2>
-        <p className="mt-1 text-xs text-ink/70">Cada tramo vale desde su cantidad mínima. Los precios están en USD, como el resto del catálogo, y se muestran en pesos con la misma cotización. La referencia interna es <b>costo final × 1,5</b> (recargo del 50% sobre el costo, no un margen sobre la venta y no «30% menos que el minorista»); el precio de cada tramo lo fijás vos y se revisa antes de publicar. Sin costo ni precio figura «A cotizar».</p>
-        <div className="mt-3">
-          <AdminForm endpoint="/api/admin/mayorista" compact idempotent={false} fixed={{ action: "tier" }} fields={[
-            { name: "productId", label: "Producto", type: "select", required: true, options: storeProducts.map((p) => ({ value: p.id, label: `${p.title} (${p.sku})${published.has(p.id) ? "" : " · A cotizar"}` })) },
-            { name: "minQty", label: "Desde (unidades)", type: "int", required: true, help: "Sobres: tramos cada 10 unidades. Cajas: descuentos cada 3." },
-            { name: "unitPriceUsdMinor", label: "Precio unitario (USD)", type: "usd", required: true },
-          ]} submit="Guardar tramo (borrador)" ok="Tramo guardado como borrador." testId="form-tramo" />
-        </div>
-        {withTiers.length === 0 ? <p className="mt-4 text-sm text-ink/75">Todavía no hay tramos cargados.</p> : withTiers.map((pid) => {
-          const mine = tiers.filter((t) => t.productId === pid);
-          const cost = costs.get(pid) ?? null;
-          const ref = suggestedFromCost(cost);
-          const estimate = propuesta.find((product) => product.id === pid);
-          const draft = mine.some((t) => t.state === "borrador");
-          return (
-            <article key={pid} className="mt-4 rounded-lg border border-ink/15 p-3" data-testid="tramos-producto">
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h3 className="text-sm font-semibold">{title(pid)}</h3>
-                <span className="text-xs text-ink/75">{ref === null ? <b>Costo pendiente → sin referencia ×1,5</b> : <>Costo promedio {formatARS(cost!)} → referencia ×1,5: <b>{formatARS(ref)}</b>{rate ? ` ≈ ${formatUSD(Math.round((ref * 10_000) / rate))}` : ""}</>}</span>
-              </div>
-              {estimate && <p className="mt-2 text-xs text-ink/75">Proveedor: {estimate.providerRmb === null ? "a confirmar" : `${estimate.providerRmb} RMB`} · logística estimada: {estimate.logisticsUsd === null ? "a confirmar" : formatUSD(Math.round(estimate.logisticsUsd * 100))} · costo puesto estimado: {estimate.providerRmb === null || estimate.logisticsUsd === null ? "a confirmar" : formatUSD(Math.round((estimate.providerRmb / 6.6611 + estimate.logisticsUsd) * 100))} por unidad{estimate.draft ? " · costo final pendiente" : ""}.</p>}
-              <ul className="mt-2 divide-y divide-ink/10 text-sm">
-                {mine.map((t) => (
-                  <li key={t.minQty} className="flex flex-wrap items-center justify-between gap-2 py-1.5" data-testid="tramo">
-                    <span>Desde <b>{t.minQty}</b> u.: <b>{formatUSD(t.unitPriceUsdMinor)}</b> {rate ? `(${formatARS(usdToArsMinor(t.unitPriceUsdMinor, rate) ?? 0)})` : "(pesos: A cotizar, sin cotización del dólar)"} · <b className={t.state === "publicado" ? "text-emerald" : "text-vermilion"}>{t.state === "publicado" ? "Publicado" : "Borrador"}</b></span>
-                    <AdminButton endpoint="/api/admin/mayorista" body={{ action: "delete_tier", productId: pid, minQty: t.minQty }} label="Quitar" ok="Tramo quitado." confirmText="¿Quitar este tramo?" />
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {draft && <AdminButton endpoint="/api/admin/mayorista" body={{ action: "publish", productId: pid }} label="Revisé los precios: publicar" ok="Publicado." confirmText="Al publicar, las cuentas aprobadas ven estos precios (si el catálogo está abierto). ¿Publicar?" />}
-                {!draft && <AdminButton endpoint="/api/admin/mayorista" body={{ action: "unpublish", productId: pid }} label="Pasar a borrador" ok="Vuelve a borrador." />}
-              </div>
-            </article>
-          );
-        })}
+        <h2 className="text-base font-semibold">Precios mayoristas por producto</h2>
+        <p className="mt-2 text-sm text-ink/75">Ahora se editan en Precios y stock, dentro del desplegable «Precios mayoristas» de cada producto. Acá se mantienen las condiciones y las solicitudes de cuenta.</p>
+        <Link href="/admin/productos" className="mt-3 inline-flex min-h-11 items-center rounded-md bg-emerald px-4 font-bold text-white">Ir a precios y stock</Link>
       </section>
-
       <section className={card}>
         <h2 className="text-base font-semibold">Solicitudes de cuenta</h2>
         <p role="status" className="mt-1 text-sm text-ink/70" data-testid="mayoristas-cantidad">{rows.length} {rows.length === 1 ? "solicitud" : "solicitudes"}</p>

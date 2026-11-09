@@ -45,7 +45,7 @@ function Line({ item, line, priced, onNavigate }: { item: CartItem; line?: Serve
   const pendiente = line?.status === "pending_commercial";
   const max = Math.max(1, line ? line.maxQuantity || 99 : 99);
   const pack = p?.packSize ?? null;
-  const saving = priced ? priced.comboDiscountMinor + priced.transferDiscountMinor : 0;
+  const saving = priced?.comboDiscountMinor ?? 0;
   const hasPrice = !porEncargo && !pendiente && (Boolean(line) || unit > 0);
   const aviso =
     line?.status === "price_changed" ? "Cambió el precio: confirmalo en el pedido." :
@@ -79,7 +79,7 @@ function Line({ item, line, priced, onNavigate }: { item: CartItem; line?: Serve
       </div>
       {saving > 0 && priced && (
         <p className="mt-1 text-xs font-semibold text-emerald" data-testid={`drawer-ahorro-${item.productId}`}>
-          Ahorrás {formatARS(saving)}{priced.comboDiscountMinor > 0 ? ` · combo caja + sobres: 10% OFF en ${priced.comboUnits} ${priced.comboUnits === 1 ? "sobre" : "sobres"}` : " · 10% OFF por transferencia"}
+          Ahorrás {formatARS(saving)} · combo caja + sobres: 10% OFF en {priced.comboUnits} {priced.comboUnits === 1 ? "sobre" : "sobres"}
         </p>
       )}
       {aviso && <p role="status" className="mt-2 border-l-4 border-vermilion bg-vermilion/10 p-2 text-xs">{aviso}</p>}
@@ -107,12 +107,11 @@ export default function CartDrawerPanel() {
     return l.status === "ok" || l.status === "price_changed" ? n + (l.unitPriceMinor ?? 0) * i.quantity : n;
   }, 0);
   const last = cart.lastAdded;
-  // Importes del servidor para el medio de pago elegido (lista, combo caja + sobres, transferencia y total); mientras llega la validación se usa la cuenta local.
+  // Mientras llega la validación, se muestra el subtotal local.
   // Solo se usan los importes del servidor cuando corresponden al contenido ACTUAL del carrito (así lista, descuentos y total nunca se mezclan de dos momentos distintos).
-  const sp = fresh ? pricingFor(data, cart.payment) : null;
+  const sp = fresh ? pricingFor(data) : null;
   const listSubtotal = sp?.subtotalMinor ?? subtotal;
   const comboOff = sp?.comboDiscountMinor ?? 0;
-  const transferOff = sp?.transferDiscountMinor ?? 0;
   const total = sp ? sp.totalMinor : subtotal;
 
   return (
@@ -157,14 +156,13 @@ export default function CartDrawerPanel() {
             <footer className="border-t-2 border-ink bg-white/70 px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
               {stockItems.length > 0 ? (
                 <>
-                  {(comboOff > 0 || transferOff > 0) && (
+                  {(comboOff > 0) && (
                     <dl className="mb-1 space-y-0.5 text-sm" data-testid="drawer-descuentos">
                       <div className="flex justify-between gap-3"><dt>Productos (precio de lista)</dt><dd data-testid="drawer-lista">{formatARS(listSubtotal)}</dd></div>
                       {comboOff > 0 && <div className="flex justify-between gap-3 font-semibold text-emerald"><dt>Combo caja + sobres</dt><dd data-testid="drawer-descuento-combo">−{formatARS(comboOff)}</dd></div>}
-                      {transferOff > 0 && <div className="flex justify-between gap-3 font-semibold text-emerald"><dt>10% OFF por transferencia</dt><dd data-testid="drawer-descuento-transferencia">−{formatARS(transferOff)}</dd></div>}
                     </dl>
                   )}
-                  <p className="flex items-end justify-between gap-3"><span className="text-sm font-bold">{comboOff > 0 || transferOff > 0 ? "Total de productos" : "Subtotal de productos"}</span><b className="text-2xl font-extrabold" data-testid="drawer-subtotal">{!data && subtotal === 0 ? "…" : formatARS(total)}</b></p>
+                  <p className="flex items-end justify-between gap-3"><span className="text-sm font-bold">{comboOff > 0 ? "Total de productos" : "Subtotal de productos"}</span><b className="text-2xl font-extrabold" data-testid="drawer-subtotal">{!data && subtotal === 0 ? "…" : formatARS(total)}</b></p>
                   {data?.combo?.enabled && data.combo.boxes > 0 && <p className="mt-1 text-xs text-ink/75" data-testid="drawer-cupos">Combo caja + sobres: {data.combo.usedSlots} de {data.combo.slots} cupos usados{data.combo.freeSlots > 0 ? `; te quedan ${data.combo.freeSlots}` : ""}.</p>}
                 </>
               ) : (

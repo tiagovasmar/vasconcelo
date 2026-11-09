@@ -3,18 +3,20 @@
 import { useState } from "react";
 
 /**
- * Genera el enlace privado de seguimiento de un pedido de invitado. El enlace completo se muestra UNA sola vez (en la base solo queda su hash);
+ * Genera el enlace privado de seguimiento de un pedido. El enlace completo se muestra UNA sola vez (en la base solo queda su hash);
  * generar uno nuevo invalida el anterior. Se comparte con la persona por WhatsApp.
  */
 export function AccessLinkButton({ inquiryId }: { inquiryId: string }) {
   const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
+  const [copyMsg, setCopyMsg] = useState("");
   async function make() {
     if (busy) return;
     if (!window.confirm("Se genera un enlace nuevo y el anterior deja de funcionar. ¿Continuar?")) return;
     setBusy(true);
     setMsg("");
+    setCopyMsg("");
     try {
       const res = await fetch(`/api/admin/pedidos/${encodeURIComponent(inquiryId)}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "access_link" }) });
       const data = await res.json().catch(() => ({}));
@@ -33,6 +35,11 @@ export function AccessLinkButton({ inquiryId }: { inquiryId: string }) {
         <div className="mt-2" data-testid="enlace-generado">
           <label htmlFor="enlace-privado" className="block text-xs font-semibold">Copialo y enviáselo a la persona (no se vuelve a mostrar):</label>
           <input id="enlace-privado" readOnly value={url} onFocus={(e) => e.currentTarget.select()} className="mt-1 block min-h-11 w-full rounded-md border border-ink/40 bg-white px-3 font-mono text-xs" />
+          <button type="button" className="mt-2 min-h-11 rounded-md border border-ink/40 px-3 text-sm font-semibold" onClick={async () => {
+            try { await navigator.clipboard.writeText(url); setCopyMsg("Enlace copiado."); }
+            catch { setCopyMsg("Seleccioná el enlace y copialo manualmente."); }
+          }}>Copiar enlace</button>
+          {copyMsg && <p role="status" className="mt-1 text-sm">{copyMsg}</p>}
         </div>
       )}
       {msg && <p role="alert" className="mt-1 text-sm font-semibold text-vermilion">{msg}</p>}

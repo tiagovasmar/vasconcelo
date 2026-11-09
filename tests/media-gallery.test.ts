@@ -125,13 +125,18 @@ describe("galería elegida desde el panel", () => {
     expect(applyOverrides(products, await loadOverrides(db), null, await loadGalleries(db))[0].images[0]).toMatchObject({ source: "supplier", status: "reference" });
   });
 
-  it("se puede retirar una foto pero siempre queda al menos una", async () => {
-    const two = products.find((x) => x.images.length >= 2);
-    if (two) {
-      await saveGallery(db, products, two.id, { items: [{ src: two.images[1].src, alt: "Solo esta foto queda" }], expectedVersion: 0 }, actor, 1_000);
-      expect(applyOverrides(products, await loadOverrides(db), null, await loadGalleries(db)).find((x) => x.id === two.id)!.images).toHaveLength(1);
-    }
-    expect(GalleryEditSchema.safeParse({ items: [], expectedVersion: 0 }).success).toBe(false);
+  it("se puede quitar la última foto, agregarla de nuevo y restaurar las originales", async () => {
+    const getShown = async () => applyOverrides(products, await loadOverrides(db), null, await loadGalleries(db))[0];
+    const empty = await saveGallery(db, products, p.id, { items: [], expectedVersion: 0 }, actor, 1_000);
+    expect((await getShown()).images).toEqual([]);
+    expect((await listAudit(db, { productId: p.id }))[0]).toMatchObject({ field: "gallery", newValue: "[]" });
+    const restored = await saveGallery(db, products, p.id, { items: [code[0]], expectedVersion: empty.version }, actor, 2_000);
+    expect((await getShown()).images).toHaveLength(1);
+    await resetGallery(db, products, p.id, restored.version, actor, 3_000);
+    expect((await getShown()).images).toEqual(p.images);
+  });
+
+  it("la galería valida el máximo de fotos y el texto alternativo", () => {
     expect(GalleryEditSchema.safeParse({ items: Array.from({ length: 13 }, (_, i) => ({ src: `/images/x${i}.webp`, alt: "texto alt" })), expectedVersion: 0 }).success).toBe(false);
     expect(GalleryEditSchema.safeParse({ items: [{ src: "/images/a.webp", alt: "ab" }], expectedVersion: 0 }).success).toBe(false);
   });

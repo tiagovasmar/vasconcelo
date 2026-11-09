@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { realCatalog } from "@/content/catalog";
 import datos from "@/content/colecciones/origen/china/productos.json";
 import registro from "@/content/colecciones/imagenes-china.json";
+import supplementalPhotos from "@/content/real/fotos-proveedor-noviembre.json";
 import { commercialState, isPurchasable, priceLabel } from "@/features/catalog/commercial";
 import { filterProducts, parseQuery } from "@/features/catalog/query";
 import { ratesForProduct } from "@/features/catalog/pull-rates";
@@ -14,11 +15,11 @@ import { kindLabel } from "@/content/schema";
 import { applyOverrides } from "@/features/catalog/overrides";
 
 // Lote chino: 16 carpetas de Tmall/Taobao → fichas del catálogo real. Ninguna prueba depende de la carpeta Downloads del equipo.
-const all = realCatalog.products;
-const zh = all.filter((p) => p.language === "zh" && !p.id.startsWith("zh-151-") && p.id !== "zh-30-zhounian-caja");
+const all = realCatalog.products.filter((product) => (product.game ?? "pokemon") === "pokemon");
+const zh = all.filter((p) => p.language === "zh" && !p.id.startsWith("zh-151-") && !p.id.startsWith("zh-30th-") && !["zh-30-zhounian-caja", "zh-black-bolt-slim-caja", "zh-white-flare-slim-caja"].includes(p.id));
 /** Fichas chinas publicadas (sin las retiradas). */
 const zhPub = zh.filter((p) => p.active);
-const zhExp = realCatalog.expansions.filter((e) => e.language === "zh");
+const zhExp = realCatalog.expansions.filter((e) => e.language === "zh" && !["zh-black-bolt", "zh-white-flare"].includes(e.id));
 const pub = (p: string) => path.join(process.cwd(), "public", p.replace(/^\//, ""));
 const f = (q: Record<string, string>) => filterProducts(all, realCatalog.expansions, parseQuery(q));
 const count = (kind: string) => zhPub.filter((p) => p.kind === kind).length;
@@ -34,7 +35,6 @@ describe("catálogo chino: cobertura de las 16 fuentes y formatos", () => {
     expect(zh.filter((p) => p.retired).every((p) => !p.active)).toBe(true);
     expect(zhExp.filter((e) => e.id !== "zh-30-zhounian").every((e) => e.region === "CN" && !e.isDemo && e.cards.length === 0 && e.cardListStatus === "unavailable")).toBe(true);
     for (const k of ["id", "sku", "slug"] as const) expect(new Set(all.map((p) => p[k])).size, k).toBe(all.length);
-    expect(new Set(all.map((p) => p.sku)).size).toBe(64);
   });
 
   it("las 16 fuentes del dueño están representadas por al menos una ficha y cada ficha cita su fuente", () => {
@@ -146,7 +146,14 @@ describe("catálogo chino: fotos propias del proyecto, con procedencia", () => {
       expect(r.origen.sha256).toMatch(/^[0-9a-f]{64}$/);
     }
     for (const p of zh) {
+      const supplemental = supplementalPhotos[p.id as keyof typeof supplementalPhotos] ?? [];
       for (const i of p.images) {
+        if (supplemental.some((photo) => photo.src === i.src)) {
+          expect(fs.existsSync(pub(i.src)), i.src).toBe(true);
+          expect(i.source).toBe("supplier");
+          expect(i.status).toBe("reference");
+          continue;
+        }
         expect(i.src.startsWith("/images/products/zh/"), p.id).toBe(true);
         expect(i.source).toBe("supplier");
         expect(i.status).toBe("reference");
@@ -184,27 +191,27 @@ describe("catálogo chino: fotos propias del proyecto, con procedencia", () => {
 
 describe("catálogo chino: búsqueda y filtros", () => {
   it("idioma, formato y colección", () => {
-    expect(f({ idioma: "zh" })).toHaveLength(31);
+    expect(f({ idioma: "zh" })).toHaveLength(38);
     expect(f({ idioma: "ja" })).toHaveLength(22); // 16 + las seis cajas del 14/10/2026
-    expect(f({ formato: "kit" })).toHaveLength(3);
-    expect(f({ formato: "especial" })).toHaveLength(2);
+    expect(f({ formato: "kit" })).toHaveLength(5);
+    expect(f({ formato: "especial" })).toHaveLength(5);
     expect(f({ formato: "ilustraciones" })).toHaveLength(2);
-    expect(f({ formato: "caja", idioma: "zh" })).toHaveLength(7);
-    expect(f({ formato: "caja" })).toHaveLength(21);
+    expect(f({ formato: "caja", idioma: "zh" })).toHaveLength(9);
+    expect(f({ formato: "caja" })).toHaveLength(23);
     expect(f({ formato: "sobre" })).toHaveLength(24); // 8 japoneses + 16 chinos
     expect(f({ expansion: "zh-gongzhu-rongguang" })).toHaveLength(1); // el de 20 cartas fue retirado
-    expect(f({ expansion: "zh-30-zhounian" })).toHaveLength(5);
+    expect(f({ expansion: "zh-30-zhounian" })).toHaveLength(10);
   });
   it("se busca por nombre chino, por romanización, por código del envase y por texto en español", () => {
     expect(f({ q: "真实玄虚" }).map((p) => p.id)).toEqual(["zh-zhenshi-xuanxu-sobre-5"]);
     expect(f({ q: "zhenshi xuanxu" })).toHaveLength(1);
     expect(f({ q: "csv6C" })).toHaveLength(1);
-    expect(f({ q: "kit de mazo" })).toHaveLength(3);
+    expect(f({ q: "kit de mazo" })).toHaveLength(5);
     expect(f({ q: "ogerpon" })).toHaveLength(2);
     expect(f({ q: "storm" })).toHaveLength(2); // sigue encontrando las japonesas
   });
-  it("paginación: 53 sellados públicos, accesorios solo como adicionales, en 5 páginas de 12", () => {
-    expect(f({})).toHaveLength(53);
+  it("paginación: 60 sellados públicos, accesorios solo como adicionales, en 5 páginas de 12", () => {
+    expect(f({})).toHaveLength(60);
     expect(Math.ceil(f({}).length / 12)).toBe(5);
   });
 });
@@ -327,17 +334,17 @@ describe("catálogo chino: cajas con cantidades confirmadas o pendientes, sin co
     expect(p.description + p.contents.map((c) => c.note ?? "").join(" ")).not.toMatch(/se confirma con el proveedor|盲盒|unidad de venta/);
     expect(p.description).toContain("每盒18包");
   });
-  it("las cajas sin cantidad de sobres legible siguen diciendo «dato pendiente» en la ficha y en el contenido, sin números inventados", () => {
-    for (const id of ["zh-shengxiang-xingyin-caja", "zh-anying-duohui-caja", "zh-taijing-shengju-caja"]) {
+  it("las cajas estándar indican la cantidad por formato y citan la referencia comercial", () => {
+    for (const [id, packs] of [["zh-shengxiang-xingyin-caja", 20], ["zh-anying-duohui-caja", 20], ["zh-taijing-shengju-caja", 10]] as const) {
       const p = caja(id);
       const sobres = p.contents.find((c) => c.label === "Sobres por caja")!;
-      expect(sobres.quantity, id).toBeUndefined();
-      expect(sobres.note, id).toMatch(/pendiente/i);
-      expect(p.description, id).toMatch(/pendiente de confirmar/);
+      expect(sobres.quantity, id).toBe(packs);
+      expect(p.description, id).toContain("referencia comercial");
+      expect(realCatalog.guarantees.find((g) => g.scope === id)?.sourceIds, id).toHaveLength(2);
     }
   });
-  it("Terastal Gathering: la caja y el sobre de 10 cartas son fichas distintas y la caja conserva su limitación de unidad de venta", () => {
-    expect(caja("zh-taijing-shengju-caja").description).toMatch(/unidad de venta final se confirma/);
+  it("Terastal Gathering: la caja de 10 sobres y el sobre de 10 cartas son fichas distintas", () => {
+    expect(caja("zh-taijing-shengju-caja").description).toContain("10 sobres de 10 cartas");
     expect(caja("zh-taijing-shengju-caja").images.map((i) => i.view)).toEqual(["closed", "detail", "detail"]);
   });
 });

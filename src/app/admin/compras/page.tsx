@@ -19,6 +19,7 @@ export default async function PurchasesPage({ searchParams }: { searchParams: Pr
   const from = get("desde");
   const to = get("hasta");
   const status = get("estado");
+  const awaitingReceipt = get("recepcion") === "pendiente";
   const labels = new Map(purchaseProducts().map((p) => [p.value, p.label]));
   const db = getDb();
   const [records, progress] = await Promise.all([listPurchases(db), importProgress(db)]);
@@ -30,11 +31,11 @@ export default async function PurchasesPage({ searchParams }: { searchParams: Pr
     const reviewed = parts.reduce((n, r) => n + r.reviewed, 0);
     const first = Math.min(...parts.filter((r) => r.quantity > 0).map((r) => shipmentRank(r.status)));
     const stage = !p.orderedAt ? "registrada" : reviewed === total ? "finalizada" : loaded === total && first > 0 ? SHIPMENT_STATUSES[first] : "comprada";
-    return { ...p, total, stage };
+    return { ...p, total, stage, awaitingReceipt: parts.some((part) => part.status !== "preparando" && part.reviewed < part.quantity) };
   }).filter((p) =>
     (!q || [p.id, p.reference, p.supplier, ...p.items.map((i) => labels.get(i.productId))].some((v) => v?.toLowerCase().includes(q))) &&
     (!supplier || p.supplier.toLowerCase().includes(supplier)) && (!from || dateOf(p.purchasedAt) >= from) && (!to || dateOf(p.purchasedAt) <= to) &&
-    (!status || (status === p.stage || status === p.status)));
+    (!status || (status === p.stage || status === p.status)) && (!awaitingReceipt || p.awaitingReceipt));
   return (
     <div className="mx-auto max-w-[1080px] space-y-6 px-4 py-8 sm:px-8">
       <header>
@@ -48,7 +49,9 @@ export default async function PurchasesPage({ searchParams }: { searchParams: Pr
       </details>
       <section className="rounded-xl border border-ink/20 bg-white p-4">
         <h2 className="text-lg font-semibold">Compras registradas</h2>
+        {awaitingReceipt && <p className="mt-2 text-sm"><b>Compras por recibir</b> · <Link href="/admin/compras" className="underline">Quitar filtro</Link></p>}
         <form className="my-4 grid gap-3 sm:grid-cols-3">
+          {awaitingReceipt && <input type="hidden" name="recepcion" value="pendiente" />}
           <label className="min-w-0 text-sm">Buscar<input name="q" defaultValue={q} placeholder="Referencia, producto o SKU" className={field} /></label>
           <label className="min-w-0 text-sm">Proveedor<input name="proveedor" defaultValue={supplier} className={field} /></label>
           <label className="min-w-0 text-sm">Estado<select name="estado" defaultValue={status} className={field}>

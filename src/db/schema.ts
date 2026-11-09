@@ -28,7 +28,7 @@ export const inquiries = pgTable(
     currency: text("currency").notNull(),
     /** Subtotal de los productos DISPONIBLES (los que se encargan no suman importe) antes de descuentos. */
     subtotalMinor: ms("subtotal_minor").notNull(),
-    /** Descuento por transferencia (10%, solo con al menos una caja), en centavos. 0 = sin descuento. */
+    /** Descuento histórico por transferencia, en centavos. 0 = sin descuento. */
     discountMinor: ms("discount_minor").notNull().default(0),
     /** Descuento del combo caja + sobres (22/10/2026), en centavos. 0 = sin combo. Se suma al de transferencia solo en unidades distintas: nunca se descuenta dos veces la misma unidad. */
     comboDiscountMinor: ms("combo_discount_minor").notNull().default(0),

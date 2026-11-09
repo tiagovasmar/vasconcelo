@@ -6,6 +6,7 @@ import * as schema from "../db/schema";
 import { sendMail } from "./mail";
 import { googleCredentials } from "./google";
 import { authSecret } from "./secret";
+import { authDomainOptions } from "./auth-domains";
 
 /** URL pública del sitio. En Netlify, si falta BETTER_AUTH_URL se usa la dirección que la plataforma informa (`URL`, o `DEPLOY_PRIME_URL` en vistas previas). */
 const baseURL = process.env.BETTER_AUTH_URL || process.env.URL || "http://localhost:3000";
@@ -13,9 +14,8 @@ const prod = process.env.NODE_ENV === "production";
 
 function createAuth() {
   return betterAuth({
-    baseURL,
+    ...authDomainOptions(baseURL),
     secret: authSecret(),
-    trustedOrigins: [baseURL],
     database: drizzleAdapter(getDb(), { provider: "pg", schema }),
     emailAndPassword: {
       enabled: true,

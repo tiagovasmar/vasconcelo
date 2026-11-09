@@ -57,7 +57,7 @@ export default async function Cuenta() {
           {guest > 0 && (
             <p className="mt-6 border-l-4 border-emerald bg-emerald/10 p-4 text-sm">Tenés {guest} {guest === 1 ? "consulta" : "consultas"} de invitado en este navegador. <Link href="/cuenta/consultas" className="font-bold underline">Agregalas a tu cuenta</Link>.</p>
           )}
-          {isAdmin(user) && <p className="mt-6 text-sm"><Link href="/admin" className="font-semibold underline underline-offset-4" data-testid="link-admin">Panel del dueño: precios y stock</Link></p>}
+          {isAdmin(user) && <p className="mt-6 text-sm"><Link href="/admin" className="font-semibold underline underline-offset-4" data-testid="link-admin">Panel del dueño</Link></p>}
           <div className="mt-8"><LogoutButton /></div>
         </div>
       </div>

@@ -27,7 +27,7 @@ const { sources } = realCatalog;
 // Las seis cajas japonesas agregadas el 14/10/2026 (sin lista de cartas) se prueban aparte, en tests/japon-cajas.test.ts.
 const pub = (p: string) => path.join(process.cwd(), "public", p.replace(/^\//, ""));
 const idsDeExpansion = ["black-bolt", "white-flare", "heat-wave-arena", "inferno-x", "mega-dream-ex", "30th-celebration", "storm-emeralda", "abyss-eye"];
-const products = realCatalog.products.filter((p) => p.language === "ja" && p.expansionIds.every((id) => idsDeExpansion.includes(id)));
+const products = realCatalog.products.filter((p) => p.language === "ja" && p.expansionIds.some((id) => idsDeExpansion.includes(id)));
 const expansions = realCatalog.expansions.filter((e) => e.language === "ja" && idsDeExpansion.includes(e.id));
 const guarantees = realCatalog.guarantees.filter((g) => g.language === "ja" && products.some((p) => p.id === g.scope));
 
@@ -90,20 +90,22 @@ describe("colecciones y fichas (catálogo real)", () => {
     }
     for (const p of products) {
       expect(p.images.every((i) => i.status === "reference" && fs.existsSync(pub(i.src)))).toBe(true);
+      const official = p.images.filter((image) => image.source === "manufacturer");
+      expect(p.images[0]).toBe(official[0]);
       if (p.kind === "box") {
-        expect(p.images).toHaveLength(2);
+        expect(official).toHaveLength(2);
         expect(p.images[0].src).toMatch(/caja-referencia-2-original/); // cerrada
         expect(p.images[0].alt).toMatch(/cerrada/);
         expect(p.images[1].src).toMatch(/caja-referencia-1-original/); // exhibición abierta
         expect(p.images[1].alt).toMatch(/no es el estado del artículo que se vende/);
       } else {
-        expect(p.images).toHaveLength(1);
+        expect(official).toHaveLength(1);
         expect(p.images[0].src).toMatch(/sobre-original/);
       }
-      expect(p.images.every((i) => i.src.includes(`/${p.expansionIds[0]}/`)), p.id).toBe(true); // la imagen es de su colección
-      expect(p.images.every((i) => /Sin permiso de uso concedido/.test(i.license))).toBe(true);
+      expect(official.every((i) => i.src.includes(`/${p.expansionIds[0]}/`)), p.id).toBe(true); // la imagen es de su colección
+      expect(official.every((i) => /Sin permiso de uso concedido/.test(i.license))).toBe(true);
       // el original (sin transparencia = JPG) marca el derivado como opaco para mostrarlo sobre blanco
-      for (const i of p.images) {
+      for (const i of official) {
         const rec = recortes.find((r) => r.src === i.src)!;
         const orig = imagenes.find((o) => o.src === rec.original)!;
         expect(i.opaque, i.src).toBe(!rec.hasAlpha); // el derivado puede tener alfa aunque el original sea un JPG opaco
@@ -179,7 +181,7 @@ describe("importación de precios y stock desde la tabla del dueño", () => {
   it("la tabla entregada está vacía: todo queda pendiente", async () => {
     const r = parseCommercialCsv(fs.readFileSync(path.resolve("datos/precios-y-stock.csv"), "utf8"), skus);
     expect(r.errors).toEqual([]);
-    expect(r.rows).toBe(realCatalog.products.filter((p) => !p.retired && p.kind !== "accessory").length); // 22 japoneses + 28 chinos publicados, todos en blanco (los accesorios tienen precio fijo en pesos y no van en esta planilla)
+    expect(r.rows).toBe(54); // planilla histórica; las fichas posteriores se administran desde el panel
     expect(r.items).toEqual({});
   });
   it("interpreta precios argentinos y stock; vacío = pendiente (nunca cero)", async () => {

@@ -137,8 +137,7 @@ describe("validación en servidor", () => {
     expect(err.code).toBe("invalid_input");
   });
   it.each([
-    ["tarjeta-3-cuotas", "Tarjeta de crédito · 3 cuotas sin interés (con una caja)"],
-    ["transferencia", "Transferencia · 10% OFF (con una caja)"],
+    ["transferencia", "Transferencia"],
     ["efectivo", "Efectivo · a coordinar"],
   ])("conserva las condiciones de %s en la consulta y en WhatsApp (pedido con una caja)", async (payment, label) => {
     const result = await createInquiry(db, base({ payment, items: [{ productId: "storm-caja", quantity: 1 }, { productId: "storm-sobre", quantity: 2 }] }), { sessionTokenHash: owner.sessionTokenHash });

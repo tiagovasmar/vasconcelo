@@ -3,13 +3,16 @@ import { eq } from "drizzle-orm";
 import { catalog } from "@/content/catalog";
 import { type Db } from "@/db/client";
 import { openTestDb } from "./helpers/pg";
-import { inquiries, inquiryLines, lineDeliveries, notificationOutbox, orderEvents, orderPayments, orderRefunds, orderTracks, paymentReceipts, user } from "@/db/schema";
+import { inquiries, inquiryLines, inquirySales, lineDeliveries, notificationOutbox, orderEvents, orderPayments, orderRefunds, orderTracks, paymentReceipts, user } from "@/db/schema";
 import { createInquiry, hashToken } from "@/features/inquiries/service";
-import { adminOrderDetail, canView, customerOrderView, issueAccessLink, lineProgress, openTracking, setAgreedAmount, setStage, addNote, cancelOrder } from "@/features/pedidos/service";
+import { adminOrderDetail, canView, customerOrderView, issueAccessLink, lineProgress, openTracking, setAgreedAmount, setStage, addNote, cancelOrder, sharedWholesaleStatus, listOrders } from "@/features/pedidos/service";
+import { addWholesaleCost, costUsdEquivalent, listWholesaleOrderCosts, setWholesaleGuide, voidWholesaleCost } from "@/features/pedidos/mayorista-admin";
 import { confirmPayment, markRefunded, openIncident, registerRefund, rejectReceipt, sniffReceiptType, uploadReceipt, voidPayment } from "@/features/pedidos/pagos";
 import { createShipment, recordDelivery, setShipmentItem, updateShipmentStatus } from "@/features/pedidos/envios";
 import { flushOutbox } from "@/features/avisos/outbox";
 import { SaleError } from "@/features/sales/errors";
+import { registerSale } from "@/features/sales/service";
+import { addCommission, profitReport } from "@/features/costos/service";
 import type { ReceiptStore } from "@/server/receipt-store";
 import type { Mail } from "@/server/mail";
 
@@ -56,6 +59,86 @@ async function encargoComprado(userId: string | null = "ana") {
   await st(ref, "comprado_proveedor", 3);
   return ref;
 }
+
+describe("control del pedido mayorista", () => {
+  async function mayorista() {
+    const ref = await encargo("ana");
+    await db.update(inquiries).set({ orderKind: "mayorista" }).where(eq(inquiries.id, ref));
+    await openTracking(db, ref, day(0));
+    return ref;
+  }
+
+  it("conserva el equivalente del gasto en pesos, evita duplicados y registra una corrección", async () => {
+    const ref = await mayorista();
+    const other = await mayorista();
+    const cost = { category: "mercaderia", currency: "USD", amountMinor: 15025, exchangeRateMinor: 152500, paidAt: day(1), idempotencyKey: key(), note: "Factura del proveedor" };
+    expect(await addWholesaleCost(db, ref, cost, actor, day(1))).toEqual({ replayed: false });
+    expect(await addWholesaleCost(db, ref, cost, actor, day(1))).toEqual({ replayed: true });
+    const [saved] = await listWholesaleOrderCosts(db, ref);
+    expect(saved).toMatchObject({ amountMinor: 15025, arsMinor: 22913125, exchangeRateMinor: 152500 });
+    const correction = { costId: saved.id, reason: "Factura corregida" };
+    expect(await code(voidWholesaleCost(db, other, correction, actor, day(2)))).toBe("not_found");
+    await voidWholesaleCost(db, ref, correction, actor, day(2));
+    expect((await listWholesaleOrderCosts(db, ref))[0]).toMatchObject({ voidReason: correction.reason, voidedAt: day(2) });
+    expect((await listOrders(db, { kind: "mayorista", search: ref })).map((r) => r.reference)).toEqual([ref]);
+  });
+
+  it("acepta dólares sin cotización de gasto, convierte pesos al cambio del pago y registra aduana en cero", async () => {
+    const ref = await mayorista();
+    await db.update(inquiries).set({ fxRate10k: 15_000_000 }).where(eq(inquiries.id, ref));
+    expect(await setAgreedAmount(db, ref, { agreedUsdMinor: 50000 }, actor, day(1))).toMatchObject({ agreedMinor: 75_000_000 });
+    const costs = [
+      { category: "mercaderia", currency: "USD", amountMinor: 24000 },
+      { category: "envio", currency: "ARS", amountMinor: 8_000_000, exchangeRateMinor: 160_000 },
+      { category: "aduana", currency: "USD", amountMinor: 0 },
+    ];
+    await addWholesaleCost(db, ref, { ...costs[0], idempotencyKey: key() }, actor, day(1));
+    expect(await profitReport(db, { from: "2026-11-02", to: "2026-11-02" })).toMatchObject({
+      rows: [{ ref, costPending: true, wholesale: { profitUsd: 26000, complete: false } }],
+      totals: { profitMinor: 0, pendingCostRows: 1, outstandingMinor: 75_000_000 },
+    });
+    for (const cost of costs.slice(1)) await addWholesaleCost(db, ref, { ...cost, idempotencyKey: key() }, actor, day(1));
+    const saved = await listWholesaleOrderCosts(db, ref);
+    expect(Object.fromEntries(saved.map((cost) => [cost.category, costUsdEquivalent(cost, 15_000_000)])))
+      .toEqual({ mercaderia: 24000, envio: 5000, aduana: 0 });
+    expect(saved.find((cost) => cost.category === "mercaderia")?.arsMinor).toBeNull();
+    expect((await adminOrderDetail(db, ref))?.track?.agreedUsdMinor).toBe(50000);
+    expect(await profitReport(db, { from: "2026-11-02", to: "2026-11-02" })).toMatchObject({
+      rows: [{ ref, costMinor: 43_500_000, costPending: false, wholesale: { profitUsd: 21000, complete: true } }],
+      totals: { billedMinor: 75_000_000, profitMinor: 31_500_000, pendingCostRows: 0 },
+    });
+    const { sale } = await registerSale(db, { items: [{ productId: "storm-sobre", quantity: 1, unitPriceMinor: 75_000_000 }],
+      paymentMethod: "efectivo", soldOn: "2026-11-03", idempotencyKey: key() }, actor, { now: day(1) });
+    await db.insert(inquirySales).values({ inquiryId: ref, saleId: sale.id, kind: "vinculada", createdAt: day(1), createdByEmail: actor.email });
+    await addCommission(db, { saleId: sale.id, amountMinor: 1_500_000, idempotencyKey: key() }, actor, day(1));
+    const period = { from: "2026-11-02", to: "2026-11-03" };
+    expect(await profitReport(db, period)).toMatchObject({
+      rows: [{ ref: sale.id, wholesale: { reference: ref, profitUsd: 20000 } }],
+      totals: { billedMinor: 75_000_000, profitMinor: 30_000_000 },
+    });
+    await addWholesaleCost(db, ref, { category: "comision", currency: "USD", amountMinor: 700, idempotencyKey: key() }, actor, day(1));
+    expect(await profitReport(db, period)).toMatchObject({
+      rows: [{ ref: sale.id, wholesale: { reference: ref, profitUsd: 20300 } }],
+      totals: { billedMinor: 75_000_000, profitMinor: 30_450_000 },
+    });
+  });
+
+  it("el enlace mayorista muestra etapas y guía, sin dar acceso a pagos ni comprobantes", async () => {
+    const ref = await mayorista();
+    await setWholesaleGuide(db, ref, { carrier: "Andreani", trackingNumber: "GUIA-103" }, day(1));
+    await addNote(db, ref, { internalText: "INFORMACIÓN PRIVADA", idempotencyKey: key() }, actor, day(1));
+    await setAgreedAmount(db, ref, { agreedMinor: 10_000_000 }, actor, day(1));
+    const { token } = await issueAccessLink(db, ref, day(1));
+    expect(await sharedWholesaleStatus(db, ref, null)).toBeNull();
+    const shared = await sharedWholesaleStatus(db, ref, token);
+    expect(shared).toEqual({ stage: "solicitud_recibida", cancelledAt: null, carrier: "Andreani", trackingNumber: "GUIA-103", history: [{ stage: "solicitud_recibida", at: day(0) }] });
+    const order = (await adminOrderDetail(db, ref))!;
+    expect(canView(order.inquiry, order.track!, { accessToken: token })).toBe(false);
+    expect(canView(order.inquiry, order.track!, { userId: "ana" })).toBe(true);
+    await issueAccessLink(db, ref, day(2));
+    expect(await sharedWholesaleStatus(db, ref, token)).toBeNull();
+  });
+});
 
 describe("proceso de un encargo", () => {
   it("recorre las etapas acordadas con fechas reales y la seña del 20% se confirma con el pago", async () => {

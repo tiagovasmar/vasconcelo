@@ -18,7 +18,7 @@ export type MessageData = {
   lines: MessageLine[];
   /** Subtotal de los productos disponibles (sin los que se encargan), antes de descuentos. */
   subtotalMinor: number;
-  /** 10% OFF por transferencia (solo pedidos con una caja). 0/ausente = sin descuento. */
+  /** Descuento por transferencia en consultas históricas. 0/ausente = sin descuento. */
   discountMinor?: number;
   /** Descuento del combo caja + sobres. 0/ausente = sin combo. */
   comboDiscountMinor?: number;

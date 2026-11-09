@@ -4,11 +4,11 @@ import { preorderOffers } from "@/features/importaciones/preorders";
 import { incomingProducts } from "@/features/importaciones/service";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { catalogHref, gameLabel } from "@/content/games";
 import { notFound } from "next/navigation";
 import { CardGallery, type CardGroup } from "@/components/card-gallery";
 import { ProductGallery } from "@/components/product-gallery";
 import { ProductTags } from "@/components/product-tags";
-import { PaymentBenefits } from "@/components/payment-benefits";
 import { AddToCartPanel } from "@/components/cart-widgets";
 import { RestockNotify } from "@/components/restock-notify";
 import { FavoriteButton } from "@/components/favorite-button";
@@ -114,7 +114,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
       {preview && <p className="bg-ink px-4 py-2 text-center text-sm font-semibold text-paper" data-testid="aviso-vista-previa">Vista previa para el administrador: esta ficha NO está publicada y nadie más puede verla.</p>}
       <div className="paper-texture border-b border-ink/15">
         <nav aria-label="Ruta" className="mx-auto max-w-[1440px] px-4 py-2 text-sm text-ink/70 sm:px-8 sm:py-3">
-          <Link href="/" className="hover:underline">Inicio</Link> / <Link href="/sellados" className="hover:underline">Sellados</Link> / <span aria-current="page" title={product.title} className="inline-block max-w-[48vw] truncate align-bottom font-semibold text-ink sm:max-w-none">{product.title}</span>
+          <Link href="/" className="hover:underline">Inicio</Link> / <Link href={catalogHref(product.game)} className="hover:underline">{product.game && product.game !== "pokemon" ? gameLabel[product.game] : "Sellados"}</Link> / <span aria-current="page" title={product.title} className="inline-block max-w-[48vw] truncate align-bottom font-semibold text-ink sm:max-w-none">{product.title}</span>
         </nav>
       </div>
 
@@ -124,12 +124,16 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
           <div className="lg:col-start-2 lg:row-start-1">
             <p className="eyebrow text-vermilion">{kindLabel[product.kind]}{product.variant ? ` · ${product.variant}` : ""}</p>
             <h1 id="producto-title" className={`display mt-2 normal-case ${product.language === "zh" ? "text-[clamp(1.5rem,3.6vw,2.8rem)] leading-tight" : "text-[clamp(1.9rem,6vw,4.2rem)] leading-[.95]"}`}>{product.title}</h1>
-            {product.originalTitle && <p className="mt-2 hidden text-sm text-ink/70 sm:block" data-testid="nombre-original">Nombre original: <span lang="zh-Hans" className="font-semibold text-ink">{product.originalTitle}</span></p>}
+            {product.originalTitle && <p className="mt-2 hidden text-sm text-ink/70 sm:block" data-testid="nombre-original">Nombre original: <span lang={product.language === "zh" ? "zh-Hans" : product.language} className="font-semibold text-ink">{product.originalTitle}</span></p>}
             <ProductTags product={product} size="lg" className="mt-2 sm:mt-3" />
           </div>
 
           <div className="lg:col-start-1 lg:row-span-2 lg:row-start-1">
-            <ProductGallery slides={slides} bgClass={tileBg(product)} />
+            {slides.length > 0 ? <ProductGallery key={product.images.map((img) => img.src).join("|")} slides={slides} bgClass={tileBg(product)} /> : (
+              <div className="tile-soft flex aspect-[4/3] items-center justify-center border border-ink/20 sm:aspect-square">
+                <ProductImage product={product} />
+              </div>
+            )}
           </div>
 
           <div className="lg:col-start-2 lg:row-start-2">
@@ -137,9 +141,8 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
             {accessory ? (
               <p className="mt-1 text-sm font-semibold text-ink/80" data-testid="pack-info">Precio por pack de {product.packSize} unidades. Cada compra incluye {product.packSize} unidades. Precio fijo en pesos.</p>
             ) : <FxNote className="mt-1" />}
-            <PricePerBooster product={product} className="mt-3" />
+            <PricePerBooster product={product} className="mt-1" />
             <StockBadge product={product} size="page" className="mt-1.5 sm:mt-2" />
-            <PaymentBenefits kind={product.kind} />
             {(state === "available" || !offers.length) && <AddToCartPanel productId={product.id} title={product.title} imageSrc={product.images[0] && hasAsset(product.images[0].src) ? product.images[0].src : null} priceMinor={product.priceMinor ?? 0} max={maxFor(product)} state={state} stockKnown={isInStock(product)} orderOnly={Boolean(product.orderOnly)} packSize={product.packSize ?? null} addons={addons} />}
             {(incoming || offers.length > 0) && <aside className="my-4 rounded-xl border border-emerald/30 bg-emerald/10 p-4 text-sm">
               <p><strong>{incoming?.traveling || offers.length ? "En camino" : "Próximamente"}</strong>. Todavía no disponibles para entrega inmediata.</p><p className="mt-2 font-semibold">{arrivalEstimate(product.id)}</p>
@@ -170,7 +173,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
           <section id="descripcion" aria-labelledby="h-desc" className="scroll-mt-16 max-w-3xl">
             <h2 id="h-desc" className="display text-3xl normal-case sm:text-4xl">Qué estás comprando</h2>
             <p className="mt-3 text-base leading-relaxed sm:text-lg">{product.description}</p>
-            <p className="mt-3 text-sm text-ink/80" data-testid="aleatoriedad">{aleatoriedad(product)}</p>
+            <p className="mt-3 text-sm text-ink/80" data-testid="aleatoriedad">{product.game === "dragon-ball" && product.kind === "kit" ? "El mazo es prearmado. La carta del sobre de bonificación es aleatoria." : aleatoriedad(product)}</p>
           </section>
 
           {hasCards && (
@@ -252,8 +255,8 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
                   </ul>
                 )}
                 {reviewed && <p className="mt-3 text-sm">Información revisada por última vez el <b>{date(reviewed)}</b>.</p>}
-                {product.language === "zh" && <p className="mt-2 text-xs text-ink/70">Los datos de esta ficha provienen de publicaciones del proveedor y de las fotos de su envase, no de una ficha oficial. Las imágenes son de referencia del proveedor.</p>}
-                <p className="mt-2 text-xs text-ink/55">{store.name} no es una tienda oficial de Pokémon.</p>
+                {product.language === "zh" && <p className="mt-2 text-xs text-ink/70">{product.game === "one-piece" ? "El catálogo de Bandai identifica la edición. Las imágenes y el formato de venta corresponden a la referencia del proveedor." : "Los datos de esta ficha provienen de publicaciones del proveedor y de las fotos de su envase, no de una ficha oficial. Las imágenes son de referencia del proveedor."}</p>}
+                <p className="mt-2 text-xs text-ink/55">{store.name} no es una tienda oficial de {gameLabel[product.game ?? "pokemon"]}.</p>
               </div>
             </details>
           </section>)}

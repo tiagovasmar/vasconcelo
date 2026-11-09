@@ -166,17 +166,18 @@ test.describe("entrega, pago y consulta", () => {
     await expect(page.locator("body")).not.toContainText(/DNI|Calle y número/);
   });
 
-  test("ofrece cuotas y descuento sin cambiar la preferencia por defecto (pedido con una caja)", async ({ page }) => {
-    await seed(page, [...base, { productId: "storm-caja", quantity: 1, priceMinor: 18500000 }], { payment: "", contactName: "" });
+  test("limpia la preferencia de cuotas anterior y ofrece los métodos actuales", async ({ page }) => {
+    await seed(page, [...base, { productId: "storm-caja", quantity: 1, priceMinor: 18500000 }], { payment: "tarjeta-3-cuotas", contactName: "" });
     await open(page);
     // «Coordinar por WhatsApp» ya no existe y no hay un método elegido de antemano: queda a elección.
     await expect(page.getByRole("radio", { name: /A coordinar por WhatsApp/ })).toHaveCount(0);
-    await expect(page.getByRole("radio", { name: /transferencia|efectivo|tarjeta/i })).toHaveCount(3);
+    await expect(page.getByRole("radio", { name: /transferencia|efectivo|tarjeta/i })).toHaveCount(2);
     await expect(page.getByRole("radio", { checked: true, name: /transferencia|efectivo|tarjeta/i })).toHaveCount(0);
-    await page.getByRole("radio", { name: /Tarjeta de crédito/ }).check();
-    await expect(page.getByTestId("vista-previa")).toContainText("Tarjeta de crédito · 3 cuotas sin interés");
+    await expect(page.getByRole("radio", { name: /Tarjeta de crédito/ })).toHaveCount(0);
+    await page.getByRole("radio", { name: /^Moto/ }).check();
+    await expect(page.getByRole("region", { name: "¿Cómo preferís pagar?" })).toContainText("En CABA, Ramos Mejía y alrededores podés pagar al recibir.");
     await page.getByRole("radio", { name: /Transferencia/ }).check();
-    await expect(page.getByTestId("vista-previa")).toContainText("Transferencia · 10% OFF");
+    await expect(page.getByTestId("vista-previa")).toContainText("Transferencia");
   });
 
   test("recorrido completo en modo demo: consulta guardada, vista previa, copiar y carrito conservado", async ({ page, context, browserName }) => {

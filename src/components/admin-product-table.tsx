@@ -9,6 +9,7 @@ import { useMemo, useState } from "react";
 import { formatUSD, parseUsdInput, usdInputText, usdToArsMinor } from "@/features/fx/convert";
 import { formatARS } from "@/lib/format";
 import { useUnsavedGuard } from "./use-unsaved-guard";
+import { AdminWholesalePrices } from "./admin-wholesale-prices";
 
 export type RowState = "pending" | "available" | "soldout" | "order" | "hidden" | "draft" | "retired";
 export type AdminRow = {
@@ -33,6 +34,7 @@ export type AdminRow = {
   priceBase?: "usd" | "ars";
   /** Unidades por pack (accesorios): el stock se administra en PACKS. */
   packSize?: number | null;
+  wholesaleBaseUsd?: number | null;
 };
 
 export const stateInfo: Record<RowState, { label: string; cls: string; help: string }> = {
@@ -310,9 +312,10 @@ export function AdminProductTable({ rows, rate10k, lowThreshold = 0 }: { rows: A
                 </div>
                 <div className="col-span-2 flex flex-wrap items-center gap-2 lg:col-span-1 lg:flex-col lg:items-stretch">
                   <button type="submit" disabled={!dirty || busy[r.id] || locked} className="min-h-11 rounded-lg bg-emerald px-3 text-sm font-semibold text-paper hover:bg-emerald-2 disabled:cursor-not-allowed disabled:opacity-40" data-testid="guardar-fila">{busy[r.id] ? "…" : "Guardar"}</button>
-                  <Link href={`/admin/productos/${encodeURIComponent(r.id)}`} className="text-center text-sm font-medium underline underline-offset-4" data-testid="editar-ficha">Editar ficha</Link>
+                  <Link href={`/admin/productos/${encodeURIComponent(r.id)}`} className="text-center text-sm font-medium underline underline-offset-4" data-testid="editar-ficha">Editar ficha y fotos</Link>
                 </div>
               </form>
+              {!locked && <AdminWholesalePrices productId={r.id} title={r.title} baseUsd={r.wholesaleBaseUsd} />}
               {(msg || (r.usdMinor !== null && r.arsMinor === null)) && (
                 <p role="status" aria-live="polite" className={`mt-2 text-xs font-medium ${msg ? (msg.ok ? "text-emerald" : "text-vermilion") : "text-ink/65"}`} data-testid="mensaje">
                   {msg?.text ?? `Precio base ${formatUSD(r.usdMinor!)}: sin cotización utilizable no se muestra el valor en pesos.`}

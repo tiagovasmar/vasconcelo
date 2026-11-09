@@ -29,11 +29,13 @@ export async function loadGalleries(db: Db): Promise<Map<string, GalleryRow>> {
   return new Map((await db.select().from(productGalleries)).map((r) => [r.productId, r]));
 }
 
-/** Galería guardada → imágenes válidas (las inválidas se descartan; si no queda ninguna, rige la del código). */
+/** Galería guardada → imágenes válidas (una lista vacía guardada reemplaza la galería del catálogo). */
 export function parseGallery(row: GalleryRow | undefined): ImageAsset[] | null {
   if (!row) return null;
   try {
-    const raw = JSON.parse(row.itemsJson) as unknown[];
+    const raw: unknown = JSON.parse(row.itemsJson);
+    if (!Array.isArray(raw)) return null;
+    if (raw.length === 0) return [];
     const items = raw.map((x) => ImageAssetSchema.safeParse(x)).filter((r) => r.success).map((r) => r.data!);
     return items.length ? items : null;
   } catch {

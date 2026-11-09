@@ -42,7 +42,7 @@ export default function Mayoristas() {
               <li><b>Solo por pedido.</b> El stock que ves en la tienda minorista no es stock mayorista: la tienda confirma la disponibilidad y el importe de cada pedido antes de pedirte la seña.</li>
               <li><b>Cuenta aprobada por la tienda.</b> Solicitás la cuenta y la tienda la revisa y la aprueba manualmente. Los precios mayoristas solo se muestran a cuentas aprobadas.</li>
               <li><b>Precio según la cantidad.</b> Cada producto tiene tramos de cantidad con su precio unitario. Si todavía no llegás al primer tramo, o no hay precio, figura «A cotizar».</li>
-              <li><b>Pago.</b> {mayorista.paymentNote} No se aplican el 10% OFF por transferencia ni las 3 cuotas sin interés de la venta minorista.</li>
+              <li><b>Pago.</b> {mayorista.paymentNote}</li>
               <li><b>Seña y saldo.</b> Después de confirmar disponibilidad e importe, se abona una seña del {mayorista.senaPercent}%. El resto se paga al retirar o antes del despacho, cuando la mercadería ya llegó a Argentina. Si el paquete se pierde o un problema impide cumplir el pedido, se reintegra la seña.</li>
               <li><b>Cancelación voluntaria.</b> {mayorista.cancellationPolicy}</li>
               <li><b>Seguimiento.</b> Ves cada etapa de tu pedido en <Link href="/cuenta/consultas" className="underline">Mi cuenta</Link>, con fechas reales, y recibís avisos por correo cuando hay novedades. Los pedidos pueden llegar y entregarse en partes.</li>

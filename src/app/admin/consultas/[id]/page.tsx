@@ -68,7 +68,7 @@ export default async function AdminConsultaDetalle({ params, searchParams }: { p
         </div>
         <dl className="mt-3 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
           <div className="flex justify-between"><dt>Subtotal</dt><dd>{formatARS(i.subtotalMinor)}</dd></div>
-          <div className="flex justify-between"><dt>Descuento por transferencia</dt><dd>{i.discountMinor ? `− ${formatARS(i.discountMinor)}` : "—"}</dd></div>
+          {i.discountMinor > 0 && <div className="flex justify-between"><dt>Descuento por transferencia</dt><dd>− {formatARS(i.discountMinor)}</dd></div>}
           <div className="flex justify-between"><dt>Descuento combo caja + sobres</dt><dd data-testid="original-combo">{i.comboDiscountMinor ? `− ${formatARS(i.comboDiscountMinor)}` : "—"}</dd></div>
           <div className="flex justify-between sm:col-span-2 font-semibold"><dt>Total cotizado</dt><dd data-testid="original-total">{formatARS(i.subtotalMinor - i.discountMinor - i.comboDiscountMinor)}</dd></div>
           <div className="flex justify-between sm:col-span-2"><dt>Moneda / cotización</dt><dd className="text-right">{i.currency}{fx ? ` · ${fx}` : " · sin conversión de dólar"}</dd></div>

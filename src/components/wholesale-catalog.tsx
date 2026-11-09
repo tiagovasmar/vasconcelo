@@ -10,6 +10,7 @@ import type { Language, ProductKind } from "@/content/schema";
 import { formatARS } from "@/lib/format";
 import { newKey } from "./admin-form";
 import { SafeImage } from "./safe-image";
+import { WholesaleExport } from "./wholesale-export";
 
 /**
  * Tabla de pedido mayorista: buscar, filtrar, elegir cantidades y revisar producto, foto, idioma/edición, presentación, cantidad, precio unitario según tramo y total.
@@ -74,6 +75,7 @@ export function WholesaleCatalog({ rows, rules, rate10k, defaultName }: { rows: 
         <div><label htmlFor="may-kind" className="block text-[.7rem] font-bold uppercase tracking-[.12em] text-ink/70">Presentación</label><select id="may-kind" value={kind} onChange={(e) => setKind(e.target.value)} className={`${inp} mt-1 w-full`}><option value="">Todas</option>{kinds.map((k) => <option key={k} value={k}>{kindLabel[k as ProductKind] ?? k}</option>)}</select></div>
       </div>
       <p role="status" className="mt-3 text-sm text-ink/70">{shown.length} {shown.length === 1 ? "producto" : "productos"} · precios por tramo de cantidad{rules.combine === "pedido" ? " (las unidades de todo el pedido suman para el tramo)" : " (cada producto llega a su propio tramo)"}.</p>
+      <WholesaleExport productIds={shown.map((row) => row.productId)} minBoxes={rules.minBoxes} />
 
       <div className="relative mt-3">
         <table className={`${styles.table} text-sm`} data-testid="tabla-mayorista">
@@ -109,7 +111,7 @@ export function WholesaleCatalog({ rows, rules, rate10k, defaultName }: { rows: 
         {lines.length > 0 && quoted.problems.length > 0 && <div role="alert" data-testid="problemas-pedido"><ul className="mt-2 list-disc pl-5 text-sm font-semibold text-vermilion">{quoted.problems.map((p) => <li key={p}>{p}</li>)}</ul></div>}
         <ul className="mt-3 list-disc space-y-1 pl-5 text-xs text-ink/75">
           <li>Es un pedido, no una compra: la tienda confirma disponibilidad e importe y después se paga la seña del 20%. El resto se paga al retirar o antes del despacho, con la mercadería ya en Argentina.</li>
-          <li>Pago por transferencia o efectivo, sin descuento adicional ni cuotas sin interés. Podés consultar financiación a 3 o 6 meses: no se promete aprobación, cuotas ni tasas.</li>
+          <li>Pago por transferencia o efectivo, sin descuento adicional. La financiación mayorista a 3 o 6 meses se consulta con la tienda.</li>
           <li>Si el paquete se pierde o no se puede cumplir el pedido, se reintegra la seña.{rules.refundPeriod ? ` Plazo: ${rules.refundPeriod}` : ""}</li>
           {rules.cancellationPolicy && <li>Cancelación voluntaria: {rules.cancellationPolicy}</li>}
           {rules.delayText && <li>Demora estimada: {rules.delayText}. Se cuenta desde {rules.delayFrom}. No son fechas garantizadas.</li>}

@@ -26,6 +26,10 @@ export function authMessage(error: Err): string {
       return "Correo o contraseña incorrectos.";
     case "EMAIL_NOT_VERIFIED":
       return "Tu correo todavía no está confirmado.";
+    case "INVALID_ORIGIN":
+    case "INVALID_CALLBACK_URL":
+    case "INVALID_REDIRECT_URL":
+      return "Este dominio todavía no está habilitado para iniciar sesión. Probá desde vasconcelo.netlify.app.";
     case "PASSWORD_TOO_SHORT":
       return `La contraseña debe tener al menos ${MIN_PASSWORD} caracteres.`;
     case "PASSWORD_TOO_LONG":
@@ -35,7 +39,7 @@ export function authMessage(error: Err): string {
     case "INVALID_TOKEN":
       return "El enlace no es válido o ya venció. Pedí uno nuevo.";
     default:
-      if (error.status === 403) return "Tu correo todavía no está confirmado.";
+      if (error.status === 403) return "No se pudo autorizar el acceso desde esta dirección. Probá desde vasconcelo.netlify.app.";
       if (error.status === 401) return "Correo o contraseña incorrectos.";
       return "No pudimos completar la acción. Intentá de nuevo.";
   }
@@ -86,7 +90,7 @@ export function LoginForm({ next, notice }: { next?: string; notice?: string }) 
     const { error } = await authClient.signIn.email({ email: email.trim(), password });
     setBusy(false);
     if (error) {
-      if (error.code === "EMAIL_NOT_VERIFIED" || error.status === 403) setUnverified(true);
+      if (error.code === "EMAIL_NOT_VERIFIED") setUnverified(true);
       setFormError(authMessage(error));
       return;
     }

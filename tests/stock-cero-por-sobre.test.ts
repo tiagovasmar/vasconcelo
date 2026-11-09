@@ -127,12 +127,13 @@ describe("precio equivalente por sobre al comprar la caja", () => {
   });
 
   it("en el catálogo real solo calcula en cajas con sobres confirmados y se actualiza con el precio y la cotización", async () => {
-    const calculables = (ps: Product[]) => ps.filter((p) => pricePerBooster(p) !== null).map((p) => p.id);
+    const ids = new Set(["abyss-eye-caja", "zh-30-zhounian-set-monedas", "zh-taijing-shengju-caja", "zh-baoshibao-vol6-caja"]);
+    const calculables = (ps: Product[]) => ps.filter((p) => ids.has(p.id) && pricePerBooster(p) !== null).map((p) => p.id);
     await saveProductChange(db, base, "abyss-eye-caja", { priceUsdMinor: 152_00, expectedVersion: 0 }, actor);
     await saveProductChange(db, base, "zh-30-zhounian-set-monedas", { priceUsdMinor: 34_00, expectedVersion: 0 }, actor);
     await saveProductChange(db, base, "zh-taijing-shengju-caja", { priceUsdMinor: 20_00, expectedVersion: 0 }, actor);
     await saveProductChange(db, base, "zh-baoshibao-vol6-caja", { priceUsdMinor: 36_00, expectedVersion: 0 }, actor);
-    expect(calculables(await vista(rate(1400)))).toEqual(["abyss-eye-caja", "zh-baoshibao-vol6-caja"]); // el bundle y la caja china sin cantidad de sobres no
+    expect(calculables(await vista(rate(1400)))).toEqual(["abyss-eye-caja", "zh-taijing-shengju-caja", "zh-baoshibao-vol6-caja"]); // el set con monedas no cuenta como caja
     const a = async (fx: EffectiveRate | null) => pricePerBooster((await vista(fx)).find((p) => p.id === "abyss-eye-caja")!);
     expect(await a(rate(1400))).toMatchObject({ boosters: 30, arsMinor: 7_100_00 }); // 212.800 / 30 = 7.093 → 7.100
     expect(await a(rate(1500))).toMatchObject({ arsMinor: 7_600_00 }); // 228.000 / 30 = 7.600 exacto

@@ -8,14 +8,14 @@ import { catalog } from "@/content/catalog";
 import { listProducts } from "@/features/catalog/data";
 import type { Actor } from "@/features/catalog/overrides";
 import { currentRate } from "@/features/fx/service";
-import { usdToArsMinor } from "@/features/fx/convert";
+import { usdToArsMinor, type EffectiveRate } from "@/features/fx/convert";
 import { newReference } from "@/features/inquiries/service";
 import { isFullName, normalizeName } from "@/features/inquiries/schemas";
 import { SaleError, type SaleErrorCode } from "@/features/sales/errors";
 import { wholesaleStatusFor } from "@/features/wholesale/service";
 import { ensureTrack, trackLock } from "@/features/pedidos/service";
 import { formatARS } from "@/lib/format";
-import { missingForOpening, quote, tierFor, type Quote, type Tier, type WholesaleRow, type WholesaleRules } from "./calc";
+import { hasBasePrice, missingForOpening, quote, type Quote, type WholesaleRow, type WholesaleRules } from "./calc";
 
 /**
  * Catálogo y precios MAYORISTAS. Reglas:
@@ -23,7 +23,7 @@ import { missingForOpening, quote, tierFor, type Quote, type Tier, type Wholesal
  *  - Mayorista es exclusivamente POR PEDIDO: el stock minorista no representa stock mayorista, y un pedido mayorista no descuenta ni reserva stock.
  *  - El precio depende de la cantidad (tramos por producto). Los fija el dueño; la referencia interna conversada es costo final × 1,5 (recargo del 50% sobre costo,
  *    NO un margen sobre venta y NO un «30% menos que el minorista»). Sin tramo o sin costo: «A cotizar».
- *  - No se aplican beneficios minoristas (10% por transferencia, cuotas sin interés). Pago por transferencia o efectivo.
+ *  - Los beneficios minoristas quedan fuera de la venta mayorista. Pago por transferencia o efectivo.
  *  - Mientras el dueño no defina compra mínima, regla de combinación de productos y demora estimada, el catálogo NO se abre (los campos existen y se prueban con datos ficticios).
  */
 const fail = (status: number, code: SaleErrorCode, message: string, details?: unknown): never => { throw new SaleError(status, code, message, details); };
@@ -145,7 +145,7 @@ export async function wholesaleAccess(db: Db, userId: string | null): Promise<Wh
 }
 
 /** Productos de la tienda con sus tramos PUBLICADOS, si tienen. No incluye costos, stock minorista ni nada interno. Solo se llama tras `wholesaleAccess`. */
-export async function wholesaleCatalog(db: Db): Promise<{ rows: WholesaleRow[]; rules: WholesaleRules; rate10k: number | null }> {
+export async function wholesaleCatalog(db: Db): Promise<{ rows: WholesaleRow[]; rules: WholesaleRules; rate10k: number | null; fx: EffectiveRate }> {
   const [rules, tiers, products, fx] = await Promise.all([getRules(db), db.select().from(wholesaleTiers).where(eq(wholesaleTiers.state, "publicado")).orderBy(asc(wholesaleTiers.minQty)), listProducts(db), currentRate(db)]);
   const rate = fx.rate10k ?? null;
   const rows: WholesaleRow[] = [];
@@ -154,7 +154,8 @@ export async function wholesaleCatalog(db: Db): Promise<{ rows: WholesaleRow[]; 
     const img = p.images[0];
     rows.push({ productId: p.id, slug: p.slug, sku: p.sku, title: p.title, language: p.language, kind: p.kind, image: img && img.status !== "demo" ? { src: img.src, alt: img.alt } : null, tiers: mine.map((t) => ({ minQty: t.minQty, unitUsdMinor: t.unitPriceUsdMinor, unitArsMinor: rate ? usdToArsMinor(t.unitPriceUsdMinor, rate) : null })) });
   }
-  return { rows, rules, rate10k: rate };
+  rows.sort((a, b) => Number(hasBasePrice(b)) - Number(hasBasePrice(a)) || a.title.localeCompare(b.title, "es"));
+  return { rows, rules, rate10k: rate, fx };
 }
 
 /* ---------- Pedido mayorista ---------- */

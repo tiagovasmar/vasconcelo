@@ -24,7 +24,7 @@ const NUEVAS: Record<string, { usd: number; sku: string; sobres: number; cartas:
   "mega-symphonia-caja": { usd: 130, sku: "M1S-JP-BOX", sobres: 30, cartas: 5 },
   "pokemon-card-151-caja": { usd: 317, sku: "SV2A-JP-BOX", sobres: 20, cartas: 7 },
 };
-const base = realCatalog.products;
+const base = realCatalog.products.filter((product) => (product.game ?? "pokemon") === "pokemon");
 const rate = (r: number): EffectiveRate => ({ status: "manual", mode: "manual", rate10k: Math.round(r * 10_000), asOf: 1, providerUpdatedAt: null, source: "prueba", warn: false });
 const actor = { id: "u", email: "carga@example.com" };
 let db: Db;

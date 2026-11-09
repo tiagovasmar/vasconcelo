@@ -139,8 +139,8 @@ describe("costo histórico por venta y ganancia", () => {
     await addCommission(db, { saleId: sale.id, amountMinor: 30_000, note: "Cobro", idempotencyKey: "comision-1-aaaaaaaaaa" }, actor, T);
     expect((await addCommission(db, { saleId: sale.id, amountMinor: 30_000, idempotencyKey: "comision-1-aaaaaaaaaa" }, actor, T)).replayed).toBe(true); // no se duplica
     const rep = await profitReport(db);
-    expect(rep.rows[0]).toMatchObject({ revenueMinor: 900_000, grossMinor: 1_000_000, discountMinor: 100_000, costMinor: 400_000, commissionMinor: 30_000, profitMinor: 470_000, collectedMinor: null });
-    expect(rep.totals).toMatchObject({ billedMinor: 900_000, collectedMinor: 0, profitMinor: 470_000 }); // facturado ≠ cobrado ≠ ganancia
+    expect(rep.rows[0]).toMatchObject({ revenueMinor: 900_000, grossMinor: 1_000_000, discountMinor: 100_000, costMinor: 400_000, commissionMinor: 30_000, profitMinor: 470_000, collectedMinor: 900_000 });
+    expect(rep.totals).toMatchObject({ billedMinor: 900_000, collectedMinor: 900_000, outstandingMinor: 0, profitMinor: 470_000 });
   });
 });
 

@@ -136,8 +136,8 @@ export function previewAddons(products: Product[], combo: ComboConfig, cart: Car
     } else if (!line) problems.push({ productId: a.productId, title: a.productId, status: "unavailable", room: 0, unitPriceMinor: null, message: "Un producto ya no está disponible." });
   }
 
-  const pb = before.pricing("");
-  const pa = after.pricing("");
+  const pb = before.pricing;
+  const pa = after.pricing;
   const kindOf = (id: string) => products.find((p) => p.id === id)?.kind;
   const delta = (id: string) => {
     const x = pa.lines.find((l) => l.productId === id);

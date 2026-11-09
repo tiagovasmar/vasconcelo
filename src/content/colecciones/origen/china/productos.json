@@ -1441,7 +1441,7 @@
         "china",
         "espada y escudo"
       ],
-      "descripcion": "Caja de sobres de la colección china «胜象星引» (serie 剑&盾 (Espada y Escudo)), en chino simplificado. Cada sobre de esta colección trae 6 cartas al azar según su envase. La cantidad de sobres por caja no figura en el material suministrado y queda pendiente de confirmar. No equivale a las ediciones japonesas ni a las internacionales.",
+      "descripcion": "Caja estándar de Victory Star Guide (CS6.5C) en chino simplificado. Trae 20 sobres de 6 cartas aleatorias cada uno, 120 cartas en total, según la referencia comercial de este formato.",
       "contenido": [
         {
           "label": "Cartas por sobre",
@@ -1451,7 +1451,9 @@
         },
         {
           "label": "Sobres por caja",
-          "note": "Dato pendiente: no figura en el material suministrado."
+          "quantity": 20,
+          "unit": "sobres",
+          "note": "Cantidad informada para la caja estándar CS6.5C."
         }
       ],
       "evidencia": "SKU_16: foto de la caja rotulada «胜象星引» y «强化包»; la foto es pequeña y no muestra la cantidad de sobres. Imagen de la publicación surtida de la tienda «百变怪TCG卡牌» (revendedor): la variante se identifica por el texto impreso en el envase.",
@@ -1484,7 +1486,7 @@
         "china",
         "espada y escudo"
       ],
-      "descripcion": "Caja de sobres de la colección china «暗影夺辉» (serie 剑&盾 (Espada y Escudo)), en chino simplificado. Cada sobre de esta colección trae 6 cartas al azar según su envase. La cantidad de sobres por caja no figura en el material suministrado y queda pendiente de confirmar. No equivale a las ediciones japonesas ni a las internacionales.",
+      "descripcion": "Caja estándar de Shadow of Glory (CS5.5C) en chino simplificado. Trae 20 sobres de 6 cartas aleatorias cada uno, 120 cartas en total, según la referencia comercial de este formato.",
       "contenido": [
         {
           "label": "Cartas por sobre",
@@ -1494,7 +1496,9 @@
         },
         {
           "label": "Sobres por caja",
-          "note": "Dato pendiente: no figura en el material suministrado."
+          "quantity": 20,
+          "unit": "sobres",
+          "note": "Cantidad informada para la caja estándar CS5.5C."
         }
       ],
       "evidencia": "SKU_18: foto de la caja rotulada «暗影夺辉» y «强化包»; la foto es pequeña y no muestra la cantidad de sobres. Imagen de la publicación surtida de la tienda «百变怪TCG卡牌» (revendedor): la variante se identifica por el texto impreso en el envase.",
@@ -1527,7 +1531,7 @@
         "china",
         "17.5"
       ],
-      "descripcion": "Caja sellada de sobres de la colección china «太晶盛聚» (serie 朱&紫), en chino simplificado. Los sobres traen 10 cartas al azar según el envase. La cantidad de sobres por caja no figura en el material suministrado y queda pendiente de confirmar. El título de la publicación de origen habla de «补充包10张装» (sobres de 10 cartas) y las fotos muestran la caja: se publica como caja y la unidad de venta final se confirma con el proveedor.",
+      "descripcion": "Caja de Terastal Gathering (CSV9.5C) en chino simplificado. Trae 10 sobres de 10 cartas aleatorias cada uno, 100 cartas en total, según la referencia comercial de este formato.",
       "contenido": [
         {
           "label": "Cartas por sobre",
@@ -1537,7 +1541,9 @@
         },
         {
           "label": "Sobres por caja",
-          "note": "Dato pendiente: no figura en el material suministrado."
+          "quantity": 10,
+          "unit": "sobres",
+          "note": "Cantidad informada para la caja CSV9.5C."
         }
       ],
       "evidencia": "Principal_01 y SKU_01: caja celofanada con la insignia «csv9.5C · 每包随机封入10张卡牌»; Principal_02/03/04: cajas apiladas y cajas en cartón del vendedor. El título dice «补充包10张装», que puede referirse al sobre: se resolvió por lo que muestran las fotos (caja). Cantidad de sobres por caja: no visible.",
@@ -1634,12 +1640,13 @@
         "chino",
         "china"
       ],
-      "descripcion": "Set de la edición china simplificada del 30.º aniversario con 3 sobres de 30周年庆典 y 2 monedas de Pikachu, según el rótulo del proveedor («【硬币套装】»). No incluye otros accesorios verificados.",
+      "descripcion": "Set de la edición china simplificada del 30.º aniversario con 3 sobres de 6 cartas aleatorias cada uno y 2 monedas de Pikachu, según el rótulo del proveedor («【硬币套装】»).",
       "contenido": [
         {
           "label": "Sobres de 30周年庆典",
           "quantity": 3,
-          "unit": "sobres"
+          "unit": "sobres",
+          "note": "6 cartas aleatorias por sobre."
         },
         {
           "label": "Monedas de Pikachu",
@@ -2074,7 +2081,7 @@
         "喷火驼",
         "来悲粗茶"
       ],
-      "descripcion": "Caja de la edición china simplificada «嗨皮组合» con cuatro mazos de 60 cartas (快龙ex, 超梦ex, 喷火驼 y 来悲粗茶) y sobres complementarios. Es un solo producto con los cuatro mazos juntos, no cuatro variantes. Los nombres en español de los Pokémon no están verificados; se conserva el nombre chino.",
+      "descripcion": "Caja de la edición china simplificada «嗨皮组合» con cuatro mazos de 60 cartas (快龙ex, 超梦ex, 喷火驼 y 来悲粗茶). Incluye 7 sobres de 2 cartas, 1 pack de mejora de 10 cartas y 1 pack de premio de 1 carta. Los cuatro mazos vienen juntos en la misma caja.",
       "contenido": [
         {
           "label": "Mazos de 60 cartas (快龙ex, 超梦ex, 喷火驼, 来悲粗茶)",

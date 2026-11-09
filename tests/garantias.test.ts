@@ -7,7 +7,10 @@ import recortes from "@/content/colecciones/imagenes-recortes.json";
 import { aleatoriedad, conRarezas, tituloGarantia } from "@/features/catalog/garantias";
 import { validateCatalog } from "@/features/catalog/validate";
 
-const { products, guarantees, sources } = realCatalog;
+const { guarantees, sources } = realCatalog;
+const products = realCatalog.products.filter((product) => (product.game ?? "pokemon") === "pokemon");
+const anniversarySets = products.filter((p) => p.rarityReview?.sourceIds.includes("zh-30th-sets-oficial"));
+const slim = (id: string) => id.startsWith("zh-151-") || ["zh-black-bolt-slim-caja", "zh-white-flare-slim-caja"].includes(id);
 const pub = (p: string) => path.join(process.cwd(), "public", p.replace(/^\//, ""));
 
 describe("qué garantiza cada caja (contenido físico / rarezas documentadas / observada)", () => {
@@ -20,8 +23,8 @@ describe("qué garantiza cada caja (contenido físico / rarezas documentadas / o
   it("cada caja, caja especial y kit trae su revisión de rarezas con fuentes que existen; los sobres no", () => {
     const sinFuente = products.find((p) => p.id === "zh-30-zhounian-caja");
     expect(sinFuente?.rarityReview).toBeUndefined();
-    const aplicables = products.filter((p) => p !== sinFuente && !p.id.startsWith("zh-151-") && ["box", "special-box", "kit"].includes(p.kind));
-    expect(aplicables).toHaveLength(8 + 6 + 4 + 2 + 3); // cajas japonesas + seis cajas japonesas nuevas + cajas chinas + cajas especiales + kits
+    const aplicables = products.filter((p) => p !== sinFuente && !slim(p.id) && ["box", "special-box", "kit"].includes(p.kind));
+    expect(aplicables).toHaveLength(8 + 6 + 4 + 2 + 3 + 5); // incluye los cinco kits y cajas especiales del aniversario
     for (const p of aplicables) {
       expect(p.rarityReview, p.id).toBeDefined();
       expect(p.rarityReview!.status).toBe("not_documented");
@@ -42,11 +45,19 @@ describe("qué garantiza cada caja (contenido físico / rarezas documentadas / o
       expect(p.rarityReview!.sourceIds, p.id).toEqual([`box-${p.expansionIds[0]}`, `exp-${p.expansionIds[0]}`]);
       expect(p.rarityReview!.note).toMatch(/Pokémon Center Online/);
     }
-    for (const p of products.filter((x) => ["box", "special-box", "kit"].includes(x.kind) && x.language === "zh" && !x.id.startsWith("zh-151-") && x.id !== "zh-30-zhounian-caja")) {
+    for (const p of products.filter((x) => ["box", "special-box", "kit"].includes(x.kind) && x.language === "zh" && !slim(x.id) && x.id !== "zh-30-zhounian-caja" && !anniversarySets.includes(x))) {
       expect(p.rarityReview!.sourceIds, p.id).toHaveLength(1);
       expect(p.rarityReview!.sourceIds[0]).toMatch(/^zh-src-/);
       expect(p.rarityReview!.note).toMatch(/no declara rarezas garantizadas/);
       expect(p.rarityReview!.note).toMatch(/ni se trasladó ninguna garantía japonesa/);
+    }
+  });
+
+  it("los cinco sets del aniversario documentan el contenido fijo y los sobres aleatorios", () => {
+    expect(anniversarySets).toHaveLength(5);
+    for (const p of anniversarySets) {
+      expect(p.rarityReview?.note).toMatch(/contenido fijo.*aleatorias/);
+      expect(p.contents).toContainEqual(expect.objectContaining({ label: "Sobres del 30.º aniversario", unit: "sobres" }));
     }
   });
 
@@ -69,7 +80,9 @@ describe("qué garantiza cada caja (contenido físico / rarezas documentadas / o
   });
 
   it("las cajas especiales de Ogerpon documentan la composición del sobre «北上乡专题包» sin transcribir la tabla de probabilidades", () => {
-    for (const p of products.filter((x) => x.kind === "special-box")) {
+    const ogerpon = products.filter((p) => p.kind === "special-box" && p.contents.some((item) => item.label.includes("北上乡专题包")));
+    expect(ogerpon).toHaveLength(2);
+    for (const p of ogerpon) {
       const c = p.contents.find((x) => x.label.includes("北上乡专题包"))!;
       expect(c.note).toMatch(/3 de Pokémon, 1 Pokémon ex fija y 1 de Entrenador/);
     }

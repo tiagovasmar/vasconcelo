@@ -1,24 +1,7 @@
-import type { ProductKind } from "./schema";
-
 /**
  * Condiciones comerciales de la tienda. Lo CONFIRMADO por el dueño está como valor; lo que sigue sin definir es `null`
  * o `false` y NO se inventa: ver docs/POLITICAS.md.
  */
-
-/** Promociones minoristas (confirmadas por el dueño el 13/10/2026): 3 cuotas sin interés o 10% OFF por transferencia con al menos una caja. */
-export const promo = {
-  /** Cantidad mínima de cajas en el pedido para habilitar las promociones. Con sobres solos no aplican. */
-  minBoxes: 1,
-  /** Formatos que cuentan como «caja». Kits, bundles y cajas especiales NO cuentan hasta que el dueño lo defina. */
-  boxKinds: ["box"] as readonly ProductKind[],
-  installments: 3,
-  transferDiscountPercent: 10,
-  /**
-   * A qué importe se aplica el 10%: `order-products` = todo el subtotal de productos de un pedido que califica (interpretación de
-   * trabajo: el dueño no detalló el tratamiento de los sobres que acompañan a la caja); `boxes-only` = solo las cajas. El envío nunca entra.
-   */
-  discountScope: "order-products" as "order-products" | "boxes-only",
-};
 
 /**
  * Cuenta y catálogo mayorista. Confirmado por el dueño (02/11/2026): la cuenta se solicita y el dueño la aprueba A MANO; es exclusivamente POR PEDIDO (el stock minorista no cuenta);

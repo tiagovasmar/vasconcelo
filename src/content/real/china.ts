@@ -47,7 +47,13 @@ const nombreEnTexto = (x: NameData, nombreEs?: string) => {
   return `Nombre principal en inglés «${x.nombreEnPrincipal}»: ${tipo}.${dudas}${variantes}${nombreEs ? ` Nombre anterior en español: «${nombreEs}».` : ""}`;
 };
 
-export const sources: Source[] = [{ id: "zh-30th-cartas-oficial", url: "https://campaign-30th.pokemon.cn/products/30th-celebration/", publisher: "Pokémon China", consultedAt: "2026-11-05", scope: "Selección de cartas mostradas en la campaña oficial china del 30 aniversario." }, ...datos.fuentes.map((f) => ({
+const boxSources: Record<string, Source> = {
+  "zh-shengxiang-xingyin-caja": { id: "zh-victory-box", url: "https://legendarysealed.com/series/surging-star", publisher: "Legendary Sealed", consultedAt: "2026-11-09", scope: "Referencia comercial de la caja estándar CS6.5C: 20 sobres de 6 cartas." },
+  "zh-anying-duohui-caja": { id: "zh-shadow-box", url: "https://legendarysealed.com/series/shadow-of-glory", publisher: "Legendary Sealed", consultedAt: "2026-11-09", scope: "Referencia comercial de la caja estándar CS5.5C: 20 sobres de 6 cartas." },
+  "zh-taijing-shengju-caja": { id: "zh-terastal-box", url: "https://simplifiedtcg.com/products/pokemon-tcg-crystal-gathering-simplified-chinese-csv9-5c/", publisher: "SimplifiedTCG", consultedAt: "2026-11-09", scope: "Ficha comercial de la caja CSV9.5C: 10 sobres de 10 cartas." },
+};
+
+export const sources: Source[] = [{ id: "zh-30th-cartas-oficial", url: "https://campaign-30th.pokemon.cn/products/30th-celebration/", publisher: "Pokémon China", consultedAt: "2026-11-05", scope: "Selección de cartas mostradas en la campaña oficial china del 30 aniversario." }, ...Object.values(boxSources), ...datos.fuentes.map((f) => ({
   id: sourceId(f.id),
   url: f.url,
   publisher: `Publicación en ${f.plataforma === "tmall" ? "Tmall" : "Taobao"} · tienda «${f.tienda}»${f.tienda.includes("官方旗舰店") ? " (se presenta como tienda oficial; no verificado)" : " (revendedor)"}`,
@@ -129,7 +135,7 @@ export const products: Product[] = datos.productos.map((p): Product => {
   };
 });
 
-// La lista del proveedor identifica la edición china por caja, sin detallar cuántos sobres trae.
+// La captura del proveedor indica 20 sobres por caja y 6 cartas por sobre.
 products.push({
   ...products.find((p) => p.id === "zh-30-zhounian-sobre-6")!,
   id: "zh-30-zhounian-caja",
@@ -146,19 +152,22 @@ products.push({
   kind: "box",
   variant: "Caja",
   images: [{
-    src: "/images/products/ZH-30TH-CN-BOX/caja-transparente.png",
-    alt: "Imagen de referencia de la caja abierta de 30th Celebration",
-    width: 1254,
-    height: 1254,
+    src: "/images/products/ZH-30TH-CN-BOX/caja-referencia-v3.webp",
+    alt: "Imagen de referencia de la caja abierta de 30th Celebration en chino simplificado",
+    width: 723,
+    height: 851,
     opaque: false,
     status: "reference",
-    source: "illustration",
+    source: "supplier",
     view: "display-open",
-    origin: "Imagen aportada por el dueño y restaurada con edición generativa.",
-    license: "Imagen de referencia para el catálogo.",
+    origin: "https://pokecardhouse.com/products/cn-30th-celebration-pokemon-booster-pack-box-s-chinese",
+    license: "Imagen de referencia publicada por PokeCardHouse. El enlace identifica el origen de la foto.",
   }],
-  description: "Caja de 30th Celebration en chino simplificado, según la publicación del proveedor de la compra. La imagen de referencia muestra el exhibidor abierto. Cantidad de sobres a confirmar con el proveedor.",
-  contents: [],
+  description: "Caja de 30th Celebration en chino simplificado. Según la publicación del proveedor, trae 20 sobres de 6 cartas aleatorias cada uno, 120 cartas en total. La imagen de referencia muestra el exhibidor abierto.",
+  contents: [
+    { label: "Sobres por caja", quantity: 20, unit: "sobres", note: "Según la publicación del proveedor." },
+    { label: "Cartas por sobre", quantity: 6, unit: "cartas", note: "Al azar." },
+  ],
   guaranteeIds: [],
 });
 
@@ -175,7 +184,7 @@ export const guarantees: Guarantee[] = datos.productos.map((p): Guarantee => ({
   quantityKind: "fixed",
   statement: p.tipo === "booster" ? `${p.contenido[0].quantity} cartas por sobre, al azar (cantidad leída en el envase). No indica qué cartas son ni su rareza.` : "Contenido físico según la ficha y las fotos del proveedor (detalle en la descripción de la ficha). Las cartas de los sobres vienen al azar y no se garantiza ninguna carta concreta ni rareza.",
   evidence: "seller_pack_contents",
-  sourceIds: [sourceId(p.fuente)],
+  sourceIds: [sourceId(p.fuente), ...(boxSources[p.id] ? [boxSources[p.id].id] : [])],
   reviewedAt: FECHA,
 }));
 

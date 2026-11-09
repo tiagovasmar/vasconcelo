@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { store } from "@/content/store";
+import { PAY_ON_DELIVERY_NOTICE } from "@/content/checkout-options";
 import { SearchIcon, TruckIcon, ArrowIcon } from "./icons";
 import { AccountLink } from "./account-provider";
 import { CartLink } from "./cart-widgets";
@@ -19,14 +20,12 @@ export function Header() {
   return (
     <header className="relative z-40">
       <div className="bg-emerald text-paper">
-        <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4 px-4 py-2 text-[.72rem] sm:px-8">
-          <p className="flex items-center gap-2">
-            <TruckIcon />
-            <span>
-              <b>Andreani</b> · Moto en CABA y AMBA · Retiro en Av. Rivadavia 14600
-            </span>
+        <div className="mx-auto flex max-w-[1440px] flex-col items-center gap-1 px-4 py-2 text-center text-xs sm:px-8 md:flex-row md:justify-between md:gap-4 md:text-left">
+          <p className="font-semibold text-gold">Distribuidora de productos TCG asiáticos</p>
+          <p className="inline-flex items-center gap-2">
+            <span aria-hidden="true" className="shrink-0"><TruckIcon /></span>
+            <span>{PAY_ON_DELIVERY_NOTICE}</span>
           </p>
-          <p className="mono-label hidden shrink-0 text-gold lg:block">Pokémon TCG // Productos sellados // Envíos a todo el país</p>
         </div>
       </div>
       <div className="paper-texture border-b border-ink/15">
@@ -43,6 +42,7 @@ export function Header() {
             ))}
           </nav>
           <form action="/sellados" role="search" className="ml-auto hidden items-center gap-2 border-b border-ink/40 md:flex">
+            <input type="hidden" name="juego" value="todos" />
             <label htmlFor="q-header" className="sr-only">
               Buscar productos
             </label>
@@ -62,6 +62,7 @@ export function Header() {
               <nav aria-label="Móvil" className="absolute inset-x-0 top-full z-50 border-y border-ink bg-paper shadow-[0_14px_0_rgba(18,23,21,.18)]">
                 <div className="mx-auto max-w-[1440px] px-4 pb-5 pt-4 sm:px-8">
                   <form action="/sellados" role="search" className="flex items-center gap-3 border border-ink/40 bg-white px-4">
+                    <input type="hidden" name="juego" value="todos" />
                     <SearchIcon />
                     <label htmlFor="q-mobile" className="sr-only">
                       Buscar productos

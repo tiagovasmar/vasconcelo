@@ -56,14 +56,15 @@ describe("la consulta guarda moneda base, precios y el detalle del descuento", (
     const lines = await db.select().from(inquiryLines).where(eq(inquiryLines.inquiryId, inquiry.reference));
     expect(lines.reduce((t, l) => t + l.comboDiscountMinor, 0)).toBe(row.comboDiscountMinor);
   });
-  it("transferencia: sin doble descuento (los 10% no se suman) y el total coincide con la suma de las líneas", async () => {
+  it("transferencia: solo descuenta el combo y el total coincide con la suma de las líneas", async () => {
     const { inquiry } = await inq([{ productId: "storm-caja", quantity: 1 }, { productId: "storm-sobre", quantity: 5 }], { payment: "transferencia" });
-    expect(inquiry.comboDiscountMinor).toBe(0);
-    expect(inquiry.discountMinor).toBe(1850000 + 5 * 95000);
+    expect(inquiry.comboDiscountMinor).toBe(5 * 95000);
+    expect(inquiry.discountMinor).toBe(0);
+    expect(inquiry.lines.every((line) => line.transferDiscountMinor === 0)).toBe(true);
     expect(inquiry.lines.reduce((t, l) => t + (l.lineSubtotalMinor ?? 0) - l.comboDiscountMinor - l.transferDiscountMinor, 0)).toBe(inquiry.subtotalMinor - inquiry.discountMinor - inquiry.comboDiscountMinor);
   });
-  it("cuotas: rige el combo y no hay descuento de transferencia", async () => {
-    const { inquiry } = await inq([{ productId: "storm-caja", quantity: 1 }, { productId: "storm-sobre", quantity: 2 }], { payment: "tarjeta-3-cuotas" });
+  it("efectivo: rige el combo y no hay descuento de transferencia", async () => {
+    const { inquiry } = await inq([{ productId: "storm-caja", quantity: 1 }, { productId: "storm-sobre", quantity: 2 }], { payment: "efectivo" });
     expect(inquiry.discountMinor).toBe(0);
     expect(inquiry.comboDiscountMinor).toBe(2 * 95000);
   });
@@ -132,11 +133,11 @@ describe("accesorios: precio fijo en pesos y stock por pack", () => {
     expect(products.find((p) => p.id === SLEEVES_ID)!.priceMinor).toBe(100000);
     expect(products.find((p) => p.id === "storm-sobre")!.priceMinor).toBe(950000); // demo: precio ARS fijo de ejemplo (sin USD)
   });
-  it("no reciben el combo ni el 10% por transferencia, y no habilitan las promociones de pago", async () => {
+  it("no reciben el combo y pueden pagarse por transferencia", async () => {
     const { inquiry } = await inq([{ productId: "storm-caja", quantity: 1 }, { productId: "storm-sobre", quantity: 2 }, { productId: SLEEVES_ID, quantity: 3 }], { payment: "transferencia" });
     const s = inquiry.lines.find((l) => l.productId === SLEEVES_ID)!;
     expect(s).toMatchObject({ comboDiscountMinor: 0, transferDiscountMinor: 0 });
-    expect((await err(inq([{ productId: SLEEVES_ID, quantity: 1 }], { payment: "transferencia" }))).code).toBe("promo_not_eligible");
+    expect((await inq([{ productId: SLEEVES_ID, quantity: 1 }], { payment: "transferencia" })).inquiry.discountMinor).toBe(0);
   });
   it("el dueño edita el precio fijo en pesos (con historial) y no puede mezclar monedas", async () => {
     await saveProductChange(db, base, SLEEVES_ID, { priceArsMinor: 120000, stock: 7, expectedVersion: 0 }, actor);

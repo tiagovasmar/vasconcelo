@@ -57,6 +57,20 @@
       "when": 1793848630413,
       "tag": "0007_compras_importaciones",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794103186781,
+      "tag": "0008_pedidos_mayoristas_control",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1794104336531,
+      "tag": "0009_mayorista_costos_usd",
+      "breakpoints": true
     }
   ]
 }

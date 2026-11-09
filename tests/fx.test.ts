@@ -2,12 +2,11 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { type Db } from "@/db/client";
 import { openTestDb } from "./helpers/pg";
 import {
-  evaluateRate, formatRate, formatUSD, isPlausibleJump, parseRateInput, parseUsdInput, splitInstallments, toRate10k, usdInputText, usdToArsMinor,
+  evaluateRate, formatRate, formatUSD, isPlausibleJump, parseRateInput, parseUsdInput, toRate10k, usdInputText, usdToArsMinor,
   FRESH_MAX_AGE_MS, HOUR, PROVIDER_MAX_AGE_MS, USABLE_MAX_AGE_MS, type FxStoredState,
 } from "@/features/fx/convert";
 import { FxError, getEffectiveRate, getFxRow, listFxLog, parseProviderResponse, refreshRate, setManualRate, setMode, type FetchLike } from "@/features/fx/service";
 import { senaYSaldo } from "@/features/politicas/encargos";
-import { transferDiscountMinor } from "@/features/politicas/promociones";
 
 const actor = { id: "u1", email: "dueno@example.com" };
 const NOW = Date.UTC(2026, 9, 14, 15, 0, 0);
@@ -210,23 +209,7 @@ describe("actualización y persistencia (con proveedor simulado, sin red)", () =
   });
 });
 
-describe("cuotas, descuento y seña sin redondeos sucesivos", () => {
-  it("las cuotas suman exactamente el total (el residuo se reparte de a un centavo)", async () => {
-    for (const total of [1_230_000, 1_000_001, 1_000_002, 7, 0, 99_999_999]) {
-      const parts = splitInstallments(total, 3);
-      expect(parts).toHaveLength(3);
-      expect(parts.reduce((a, b) => a + b, 0)).toBe(total);
-      expect(Math.max(...parts) - Math.min(...parts)).toBeLessThanOrEqual(1);
-    }
-    expect(splitInstallments(1_000_001, 3)).toEqual([333_334, 333_333, 333_334].sort((a, b) => b - a));
-    expect(splitInstallments(100, 0)).toEqual([]);
-  });
-  it("con precios en múltiplos de $100 el 10% por transferencia es exacto (no se redondea el porcentaje)", async () => {
-    const lines = [{ kind: "box" as const, quantity: 3, unitPriceMinor: 1_230_000 }, { kind: "booster" as const, quantity: 2, unitPriceMinor: 240_000 }];
-    const base = 3 * 1_230_000 + 2 * 240_000;
-    expect(transferDiscountMinor(lines, "transferencia")).toBe(base / 10);
-    expect(transferDiscountMinor(lines, "coordinar")).toBe(0);
-  });
+describe("descuento y seña sin redondeos sucesivos", () => {
   it("seña del 20% + saldo = importe cotizado, sin redondear cada parte a $100", async () => {
     const q = 1_230_000 * 3 + 240_000;
     const r = senaYSaldo(q)!;

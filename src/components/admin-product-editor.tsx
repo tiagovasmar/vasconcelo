@@ -5,11 +5,12 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { formatARS } from "@/lib/format";
 import { formatUSD, parseUsdInput, usdInputText, usdToArsMinor } from "@/features/fx/convert";
 import { stateInfo, type RowState } from "./admin-product-table";
 import { useUnsavedGuard } from "./use-unsaved-guard";
+import { AdminWholesalePrices } from "./admin-wholesale-prices";
 
 export type GalleryItem = { src: string; thumb: string; alt: string; width: number; height: number; source?: "store" | "supplier" | "manufacturer" | "illustration"; origin?: string; upload: boolean; /** El archivo no existe en el servidor (ilustración de reserva): no se puede mostrar la miniatura. */ missing?: boolean };
 export type LibraryItem = { src: string; thumb: string; alt: string; from: string };
@@ -108,7 +109,9 @@ export function AdminProductEditor({ data }: { data: EditorData }) {
   /* ----------------------------------------------------------------- fotos ----------------------------------------------------------------- */
   const [items, setItems] = useState<GalleryItem[]>(data.gallery.items);
   const [gVersion, setGVersion] = useState(data.gallery.version);
-  const [gBusy, setGBusy] = useState(false);
+  const [gSaving, setGBusy] = useState(false);
+  const [gRefreshing, refreshGallery] = useTransition();
+  const gBusy = gSaving || gRefreshing;
   const [gMsg, setGMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const gSignature = sig(data.gallery.items) + data.gallery.version;
   const [gSeen, setGSeen] = useState(gSignature);
@@ -218,7 +221,7 @@ export function AdminProductEditor({ data }: { data: EditorData }) {
     return next;
   });
   const setAlt = (i: number, alt: string) => setItems((cur) => cur.map((x, k) => (k === i ? { ...x, alt } : x)));
-  const remove = (i: number) => setItems((cur) => (cur.length <= 1 ? cur : cur.filter((_, k) => k !== i)));
+  const remove = (i: number) => setItems((cur) => cur.filter((_, k) => k !== i));
 
   /**
    * Sube una o VARIAS fotos, de a una y en el orden elegido (el servidor valida y optimiza cada una). Las aceptadas se suman al final de la galería
@@ -289,8 +292,8 @@ export function AdminProductEditor({ data }: { data: EditorData }) {
         return;
       }
       setGVersion(body.version);
-      setGMsg({ ok: true, text: "Galería guardada. La portada y el orden ya se ven en la tienda." });
-      router.refresh();
+      setGMsg({ ok: true, text: items.length ? "Galería guardada. La portada y el orden ya se ven en la tienda." : "Galería guardada. La ficha queda sin fotos." });
+      refreshGallery(() => router.refresh());
     } catch {
       setGMsg({ ok: false, text: "No hay conexión con el servidor. No se guardó nada." });
     } finally {
@@ -310,7 +313,7 @@ export function AdminProductEditor({ data }: { data: EditorData }) {
         return;
       }
       setGMsg({ ok: true, text: "Galería restablecida a la del catálogo por código." });
-      router.refresh();
+      refreshGallery(() => router.refresh());
     } catch {
       setGMsg({ ok: false, text: "No hay conexión con el servidor." });
     } finally {
@@ -324,11 +327,12 @@ export function AdminProductEditor({ data }: { data: EditorData }) {
     <div className="space-y-8">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs text-ink/70"><Link href="/admin" className="underline underline-offset-4">← Volver a la lista</Link></p>
+          <p className="text-xs text-ink/70"><Link href="/admin/productos" className="underline underline-offset-4">← Volver a la lista</Link></p>
           <h1 className="mt-2 text-xl font-semibold leading-tight sm:text-2xl" data-testid="editor-titulo">{data.codeTitle}</h1>
           <p className="mt-1 text-xs text-ink/70">{data.expansion} · {data.language} · {data.kind} · <span className="font-mono">{data.sku}</span></p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
+          {!locked && <a href="#h-fotos" className={btn + " inline-flex items-center"}>Editar fotos</a>}
           <span className={`rounded-full px-3 py-1 text-xs font-semibold ring-1 ${info.cls}`} data-testid="estado" title={info.help}>{info.label}</span>
           <a href={`/productos/${data.slug}?preview=1`} target="_blank" rel="noopener" className={btn + " inline-flex items-center"} data-testid="vista-previa">Previsualizar ficha pública ↗</a>
         </div>
@@ -419,85 +423,89 @@ export function AdminProductEditor({ data }: { data: EditorData }) {
         </div>
         <p className="text-xs text-ink/60">{data.overridden ? `Valores del panel · último cambio ${data.updatedLabel}.` : "Valores del catálogo por código (sin cambios en el panel)."}</p>
       </form>
+      {!data.retired && <AdminWholesalePrices productId={data.id} title={data.title} />}
 
       <section aria-labelledby="h-fotos" className="space-y-4 rounded-xl border border-ink/15 bg-white p-4 sm:p-6" data-testid="editor-fotos">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 id="h-fotos" className="text-lg font-semibold">Fotos</h2>
-            <p className="mt-1 max-w-2xl text-xs text-ink/65">La primera foto es la <b>portada</b> (la que se ve en tarjetas y listas). Las fotos de proveedor son referencias; subí acá las de tu stock real cuando las tengas.</p>
+            <p className="mt-1 max-w-2xl text-xs text-ink/65">La primera foto es la <b>portada</b> (la que se ve en tarjetas y listas). Las fotos de proveedor son referencias; subí acá las de tu stock real cuando las tengas. Si quitás una foto, queda disponible en la biblioteca.</p>
           </div>
           <p className="text-xs text-ink/65">{data.gallery.custom ? "Galería elegida en el panel" : "Galería del catálogo por código"}</p>
         </div>
 
-        <ol className="space-y-3" data-testid="galeria-lista">
-          {items.map((im, i) => (
-            <li key={im.src} className="grid grid-cols-[88px_minmax(0,1fr)] gap-3 rounded-lg border border-ink/15 p-3 sm:grid-cols-[112px_minmax(0,1fr)_auto]" data-testid={`foto-${i}`}>
-              <div className="relative flex h-24 w-[88px] items-center justify-center overflow-hidden rounded-md bg-paper-2 sm:h-28 sm:w-28">
-                {im.missing ? <span className="px-1 text-center text-[.65rem] text-ink/80">archivo no disponible</span> : <img src={im.thumb} alt="" className="h-full w-full object-contain" loading="lazy" />}
-                {i === 0 && <span className="absolute left-1 top-1 rounded bg-emerald px-1.5 py-0.5 text-[.6rem] font-bold uppercase text-paper" data-testid="portada">Portada</span>}
-              </div>
-              <div className="min-w-0">
-                <label htmlFor={`alt-${i}`} className={label}>Texto alternativo</label>
-                <textarea id={`alt-${i}`} value={im.alt} onChange={(e) => setAlt(i, e.target.value)} rows={2} maxLength={250} className={field + " py-2 text-sm"} />
-                <p className="mt-1 text-xs text-ink/60">{im.width}×{im.height}px{im.upload ? ` · subida desde el panel (${im.source === "store" ? "mi stock real" : im.source === "supplier" ? "referencia de proveedor" : "referencia del fabricante"})` : im.source === "supplier" ? " · foto de proveedor (referencia)" : im.source === "illustration" ? " · imagen ilustrativa generada: NO es una foto del stock real" : ""}</p>
-              </div>
-              <div className="col-span-2 flex flex-wrap gap-2 sm:col-span-1 sm:flex-col">
-                <button type="button" className={btn} onClick={() => move(i, i - 1)} disabled={i === 0} aria-label={`Subir la foto ${i + 1}`}>↑ Subir</button>
-                <button type="button" className={btn} onClick={() => move(i, i + 1)} disabled={i === items.length - 1} aria-label={`Bajar la foto ${i + 1}`}>↓ Bajar</button>
-                {i > 0 && <button type="button" className={btn} onClick={() => move(i, 0)} data-testid="hacer-portada">Hacer portada</button>}
-                <button type="button" className={btn + " text-vermilion"} onClick={() => remove(i)} disabled={items.length <= 1} aria-label={`Quitar la foto ${i + 1}`}>Quitar</button>
-              </div>
-            </li>
-          ))}
-        </ol>
+        {items.length === 0 && <p className="rounded-lg bg-paper-2 p-3 text-sm">{galleryDirty ? "La ficha quedará sin fotos cuando guardes." : "La ficha no tiene fotos."} Podés subir otras o restaurar las originales.</p>}
+        <fieldset aria-label="Editar galería" className="min-w-0 space-y-4" disabled={gBusy || locked}>
+          <ol className="space-y-3" data-testid="galeria-lista">
+            {items.map((im, i) => (
+              <li key={im.src} className="grid grid-cols-[88px_minmax(0,1fr)] gap-3 rounded-lg border border-ink/15 p-3 sm:grid-cols-[112px_minmax(0,1fr)_auto]" data-testid={`foto-${i}`}>
+                <div className="relative flex h-24 w-[88px] items-center justify-center overflow-hidden rounded-md bg-paper-2 sm:h-28 sm:w-28">
+                  {im.missing ? <span className="px-1 text-center text-[.65rem] text-ink/80">archivo no disponible</span> : <img src={im.thumb} alt="" className="h-full w-full object-contain" loading="lazy" />}
+                  {i === 0 && <span className="absolute left-1 top-1 rounded bg-emerald px-1.5 py-0.5 text-[.6rem] font-bold uppercase text-paper" data-testid="portada">Portada</span>}
+                </div>
+                <div className="min-w-0">
+                  <label htmlFor={`alt-${i}`} className={label}>Texto alternativo</label>
+                  <textarea id={`alt-${i}`} value={im.alt} onChange={(e) => setAlt(i, e.target.value)} rows={2} maxLength={250} className={field + " py-2 text-sm"} />
+                  <p className="mt-1 text-xs text-ink/60">{im.width}×{im.height}px{im.upload ? ` · subida desde el panel (${im.source === "store" ? "mi stock real" : im.source === "supplier" ? "referencia de proveedor" : "referencia del fabricante"})` : im.source === "supplier" ? " · foto de proveedor (referencia)" : im.source === "illustration" ? " · imagen ilustrativa generada: NO es una foto del stock real" : ""}</p>
+                </div>
+                <div className="col-span-2 flex flex-wrap gap-2 sm:col-span-1 sm:flex-col">
+                  <button type="button" className={btn} onClick={() => move(i, i - 1)} disabled={i === 0} aria-label={`Subir la foto ${i + 1}`}>↑ Subir</button>
+                  <button type="button" className={btn} onClick={() => move(i, i + 1)} disabled={i === items.length - 1} aria-label={`Bajar la foto ${i + 1}`}>↓ Bajar</button>
+                  {i > 0 && <button type="button" className={btn} onClick={() => move(i, 0)} data-testid="hacer-portada">Hacer portada</button>}
+                  <button type="button" className={btn + " text-vermilion"} onClick={() => remove(i)} aria-label={`Quitar la foto ${i + 1}`}>Quitar</button>
+                </div>
+              </li>
+            ))}
+          </ol>
 
-        <div className="grid gap-4 border-t border-ink/10 pt-4 md:grid-cols-2">
-          <div>
-            <h3 className="text-sm font-semibold">Subir fotos (una o varias)</h3>
-            <p className="mt-1 text-xs text-ink/65">JPG, PNG o WebP de hasta 8 MB y al menos 300 px de lado. Se revisa el contenido real y se optimiza: nunca se sirve el original.</p>
-            <div className="mt-2 flex flex-wrap items-end gap-3">
-              <div>
-                <label htmlFor="up-source" className={label}>Quién sacó la foto</label>
-                <select id="up-source" value={uploadSource} onChange={(e) => setUploadSource(e.target.value as typeof uploadSource)} className={field + " !mt-1"}>
-                  <option value="store">Yo: mi stock real</option>
-                  <option value="supplier">Proveedor (referencia)</option>
-                  <option value="manufacturer">Fabricante (referencia)</option>
-                </select>
-              </div>
-              <div>
-                <label htmlFor="up-file" className={label}>Archivos</label>
-                <div onDragOver={(e) => { e.preventDefault(); setDragOver(true); }} onDragLeave={() => setDragOver(false)} onDrop={(e) => { e.preventDefault(); setDragOver(false); if (!uploading && !locked) void uploadMany([...e.dataTransfer.files]); }} className={`mt-1 rounded-lg border border-dashed p-2 ${dragOver ? "border-emerald bg-emerald/5" : "border-ink/40"}`} data-testid="zona-fotos">
-                  <input ref={fileRef} id="up-file" type="file" multiple accept="image/jpeg,image/png,image/webp" disabled={uploading || locked} onChange={(e) => void uploadMany([...(e.target.files ?? [])])} className="block min-h-11 text-sm file:mr-3 file:min-h-11 file:rounded-lg file:border file:border-ink/40 file:bg-white file:px-3" data-testid="subir-foto" />
-                  <p className="mt-1 text-xs text-ink/60">También podés arrastrar las fotos hasta acá. Se suben en el orden elegido.</p>
+          <div className="grid gap-4 border-t border-ink/10 pt-4 md:grid-cols-2">
+            <div>
+              <h3 className="text-sm font-semibold">Subir fotos (una o varias)</h3>
+              <p className="mt-1 text-xs text-ink/65">JPG, PNG o WebP de hasta 8 MB y al menos 300 px de lado. Se revisa el contenido real y se optimiza: nunca se sirve el original.</p>
+              <div className="mt-2 flex flex-wrap items-end gap-3">
+                <div>
+                  <label htmlFor="up-source" className={label}>Quién sacó la foto</label>
+                  <select id="up-source" value={uploadSource} onChange={(e) => setUploadSource(e.target.value as typeof uploadSource)} className={field + " !mt-1"}>
+                    <option value="store">Yo: mi stock real</option>
+                    <option value="supplier">Proveedor (referencia)</option>
+                    <option value="manufacturer">Fabricante (referencia)</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="up-file" className={label}>Archivos</label>
+                  <div onDragOver={(e) => { e.preventDefault(); setDragOver(true); }} onDragLeave={() => setDragOver(false)} onDrop={(e) => { e.preventDefault(); setDragOver(false); if (!uploading && !gBusy && !locked) void uploadMany([...e.dataTransfer.files]); }} className={`mt-1 rounded-lg border border-dashed p-2 ${dragOver ? "border-emerald bg-emerald/5" : "border-ink/40"}`} data-testid="zona-fotos">
+                    <input ref={fileRef} id="up-file" type="file" multiple accept="image/jpeg,image/png,image/webp" disabled={uploading || locked} onChange={(e) => void uploadMany([...(e.target.files ?? [])])} className="block min-h-11 text-sm file:mr-3 file:min-h-11 file:rounded-lg file:border file:border-ink/40 file:bg-white file:px-3" data-testid="subir-foto" />
+                    <p className="mt-1 text-xs text-ink/60">También podés arrastrar las fotos hasta acá. Se suben en el orden elegido.</p>
+                  </div>
                 </div>
               </div>
+              {uploading && <p className="mt-2 text-sm" role="status" data-testid="progreso-subida">{progress || "Subiendo y optimizando…"}</p>}
             </div>
-            {uploading && <p className="mt-2 text-sm" role="status" data-testid="progreso-subida">{progress || "Subiendo y optimizando…"}</p>}
+            <details className="rounded-lg border border-ink/15 p-3" data-testid="biblioteca">
+              <summary className="cursor-pointer text-sm font-semibold">Elegir de la biblioteca ({data.library.length} fotos del catálogo y subidas)</summary>
+              <label htmlFor="lib-q" className={label + " mt-3"}>Buscar</label>
+              <input id="lib-q" value={libQ} onChange={(e) => setLibQ(e.target.value)} placeholder="Nombre del producto…" className={field} />
+              <ul className="mt-3 grid max-h-72 grid-cols-3 gap-2 overflow-y-auto sm:grid-cols-4">
+                {lib.map((l) => (
+                  <li key={l.src}>
+                    <button type="button" onClick={() => setItems((cur) => (cur.length >= 12 ? cur : [...cur, { src: l.src, thumb: l.thumb, alt: l.alt || data.title, width: 0, height: 0, upload: l.src.startsWith("/images/uploads/") }]))} className="flex h-full w-full flex-col items-center rounded-md border border-ink/15 p-1 text-center hover:border-emerald" title={l.from}>
+                      <img src={l.thumb} alt="" className="h-16 w-full object-contain" loading="lazy" />
+                      <span className="mt-1 line-clamp-2 text-[.6rem] leading-tight text-ink/70">{l.from}</span>
+                    </button>
+                  </li>
+                ))}
+                {lib.length === 0 && <li className="col-span-full text-xs text-ink/60">No hay fotos que coincidan.</li>}
+              </ul>
+            </details>
           </div>
-          <details className="rounded-lg border border-ink/15 p-3" data-testid="biblioteca">
-            <summary className="cursor-pointer text-sm font-semibold">Elegir de la biblioteca ({data.library.length} fotos del catálogo y subidas)</summary>
-            <label htmlFor="lib-q" className={label + " mt-3"}>Buscar</label>
-            <input id="lib-q" value={libQ} onChange={(e) => setLibQ(e.target.value)} placeholder="Nombre del producto…" className={field} />
-            <ul className="mt-3 grid max-h-72 grid-cols-3 gap-2 overflow-y-auto sm:grid-cols-4">
-              {lib.map((l) => (
-                <li key={l.src}>
-                  <button type="button" onClick={() => setItems((cur) => (cur.length >= 12 ? cur : [...cur, { src: l.src, thumb: l.thumb, alt: l.alt || data.title, width: 0, height: 0, upload: l.src.startsWith("/images/uploads/") }]))} className="flex h-full w-full flex-col items-center rounded-md border border-ink/15 p-1 text-center hover:border-emerald" title={l.from}>
-                    <img src={l.thumb} alt="" className="h-16 w-full object-contain" loading="lazy" />
-                    <span className="mt-1 line-clamp-2 text-[.6rem] leading-tight text-ink/70">{l.from}</span>
-                  </button>
-                </li>
-              ))}
-              {lib.length === 0 && <li className="col-span-full text-xs text-ink/60">No hay fotos que coincidan.</li>}
-            </ul>
-          </details>
-        </div>
 
-        <div className="flex flex-wrap items-center gap-3 border-t border-ink/10 pt-4">
-          <button type="button" onClick={saveGallery} disabled={gBusy || !galleryDirty || locked} className={primary} data-testid="guardar-galeria">{gBusy ? "Guardando…" : "Guardar fotos"}</button>
-          {data.gallery.custom && !locked && <button type="button" onClick={resetGallery} disabled={gBusy} className={btn}>Volver a las fotos del catálogo</button>}
-          {galleryDirty && <span className="text-xs font-semibold text-ink/70">Fotos sin guardar</span>}
-          <p role="status" aria-live="polite" className={`text-sm font-medium ${gMsg ? (gMsg.ok ? "text-emerald" : "text-vermilion") : ""}`} data-testid="mensaje-fotos">{gMsg?.text}</p>
-        </div>
+          <div className="flex flex-wrap items-center gap-3 border-t border-ink/10 pt-4">
+            <button type="button" onClick={saveGallery} disabled={uploading || !galleryDirty} className={primary} data-testid="guardar-galeria">{gBusy ? "Guardando…" : "Guardar fotos"}</button>
+            {data.gallery.custom && !locked && <button type="button" onClick={resetGallery} disabled={uploading} className={btn}>Volver a las fotos del catálogo</button>}
+            {galleryDirty && <span className="text-xs font-semibold text-ink/70">Fotos sin guardar</span>}
+            <p role="status" aria-live="polite" className={`text-sm font-medium ${gMsg ? (gMsg.ok ? "text-emerald" : "text-vermilion") : ""}`} data-testid="mensaje-fotos">{gMsg?.text}</p>
+          </div>
+        </fieldset>
       </section>
     </div>
   );

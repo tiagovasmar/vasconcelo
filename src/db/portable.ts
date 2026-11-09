@@ -44,6 +44,7 @@ export const TABLES: TableSpec[] = [
   { name: "admin_settings", pk: ["key"] },
   { name: "restock_alerts", pk: ["id"], optional: true },
   { name: "order_tracks", pk: ["inquiry_id"], optional: true },
+  { name: "wholesale_order_costs", pk: ["id"], optional: true },
   { name: "order_events", pk: ["id"], identity: "id", optional: true },
   { name: "order_payments", pk: ["id"], optional: true },
   { name: "payment_receipts", pk: ["id"], optional: true },

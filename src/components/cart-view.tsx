@@ -7,14 +7,13 @@ import { cartActions, useCart, type DeliveryDraft } from "@/features/cart/store"
 import { pricingFor, useCartValidation, type ServerLine } from "@/features/cart/validation";
 import { CONTACT_NAME_MESSAGE, isFullName, normalizeName, provinces, validateDelivery } from "@/features/inquiries/delivery";
 import { buildMessage } from "@/features/inquiries/message";
-import { paymentMethods, PICKUP_ADDRESS, PICKUP_NOTICE } from "@/content/checkout-options";
-import { encargo as politicaEncargo, promo } from "@/content/politicas";
+import { paymentMethods, PAY_ON_DELIVERY_NOTICE, PICKUP_ADDRESS, PICKUP_NOTICE } from "@/content/checkout-options";
+import { encargo as politicaEncargo } from "@/content/politicas";
 import { ENCARGO_EXPLICACION } from "@/features/politicas/encargos";
-import { isPromoPayment, PROMO_CONDITION } from "@/features/politicas/promociones";
 import { LanguageBadge } from "./language-badge";
 import { kindLabel, wideKinds } from "@/content/labels";
 import { formatARS } from "@/lib/format";
-import { formatRate, splitInstallments } from "@/features/fx/convert";
+import { formatRate } from "@/features/fx/convert";
 import { BoxArt, PackArt } from "./art-reserva";
 import { SafeImage } from "./safe-image";
 import { failureMessage, failureOf, failureOfStatus, requestJson } from "@/lib/request";
@@ -59,8 +58,6 @@ export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }
   // Validación compartida con el panel lateral: un solo pedido al servidor por contenido del carrito.
   const validation = useCartValidation(mounted);
   const lines: Record<string, ServerLine> | null = validation.data?.lines ?? null;
-  /** ¿El pedido califica para cuotas / 10% OFF por transferencia? Lo informa el servidor (al menos una caja disponible). */
-  const qualifies = validation.data?.qualifies ?? false;
   /** Cotización con la que el servidor convirtió los precios USD (null si ningún precio depende del dólar). */
   const fx = validation.data?.fx ?? null;
   const loadError = validation.error;
@@ -120,19 +117,13 @@ export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }
   const subtotal = stockView.reduce((n, v) => n + (v.line?.status === "unavailable" || v.line?.status === "retired" || v.line?.status === "out_of_stock" || v.line?.status === "pending_commercial" ? 0 : unitOf(v) * v.item.quantity), 0);
   const units = stockView.reduce((n, v) => n + v.item.quantity, 0);
   const encargoUnits = encargoView.reduce((n, v) => n + v.item.quantity, 0);
-  // Importes (lista, combo caja + sobres, transferencia y total) del SERVIDOR para el medio de pago elegido, solo si corresponden al contenido actual del carrito.
+  // Usamos los importes del servidor cuando corresponden al contenido actual del carrito.
   // El navegador no calcula ningún descuento: el servidor los vuelve a calcular al preparar la consulta y avisa si algo cambió.
-  const sp = validation.fresh ? pricingFor(validation.data, cart.payment) : null;
-  const discount = sp?.transferDiscountMinor ?? 0;
+  const sp = validation.fresh ? pricingFor(validation.data) : null;
   const comboOff = sp?.comboDiscountMinor ?? 0;
   const totalFinal = sp ? sp.totalMinor : subtotal;
-  const anyOff = discount > 0 || comboOff > 0;
+  const anyOff = comboOff > 0;
   const pricedOf = (id: string) => sp?.lines.find((l) => l.productId === id);
-
-  // Si el pedido dejó de calificar (p. ej. se quitó la última caja), no puede quedar elegido un medio de pago de promoción.
-  useEffect(() => {
-    if (lines && !qualifies && isPromoPayment(cart.payment)) cartActions.setPayment("");
-  }, [lines, qualifies, cart.payment]);
 
   const delivery = cart.delivery;
   /** Con retiro no hay envío; con Andreani, moto o sin elegir sigue «A coordinar». */
@@ -159,8 +150,8 @@ export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }
     const method = parsed?.success ? parsed.data : delivery.method === "retiro" ? { method: "retiro" as const } : { method: "moto" as const, locality: "", postalCode: "" };
     let text = buildMessage({
       reference: "(se asigna al preparar la consulta)", contactName: normalizeName(cart.contactName) || undefined,
-      lines: okLines.map((v) => { const pl = pricedOf(v.item.productId); return { quantity: v.item.quantity, title: v.line!.product!.title, language: v.line!.product!.language, sku: v.line!.product!.sku, unitPriceMinor: v.item.mode === "encargo" ? null : unitOf(v), packSize: v.line!.product!.packSize ?? null, comboUnits: pl?.comboUnits ?? 0, comboDiscountMinor: pl?.comboDiscountMinor ?? 0, transferDiscountMinor: pl?.transferDiscountMinor ?? 0 }; }),
-      subtotalMinor: subtotal, discountMinor: discount, comboDiscountMinor: comboOff, delivery: method, paymentLabel: paymentMethods.find((p) => p.id === cart.payment)?.label ?? "",
+      lines: okLines.map((v) => { const pl = pricedOf(v.item.productId); return { quantity: v.item.quantity, title: v.line!.product!.title, language: v.line!.product!.language, sku: v.line!.product!.sku, unitPriceMinor: v.item.mode === "encargo" ? null : unitOf(v), packSize: v.line!.product!.packSize ?? null, comboUnits: pl?.comboUnits ?? 0, comboDiscountMinor: pl?.comboDiscountMinor ?? 0 }; }),
+      subtotalMinor: subtotal, comboDiscountMinor: comboOff, delivery: method, paymentLabel: paymentMethods.find((p) => p.id === cart.payment)?.label ?? "",
     });
     if (!parsed?.success) text = text.replace(/Entrega: .*/, "Entrega: (completá los datos de entrega)");
     if (!cart.payment) text = text.replace(/Método de pago: .*/, "Método de pago: (elegí cómo preferís pagar)");
@@ -217,17 +208,17 @@ export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }
             <p className="text-right text-lg font-extrabold" data-testid={`subtotal-${item.productId}`}>
               {porEncargo || pendingPrice ? "—" : (() => {
                 const pl = pricedOf(item.productId);
-                const off = pl ? pl.comboDiscountMinor + pl.transferDiscountMinor : 0;
+                const off = pl?.comboDiscountMinor ?? 0;
                 return off > 0 && pl ? <><s className="mr-1.5 text-sm font-semibold text-ink/75" data-testid={`original-${item.productId}`}>{money(pl.listTotalMinor)}</s>{money(pl.finalTotalMinor)}</> : money(unit * item.quantity);
               })()}
             </p>
             <button type="button" onClick={() => cartActions.remove(item.productId)} className="min-h-11 text-sm font-semibold underline hover:text-vermilion" aria-label={`Quitar ${line?.product?.title ?? "producto"} del carrito`}>Quitar</button>
             {(() => {
               const pl = pricedOf(item.productId);
-              const off = pl ? pl.comboDiscountMinor + pl.transferDiscountMinor : 0;
+              const off = pl?.comboDiscountMinor ?? 0;
               return off > 0 && pl ? (
                 <p className="w-full basis-full text-right text-xs font-semibold text-emerald sm:w-52 sm:basis-auto" data-testid={`ahorro-${item.productId}`}>
-                  Ahorrás {money(off)}{pl.comboDiscountMinor > 0 ? ` · combo caja + sobres: 10% OFF en ${pl.comboUnits} ${pl.comboUnits === 1 ? "sobre" : "sobres"}` : " · 10% OFF por transferencia"}
+                  Ahorrás {money(off)} · combo caja + sobres: 10% OFF en {pl.comboUnits} {pl.comboUnits === 1 ? "sobre" : "sobres"}
                 </p>
               ) : null;
             })()}
@@ -295,7 +286,7 @@ export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }
         for (const d of err.details as Array<{ path: string; message: string }>) fe[d.path.split(".")[1] ?? d.path] ??= d.message;
         setServerFieldErrors(fe);
       }
-      if (["price_changed", "pending_commercial", "out_of_stock", "unavailable", "retired", "over_limit", "promo_not_eligible"].includes(err?.code ?? "")) validation.retry();
+      if (["price_changed", "pending_commercial", "out_of_stock", "unavailable", "retired", "over_limit"].includes(err?.code ?? "")) validation.retry();
       setSubmitError(err?.message ?? `${failureMessage(failureOfStatus(res.status), "preparar tu consulta")} Intentá de nuevo.`);
     } catch (e) {
       // Sin respuesta (corte o demora): no se puede afirmar que NO se guardó. Reintentar es seguro por la clave de idempotencia.
@@ -424,22 +415,15 @@ export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }
 
         <section aria-labelledby="pago-title" className="border border-ink/25 bg-white/70 p-4 sm:p-6">
           <h2 id="pago-title" className="display text-3xl normal-case">¿Cómo preferís pagar?</h2>
-          <p className={`mt-2 text-sm ${qualifies ? "font-semibold text-emerald" : "text-ink/75"}`} data-testid="promo-estado" role="status">
-            {qualifies
-              ? `Tu pedido incluye una caja: podés elegir ${promo.installments} cuotas sin interés o ${promo.transferDiscountPercent}% OFF por transferencia (alternativas, no se acumulan).`
-              : `${promo.installments} cuotas sin interés o ${promo.transferDiscountPercent}% OFF por transferencia: para ${PROMO_CONDITION}. Con sobres solos o con productos por encargo no aplican.`}
-          </p>
+          {delivery.method === "moto" && <p className="mt-2 text-sm">{PAY_ON_DELIVERY_NOTICE} Confirmá la cobertura por WhatsApp.</p>}
           <fieldset className="mt-4 space-y-2" aria-describedby={show("payment") ? "err-payment" : undefined}>
             <legend className="sr-only">Método de pago</legend>
-            {paymentMethods.map((m) => {
-              const locked = isPromoPayment(m.id) && !qualifies;
-              return (
-                <label key={m.id} className={`flex min-h-12 items-center gap-3 border p-3 text-sm ${locked ? "cursor-not-allowed border-ink/20 bg-ink/5 text-ink/55" : `cursor-pointer ${cart.payment === m.id ? "border-ink bg-gold/30" : "border-ink/30 bg-white"}`}`}>
-                  <input type="radio" name="pago" value={m.id} checked={cart.payment === m.id} disabled={locked} onChange={() => { cartActions.setPayment(m.id); touch("payment"); }} className="h-5 w-5 accent-[#0b4032]" />
-                  <span><b>{m.label}</b>{locked && <span className="block text-xs font-normal">Disponible al sumar una caja a tu pedido.</span>}</span>
-                </label>
-              );
-            })}
+            {paymentMethods.map((m) => (
+              <label key={m.id} className={`flex min-h-12 cursor-pointer items-center gap-3 border p-3 text-sm ${cart.payment === m.id ? "border-ink bg-gold/30" : "border-ink/30 bg-white"}`}>
+                <input type="radio" name="pago" value={m.id} checked={cart.payment === m.id} onChange={() => { cartActions.setPayment(m.id); touch("payment"); }} className="h-5 w-5 accent-[#0b4032]" />
+                <b>{m.label}</b>
+              </label>
+            ))}
             {show("payment") && <p id="err-payment" role="alert" className="text-sm font-semibold text-vermilion">{errors.payment}</p>}
           </fieldset>
           <p className="mt-2 text-xs text-ink/65">El pago se acuerda con la tienda en el chat. No se cobra nada en esta web ni te pedimos datos bancarios.</p>
@@ -455,16 +439,12 @@ export function CartView({ whatsappConfigured }: { whatsappConfigured: boolean }
               <dl className="mt-4 space-y-2 text-base">
                 <div className="flex justify-between"><dt>{mixed ? "Productos disponibles" : "Productos"} ({units})</dt><dd data-testid="resumen-productos">{money(subtotal)}</dd></div>
                 {comboOff > 0 && <div className="flex justify-between text-emerald"><dt>Descuento combo caja + sobres ({"10"}%)</dt><dd className="font-semibold" data-testid="resumen-descuento-combo">−{money(comboOff)}</dd></div>}
-                {discount > 0 && <div className="flex justify-between text-emerald"><dt>Descuento por transferencia ({promo.transferDiscountPercent}%)</dt><dd className="font-semibold" data-testid="resumen-descuento">−{money(discount)}</dd></div>}
                 <div className="flex justify-between"><dt>Envío</dt><dd className="font-semibold" data-testid="resumen-envio">{envioTexto}</dd></div>
                 <div className="flex items-end justify-between border-t border-ink/20 pt-3"><dt className="text-lg font-bold">{anyOff ? "Subtotal sin descuento" : "Subtotal de productos"}</dt><dd className="text-3xl font-extrabold" data-testid="resumen-subtotal">{money(subtotal)}</dd></div>
                 {anyOff && <div className="flex items-end justify-between"><dt className="font-bold">Productos con descuento</dt><dd className="text-2xl font-extrabold" data-testid="resumen-total-descuento">{money(totalFinal)}</dd></div>}
               </dl>
-              {cart.payment === "tarjeta-3-cuotas" && qualifies && totalFinal > 0 && (
-                <p className="mt-2 text-sm font-semibold" data-testid="resumen-cuotas">{promo.installments} cuotas sin interés: {splitInstallments(totalFinal, promo.installments).map((c) => money(c)).join(" + ")} = {money(totalFinal)}</p>
-              )}
               <div className="min-h-[3.1rem]">{fx && stockView.some((v) => v.line?.unitPriceUsdMinor) && <p className="mt-1 text-xs text-ink/70" data-testid="resumen-fx">Precios en pesos calculados con {fx.mode === "manual" ? "la cotización fijada por la tienda" : "el dólar blue (venta)"} a {formatRate(fx.rate10k)} por dólar, redondeados a múltiplos de $100 por unidad. La consulta que prepares guarda esta cotización.</p>}</div>
-              <p className="mt-1 text-xs text-ink/70">{discount > 0 ? "El 10% OFF por transferencia se calcula sobre los productos de un pedido con caja (sin los accesorios); el envío no entra. " : ""}{comboOff > 0 ? "El combo caja + sobres no se suma al 10% por transferencia sobre un mismo sobre: rige el más favorable. " : ""}{mixed ? "No incluye los productos por encargo (sin cotizar). " : ""}{delivery.method === "retiro" ? "El importe final y el horario de retiro se confirman por WhatsApp." : "Envío e importe final se confirman por WhatsApp."}</p>
+              <p className="mt-1 text-xs text-ink/70">{mixed ? "No incluye los productos por encargo (sin cotizar). " : ""}{delivery.method === "retiro" ? "El importe final y el horario de retiro se confirman por WhatsApp." : "Envío e importe final se confirman por WhatsApp."}</p>
             </>
           ) : (
             <dl className="mt-4 space-y-2 text-base">

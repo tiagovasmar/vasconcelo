@@ -1,5 +1,13 @@
 # Ingreso y registro con Google
 
+## Dominio propio: cambio local del 6/11/2026, pendiente de publicar y configurar en Google
+
+La autenticación ahora admite exclusivamente `vasconcelo.shop`, `www.vasconcelo.shop` y `vasconcelo.netlify.app` cuando la URL configurada pertenece a uno de esos dominios HTTPS. Resuelve el origen por petición con la lista cerrada de Better Auth; localhost y vistas aisladas no heredan esos permisos. Conserva cookies separadas por dominio, sin compartirlas entre sitios. No desactiva controles de origen ni validación de correo del administrador.
+
+En el cliente OAuth existente hay que mantener el callback de Netlify y agregar `https://vasconcelo.shop/api/auth/callback/google` y `https://www.vasconcelo.shop/api/auth/callback/google`, junto con los correspondientes orígenes JavaScript. No hace falta generar ni reemplazar claves. Las modificaciones externas no se hicieron: Chrome no respondió al intentar abrir el panel. El cambio de código requiere un despliegue; no está publicado. Tampoco se han configurado orígenes nuevos automáticamente en Google. Las pruebas simulan Google y verifican retorno por cada dominio, sin afirmar que el OAuth real funciona.
+
+El mensaje del formulario también se corrigió: un 403 genérico o dominio no autorizado ya no dice que falta confirmar el correo.
+
 «Continuar con Google» está implementado sobre la autenticación existente (Better Auth), **apagado por defecto**: aparece solo si el servidor tiene `GOOGLE_CLIENT_ID` y `GOOGLE_CLIENT_SECRET`. **No hay credenciales en el repositorio ni se piden por chat.**
 
 ## Qué falta configurar (lo hace el dueño, cuando la implementación esté publicada en una vista previa)

@@ -25,7 +25,7 @@ test("inicio: Cajas y Sobres abren el catálogo filtrado; Packs es «Próximamen
   await expect(page.getByRole("status").filter({ hasText: "Mostrando 1–12 de 24 productos" })).toBeVisible(); // 8 japoneses + 16 chinos
 });
 
-test("inicio: las colecciones (8 japonesas y 4 chinas) enlazan a sus productos y la sección de pago es secundaria", async ({ page }) => {
+test("inicio: las colecciones (8 japonesas y 4 chinas) enlazan a sus productos", async ({ page }) => {
   await go(page, "/");
   const sec = page.locator("section[aria-labelledby=collections-title]");
   const links = sec.locator("ul a");
@@ -35,11 +35,6 @@ test("inicio: las colecciones (8 japonesas y 4 chinas) enlazan a sus productos y
   for (const h of hrefs) expect(h).toMatch(/^\/sellados\?expansion=/);
   await links.filter({ hasText: "Storm Emeralda" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Mostrando 1–2 de 2 productos" })).toBeVisible();
-  await go(page, "/");
-  // las promociones ya no se anuncian sin condición: franja visible con el mínimo de una caja
-  await expect(page.getByTestId("franja-promos")).toContainText("3 cuotas sin interés o 10% OFF por transferencia");
-  await expect(page.getByTestId("franja-promos")).toContainText("compras que incluyan al menos una caja");
-  await expect(page.locator("section[aria-labelledby=cat-title]")).not.toContainText("transferencia o efectivo");
 });
 
 test("inicio: Cajas y Sobres con colecciones distintas, mismo peso y sin deformar; Packs como franja sin enlace", async ({ page }) => {

@@ -1,7 +1,7 @@
 import { holdState } from "@/features/importaciones/hold-state";
 import { importShipmentItems } from "@/features/importaciones/tracking";
 import { createHash, randomBytes } from "node:crypto";
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { Db } from "@/db/client";
 import { lockKey, type Tx } from "@/db/lock";
@@ -12,6 +12,7 @@ import type { Actor } from "@/features/catalog/overrides";
 import { noticeForOrder, type NoticeEvent } from "@/features/avisos/outbox";
 import { SaleError, type SaleErrorCode } from "@/features/sales/errors";
 import { formatARS } from "@/lib/format";
+import { formatUSD, usdToArsMinor } from "@/features/fx/convert";
 import { encargo } from "@/content/politicas";
 import {
   firstStage, isShippingStage, nextAction, rank, senaFor, shipmentRank, STAGE_LABEL, stagesFor, summarizePayments, type Stage, type TrackKind,
@@ -224,20 +225,37 @@ export async function advanceFromFacts(tx: Tx, inquiryId: string, stage: Stage, 
 export const AgreedSchema = z.object({
   agreedMinor: z.number({ error: "Escribí el importe acordado." }).int().min(10_000, "El importe acordado debe ser de al menos $100.").max(1_000_000_000_00, "El importe es demasiado alto.").multipleOf(100, "El importe debe estar en pesos enteros."),
 });
+const AgreedUsdSchema = z.object({
+  agreedUsdMinor: z.number().int().min(1).max(100_000_000),
+});
 
 /** Fija el importe acordado y confirmado por la tienda. Mientras no haya pagos confirmados se puede corregir; después, no (cambiaría el cálculo de lo ya abonado). */
 export async function setAgreedAmount(db: Db, inquiryId: string, body: unknown, actor: Actor, now = Date.now()): Promise<{ agreedMinor: number; changed: boolean }> {
-  const { agreedMinor } = parseOr400(AgreedSchema, body);
+  const input = parseOr400(z.union([AgreedSchema, AgreedUsdSchema]), body);
   return db.transaction(async (tx) => {
     await trackLock(tx, inquiryId);
     const track = await ensureTrack(tx, inquiryId, now);
-    if (await holdState(tx, inquiryId, now) && agreedMinor !== track.agreedMinor) return fail(409, "order_rule", "El importe de la preventa quedó acordado al solicitar la reserva.");
+    let agreedMinor: number;
+    let agreedUsdMinor: number | null = null;
+    if ("agreedUsdMinor" in input) {
+      if (track.kind !== "mayorista") return fail(409, "order_rule", "Este pedido se acuerda en pesos.");
+      const [order] = await tx.select({ rate: inquiries.fxRate10k }).from(inquiries).where(eq(inquiries.id, inquiryId));
+      const converted = order?.rate ? usdToArsMinor(input.agreedUsdMinor, order.rate) : null;
+      if (converted === null) return fail(409, "order_rule", "El pedido no tiene una cotización guardada. Cargá el importe acordado en pesos.");
+      ({ agreedMinor } = parseOr400(AgreedSchema, { agreedMinor: converted }));
+      agreedUsdMinor = input.agreedUsdMinor;
+    } else {
+      agreedMinor = input.agreedMinor;
+    }
+    const unchanged = track.agreedMinor === agreedMinor && track.agreedUsdMinor === agreedUsdMinor;
+    if (await holdState(tx, inquiryId, now) && !unchanged) return fail(409, "order_rule", "El importe de la preventa quedó acordado al solicitar la reserva.");
     if (track.cancelledAt) return fail(409, "order_rule", "El pedido está cancelado.");
-    if (track.agreedMinor === agreedMinor) return { agreedMinor, changed: false };
+    if (unchanged) return { agreedMinor, changed: false };
     const { confirmedMinor } = await paymentTotals(tx, inquiryId);
     if (confirmedMinor > 0) return fail(409, "order_rule", "Ya hay pagos confirmados: el importe acordado no se puede cambiar. Registrá la diferencia como una nota o un ajuste explícito.");
-    await tx.update(orderTracks).set({ agreedMinor, updatedAt: now }).where(eq(orderTracks.inquiryId, inquiryId));
-    await tx.insert(orderEvents).values({ inquiryId, kind: "system", publicText: `Importe acordado: ${formatARS(agreedMinor)}.`, internalText: track.agreedMinor === null ? null : `Antes: ${formatARS(track.agreedMinor)}`, occurredAt: now, createdAt: now, actorEmail: actor.email });
+    await tx.update(orderTracks).set({ agreedMinor, agreedUsdMinor, updatedAt: now }).where(eq(orderTracks.inquiryId, inquiryId));
+    const label = agreedUsdMinor === null ? formatARS(agreedMinor) : `${formatUSD(agreedUsdMinor)} (equivalente de ${formatARS(agreedMinor)})`;
+    await tx.insert(orderEvents).values({ inquiryId, kind: "system", publicText: `Importe acordado: ${label}.`, internalText: track.agreedMinor === null ? null : `Antes: ${formatARS(track.agreedMinor)}`, occurredAt: now, createdAt: now, actorEmail: actor.email });
     return { agreedMinor, changed: true };
   });
 }
@@ -279,7 +297,7 @@ export async function cancelOrder(db: Db, inquiryId: string, body: unknown, acto
 
 /* ---------- Enlace privado de seguimiento para invitados ---------- */
 
-/** Genera (o reemplaza) el enlace privado. El valor se devuelve UNA vez; en la base solo queda su hash. Generar uno nuevo invalida el anterior. */
+/** Genera (o reemplaza) el enlace privado. Solo se conserva el hash; un enlace nuevo invalida el anterior. */
 export async function issueAccessLink(db: Db, inquiryId: string, now = Date.now()): Promise<{ token: string }> {
   const token = randomBytes(24).toString("base64url");
   await db.transaction(async (tx) => {
@@ -296,10 +314,30 @@ export type Viewer = { userId?: string | null; sessionTokenHash?: string | null;
  * ¿Puede esta persona ver este pedido? Cuenta: solo su dueña. Invitado: la sesión que lo creó (cookie) o quien tiene el enlace privado.
  * Conocer la referencia (TT-…) nunca alcanza. Un pedido de una cuenta no se abre con enlace ni con cookie de invitado.
  */
-export function canView(inq: { userId: string | null; sessionTokenHash: string }, track: { accessTokenHash: string | null } | undefined, v: Viewer): boolean {
+export function canView(inq: { userId: string | null; sessionTokenHash: string }, track: { accessTokenHash: string | null; kind?: string } | undefined, v: Viewer): boolean {
   if (inq.userId) return Boolean(v.userId && v.userId === inq.userId);
   if (v.sessionTokenHash && v.sessionTokenHash === inq.sessionTokenHash) return true;
-  return Boolean(v.accessToken && track?.accessTokenHash && sha(v.accessToken) === track.accessTokenHash);
+  return Boolean(track?.kind !== "mayorista" && v.accessToken && track?.accessTokenHash && sha(v.accessToken) === track.accessTokenHash);
+}
+
+/** El enlace de una cuenta mayorista solo permite seguir etapas y guía. No se usa para autorizar APIs ni comprobantes. */
+export async function sharedWholesaleStatus(db: Db, inquiryId: string, token: string | null | undefined) {
+  if (!token) return null;
+  const [track] = await db.select({
+    stage: orderTracks.stage,
+    cancelledAt: orderTracks.cancelledAt,
+    carrier: orderTracks.customerCarrier,
+    trackingNumber: orderTracks.customerTrackingNumber,
+  }).from(orderTracks).where(and(
+    eq(orderTracks.inquiryId, inquiryId),
+    eq(orderTracks.kind, "mayorista"),
+    eq(orderTracks.accessTokenHash, sha(token)),
+  ));
+  if (!track) return null;
+  const history = await db.select({ stage: orderEvents.stage, at: orderEvents.occurredAt })
+    .from(orderEvents).where(and(eq(orderEvents.inquiryId, inquiryId), eq(orderEvents.kind, "stage")))
+    .orderBy(desc(orderEvents.occurredAt), desc(orderEvents.id));
+  return { ...track, history };
 }
 
 /* ---------- Vistas ---------- */
@@ -365,9 +403,17 @@ export type AdminOrderRow = {
   reference: string; kind: TrackKind; stage: string; cancelled: boolean; createdAt: number; name: string | null; agreedMinor: number | null; confirmedMinor: number; pendingReceipts: number; openIncidents: number; failedNotices: number;
 };
 
-export async function listOrders(db: Db, opts: { kind?: string; stage?: string; limit?: number } = {}): Promise<AdminOrderRow[]> {
+export async function listOrders(db: Db, opts: { kind?: string; stage?: string; search?: string; pending?: "comprobantes" | "retiro"; limit?: number } = {}): Promise<AdminOrderRow[]> {
+  const query = opts.search?.trim().slice(0, 100).replace(/[\\%_]/g, "\\$&");
+  const pattern = query ? `%${query}%` : null;
   const rows = await db.select({ t: orderTracks, name: inquiries.contactName, createdAt: inquiries.createdAt }).from(orderTracks).innerJoin(inquiries, eq(inquiries.id, orderTracks.inquiryId))
-    .where(and(opts.kind ? eq(orderTracks.kind, opts.kind) : undefined, opts.stage ? eq(orderTracks.stage, opts.stage) : undefined)).orderBy(desc(orderTracks.updatedAt)).limit(Math.min(opts.limit ?? 200, 500));
+    .where(and(
+      opts.kind ? eq(orderTracks.kind, opts.kind) : undefined,
+      opts.stage ? eq(orderTracks.stage, opts.stage) : undefined,
+      opts.pending === "retiro" ? and(eq(orderTracks.stage, "listo_retiro"), sql`${orderTracks.cancelledAt} is null`) : undefined,
+      opts.pending === "comprobantes" ? sql`exists (select 1 from ${paymentReceipts} where ${paymentReceipts.inquiryId} = ${orderTracks.inquiryId} and ${paymentReceipts.status} = 'pendiente_revision')` : undefined,
+      pattern ? or(ilike(inquiries.id, pattern), ilike(inquiries.contactName, pattern), ilike(inquiries.contactPhone, pattern)) : undefined,
+    )).orderBy(desc(orderTracks.updatedAt)).limit(Math.min(opts.limit ?? 200, 500));
   if (!rows.length) return [];
   const ids = rows.map((r) => r.t.inquiryId);
   const [pays, recs, incs, notices] = await Promise.all([

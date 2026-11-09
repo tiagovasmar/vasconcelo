@@ -131,8 +131,25 @@ test.describe("el dueño administra precios, stock, fotos y cotización", () => 
     await owner.context().close();
   });
 
+  test("inicio del dueño agrupa pendientes y da acceso a Productos en móvil", async () => {
+    await owner.setViewportSize({ width: 390, height: 844 });
+    try {
+      await go(owner, "/admin");
+      await expect(owner.getByRole("heading", { name: "Qué necesita atención" })).toBeVisible();
+      await expect(owner.getByRole("link", { name: /Comprobantes por revisar/ })).toHaveAttribute("href", /\/admin\/pedidos/);
+      const nav = owner.getByRole("navigation", { name: "Panel del dueño" });
+      await nav.getByRole("link", { name: "Productos", exact: true }).click();
+      await expect(owner.getByRole("heading", { name: "Precios y stock" })).toBeVisible();
+      await expect(owner.getByRole("link", { name: /^Sin precio/ })).toBeVisible();
+      await expect(owner.getByRole("link", { name: /^Sin stock/ })).toBeVisible();
+      expect(await owner.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
+    } finally {
+      await owner.setViewportSize({ width: 1440, height: 900 });
+    }
+  });
+
   test("ve la lista con idioma, USD, pesos, stock y estado; busca y filtra", async () => {
-    await go(owner, "/admin");
+    await go(owner, "/admin/productos");
     await expect(owner.getByRole("heading", { level: 1 })).toHaveText("Precios y stock");
     await expect(owner.getByTestId("admin-cantidad")).toHaveText("10 productos");
     await expect(owner.getByTestId("cuenta-available")).toHaveText("9");
@@ -173,7 +190,7 @@ test.describe("el dueño administra precios, stock, fotos y cotización", () => 
     }
     expect((await owner.request.post(`${ADMIN}/api/admin/fx`, { data: { action: "manual", rate: "1234" }, headers: { Origin: "https://otro.example" } })).status()).toBe(403);
     // un precio en USD sin cotización: el USD se guarda y los pesos quedan pendientes (nunca $0)
-    await go(owner, "/admin");
+    await go(owner, "/admin/productos");
     await rapido(owner, "storm-sobre", { usd: "10" });
     await expect(row(owner, "storm-sobre").getByTestId("mensaje")).toContainText("Guardado");
     await go(owner, "/admin?q=storm-sobre");
@@ -430,17 +447,24 @@ test.describe("el dueño administra precios, stock, fotos y cotización", () => 
       await owner.getByTestId("guardar-galeria").click();
       await expect(owner.getByTestId("mensaje-fotos")).toContainText("Galería guardada");
     }
+    const quitar = lista.getByRole("button", { name: /Quitar la foto/ });
+    for (let remaining = await quitar.count(); remaining > 0; remaining--) await quitar.last().click();
+    await expect(lista.locator("> li")).toHaveCount(0);
+    await owner.getByTestId("guardar-galeria").click();
+    await expect(owner.getByTestId("mensaje-fotos")).toContainText("Galería guardada");
+    await go(v, "/productos/storm-emeralda-sobre");
+    await expect(v.locator("main").getByText("Fotos próximamente", { exact: true })).toBeVisible();
+    await expect(v.getByRole("button", { name: "Ampliar" })).toHaveCount(0);
     owner.once("dialog", (d) => d.accept());
     await owner.getByRole("button", { name: "Volver a las fotos del catálogo" }).click();
     await expect(owner.getByTestId("mensaje-fotos")).toContainText("Galería restablecida");
     await go(owner, "/admin/productos/storm-sobre");
     await expect(lista.locator("> li")).toHaveCount(antes);
-    // la API también valida: ruta desconocida, de otro sitio o con recorrido, y galería vacía
+    // la API también valida: ruta desconocida, de otro sitio o con recorrido
     for (const src of ["/images/inventada.webp", "https://evil.example/x.png", "/images/../../.env"]) {
       const res = await owner.request.put(`${ADMIN}/api/admin/products/storm-sobre/gallery`, { data: { items: [{ src, alt: "texto alternativo" }], expectedVersion: 0 }, headers: { Origin: ADMIN } });
       expect(res.status(), src).toBe(400);
     }
-    expect((await owner.request.put(`${ADMIN}/api/admin/products/storm-sobre/gallery`, { data: { items: [], expectedVersion: 0 }, headers: { Origin: ADMIN } })).status()).toBe(400);
     await visitor.close();
   });
 
@@ -589,7 +613,7 @@ test.describe("el dueño administra precios, stock, fotos y cotización", () => 
     await go(owner, "/admin?q=storm-caja");
     await rapido(owner, "storm-caja", { usd: "150", stock: "2" });
     await expect(row(owner, "storm-caja").getByTestId("mensaje")).toContainText("Guardado");
-    await go(owner, "/admin");
+    await go(owner, "/admin/productos");
     await owner.getByTestId("umbral-stock").fill("abc");
     await expect(owner.getByTestId("guardar-umbral")).toBeDisabled();
     await owner.getByTestId("umbral-stock").fill("4");
@@ -612,7 +636,7 @@ test.describe("el dueño administra precios, stock, fotos y cotización", () => 
     }
     expect((await owner.request.patch(`${ADMIN}/api/admin/settings`, { data: { lowStockThreshold: 3 }, headers: { Origin: "https://otro-sitio.example" } })).status()).toBe(403);
     expect((await request.patch(`${ADMIN}/api/admin/settings`, { data: { lowStockThreshold: 3 }, headers: { Origin: ADMIN } })).status()).toBe(401);
-    await go(owner, "/admin");
+    await go(owner, "/admin/productos");
     await owner.getByTestId("umbral-stock").fill("0");
     await owner.getByTestId("guardar-umbral").click();
     await expect(owner.getByTestId("mensaje-umbral")).toContainText("desactivado");
@@ -700,7 +724,7 @@ test.describe("el dueño administra precios, stock, fotos y cotización", () => 
     const v = await visitor.newPage();
     const tarjeta = () => v.locator("article").filter({ hasText: "Storm Emeralda · Caja" }).first();
     const fijarUmbral = async (n: string) => {
-      await go(owner, "/admin");
+      await go(owner, "/admin/productos");
       await owner.getByTestId("umbral-stock").fill(n);
       if (await owner.getByTestId("guardar-umbral").isEnabled()) {
         await owner.getByTestId("guardar-umbral").click();

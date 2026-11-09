@@ -73,7 +73,7 @@ export async function relatedProducts(product: Product, limit = 4): Promise<Prod
     .slice(0, limit);
 }
 export async function featuredProducts(limit = 4): Promise<Product[]> {
-  const all = await listProducts();
+  const all = (await listProducts()).filter((product) => (product.game ?? "pokemon") === "pokemon");
   const chosen = (catalog.featuredIds ?? []).map((id) => all.find((p) => p.id === id)).filter((p): p is Product => Boolean(p));
   if (chosen.length) return chosen.slice(0, limit);
   return [...all].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, limit);

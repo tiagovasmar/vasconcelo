@@ -46,13 +46,42 @@ export const orderTracks = pgTable("order_tracks", {
   stage: text("stage").notNull(),
   /** Importe acordado con la cliente (centavos de ARS), confirmado por la tienda. null = todavía sin confirmar. */
   agreedMinor: ms("agreed_minor"),
+  /** Importe mayorista confirmado directamente en USD. Los pedidos anteriores conservan el importe en ARS. */
+  agreedUsdMinor: ms("agreed_usd_minor"),
   /** Pedido cancelado (no implica que el dinero esté reintegrado: eso se registra en `order_refunds`). */
   cancelledAt: ms("cancelled_at"),
-  /** Hash del enlace privado de seguimiento para invitados (lo comparte el dueño); null = sin enlace. */
+  /** Hash del enlace privado que comparte el dueño; null = sin enlace. */
   accessTokenHash: text("access_token_hash"),
+  customerCarrier: text("customer_carrier"),
+  customerTrackingNumber: text("customer_tracking_number"),
   createdAt: ms("created_at").notNull(),
   updatedAt: ms("updated_at").notNull(),
 });
+
+/** Gastos propios de un pedido mayorista, en su moneda original y con equivalente histórico en ARS. */
+export const wholesaleOrderCosts = pgTable("wholesale_order_costs", {
+  id: text("id").primaryKey(),
+  inquiryId: text("inquiry_id").notNull().references(() => orderTracks.inquiryId),
+  category: text("category").notNull(),
+  currency: text("currency").notNull(),
+  amountMinor: ms("amount_minor").notNull(),
+  arsMinor: ms("ars_minor"),
+  exchangeRateMinor: ms("exchange_rate_minor"),
+  paidAt: ms("paid_at").notNull(),
+  note: text("note"),
+  createdAt: ms("created_at").notNull(),
+  createdByEmail: text("created_by_email").notNull(),
+  voidedAt: ms("voided_at"),
+  voidReason: text("void_reason"),
+  voidedByEmail: text("voided_by_email"),
+}, (t) => [
+  index("wholesale_order_costs_order_idx").on(t.inquiryId, t.paidAt),
+  check("wholesale_order_costs_positive", sql`${t.amountMinor} >= 0 and ${t.arsMinor} >= 0`),
+  check("wholesale_order_costs_currency", sql`
+    (${t.exchangeRateMinor} is null or ${t.exchangeRateMinor} > 0)
+    and ((${t.currency} = 'ARS' and ${t.arsMinor} is not null)
+      or (${t.currency} = 'USD' and (${t.arsMinor} is null) = (${t.exchangeRateMinor} is null)))`),
+]);
 
 /** Línea de tiempo del pedido. `publicText` lo ve la cliente; `internalText` solo el panel. Las fechas son reales (las carga el dueño), nunca por el paso del tiempo. */
 export const orderEvents = pgTable(

@@ -37,6 +37,20 @@ const upload = async (headers: Record<string, string> = {}) => {
   return POST(new Request("http://localhost:3000/api/admin/media", { method: "POST", body: form, headers: { host: "localhost:3000", ...headers } }));
 };
 
+it("los tramos del desplegable solo se leen con sesión del dueño, incluidos los borradores", async () => {
+  const { GET } = await import("@/app/api/admin/mayorista/route");
+  const request = () => new Request("http://localhost:3000/api/admin/mayorista?productId=storm-sobre");
+  expect((await GET(request())).status).toBe(401);
+  current = { id: "cliente", name: "Cliente", email: "cliente@example.com", emailVerified: true };
+  expect((await GET(request())).status).toBe(403);
+  current = { id: "dueno", name: "Dueño", email: "dueno@example.com", emailVerified: true };
+  const { saveTier } = await import("@/features/mayorista/precios");
+  await saveTier(db, { productId: "storm-sobre", minQty: 10, unitPriceUsdMinor: 500 }, { id: current.id, email: current.email });
+  const response = await GET(request());
+  expect(response.headers.get("cache-control")).toBe("no-store");
+  expect((await response.json()).tiers).toEqual([{ minQty: 10, unitPriceUsdMinor: 500, state: "borrador" }]);
+});
+
 describe("subir fotos exige ser el administrador", () => {
   it("sin sesión: 401 y no se guarda nada", async () => {
     const res = await upload();

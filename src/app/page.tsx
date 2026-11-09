@@ -1,5 +1,6 @@
 import { arrivalEstimate } from "@/content/incoming-arrivals";
 import Link from "next/link";
+import { GameNavigation } from "@/components/game-navigation";
 import { store } from "@/content/store";
 import { SafeImage } from "@/components/safe-image";
 import { ArrowIcon, CartIcon, ChatIcon, CubeIcon } from "@/components/icons";
@@ -9,7 +10,6 @@ import { ProductCard } from "@/components/product-card";
 import { FxNote } from "@/components/fx-note";
 import { ProductImage } from "@/components/product-image";
 import { featuredProducts, inStockProducts, listProducts, listExpansions } from "@/features/catalog/data";
-import { PaymentBenefits, PromoStrip } from "@/components/payment-benefits";
 import { hasAsset } from "@/components/slot";
 
 import { kindSlug, type Expansion, type Product } from "@/content/schema";
@@ -29,7 +29,7 @@ function pickFor(products: Product[], kind: Product["kind"], expansionIds: strin
 function Shot({ product, index = 0, priority = false, sizes, className = "" }: { product: Product; index?: number; priority?: boolean; sizes: string; className?: string }) {
   const img = product.images[index] ?? product.images[0];
   return (
-    <div className={`img-hover flex h-full min-w-0 shrink items-center justify-center ${className}`} style={{ aspectRatio: `${img.width} / ${img.height}` }}>
+    <div className={`img-hover flex h-full min-w-0 shrink items-center justify-center ${className}`} style={{ aspectRatio: img ? `${img.width} / ${img.height}` : "1 / 1" }}>
       <ProductImage product={product} index={index} priority={priority} className="h-full w-full object-contain" sizes={sizes} />
     </div>
   );
@@ -44,7 +44,9 @@ function ArrowLink({ href, children, className = "" }: { href: string; children:
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [products, enStock, expansions, destacados, incoming] = await Promise.all([listProducts(), inStockProducts(), listExpansions(), featuredProducts(4), incomingProducts(getDb())]);
+  const [allProducts, allInStock, expansions, destacados, incoming] = await Promise.all([listProducts(), inStockProducts(), listExpansions(), featuredProducts(4), incomingProducts(getDb())]);
+  const products = allProducts.filter((product) => (product.game ?? "pokemon") === "pokemon");
+  const enStock = allInStock.filter((product) => (product.game ?? "pokemon") === "pokemon");
   const upcoming = products.filter((product) => incoming.has(product.id));
   // Un banner por colección que exista en el catálogo (arranca con Storm Emeralda).
   const slides = banners.filter((b) => expansions.some((e) => e.id === b.expansionId));
@@ -145,13 +147,18 @@ export default async function Home() {
         </div>
       </section>}
 
+      <div className="border-y border-ink/10 bg-white">
+        <div className="mx-auto max-w-[1440px] px-4 py-3 sm:px-8">
+          <GameNavigation emphasizePokemon />
+        </div>
+      </div>
+
       <section aria-labelledby="cat-title" className="bg-paper">
         <div className="mx-auto max-w-[1440px] px-4 py-8 sm:px-8 sm:py-11">
           <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
             <div><p className="eyebrow kicker text-emerald">Formatos</p><h2 id="cat-title" className="title-rule mt-2 text-2xl font-semibold leading-tight tracking-tight sm:text-3xl">¿Qué querés abrir?</h2></div>
             <ArrowLink href="/sellados">Ver todo el catálogo</ArrowLink>
           </div>
-          <PromoStrip />
           <ul className="mt-5 grid grid-cols-2 gap-3 sm:gap-5">
             <li className="min-w-0">
               <Link href="/sellados?formato=caja" className="panel-cut group h-full" data-testid="categoria-cajas">
@@ -245,7 +252,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="bg-paper" aria-labelledby="how-title"><div className="mx-auto max-w-[1440px] px-4 py-10 sm:px-8 sm:py-14"><p className="eyebrow kicker text-emerald">Simple, de principio a fin</p><h2 id="how-title" className="title-rule mt-3 text-2xl font-semibold leading-tight tracking-tight sm:text-3xl">Armás el pedido. Lo coordinamos.</h2><ol className="mt-7 grid gap-4 md:grid-cols-3">{[{ icon: <CartIcon />, title: "Elegí tus productos", text: "Agregá sobres y cajas al carrito." }, { icon: <ChatIcon />, title: "Continuá por WhatsApp", text: "Enviá el pedido con tu entrega y preferencia de pago." }, { icon: <CubeIcon />, title: "Recibí tu próxima apertura", text: "Andreani, moto en CABA y AMBA o retiro por la zona." }].map((s, i) => <li key={s.title} className="rounded-xl border border-ink/10 bg-white p-5"><div className="flex items-center justify-between text-emerald">{s.icon}<span className="text-xs font-semibold">0{i + 1}</span></div><h3 className="mt-4 text-lg font-bold">{s.title}</h3><p className="mt-2 text-sm leading-relaxed text-ink/70">{s.text}</p></li>)}</ol><div className="mt-6"><PaymentBenefits /><p className="mt-3 text-xs text-ink/65">Disponibilidad, importe final y entrega se confirman en el chat. <Link href="/como-comprar" className="underline">Cómo comprar</Link></p></div></div></section>
+      <section className="bg-paper" aria-labelledby="how-title"><div className="mx-auto max-w-[1440px] px-4 py-10 sm:px-8 sm:py-14"><p className="eyebrow kicker text-emerald">Simple, de principio a fin</p><h2 id="how-title" className="title-rule mt-3 text-2xl font-semibold leading-tight tracking-tight sm:text-3xl">Armás el pedido. Lo coordinamos.</h2><ol className="mt-7 grid gap-4 md:grid-cols-3">{[{ icon: <CartIcon />, title: "Elegí tus productos", text: "Agregá sobres y cajas al carrito." }, { icon: <ChatIcon />, title: "Continuá por WhatsApp", text: "Enviá el pedido con tu entrega y preferencia de pago." }, { icon: <CubeIcon />, title: "Recibí tu próxima apertura", text: "Andreani, moto en CABA y AMBA o retiro por la zona." }].map((s, i) => <li key={s.title} className="rounded-xl border border-ink/10 bg-white p-5"><div className="flex items-center justify-between text-emerald">{s.icon}<span className="text-xs font-semibold">0{i + 1}</span></div><h3 className="mt-4 text-lg font-bold">{s.title}</h3><p className="mt-2 text-sm leading-relaxed text-ink/70">{s.text}</p></li>)}</ol><div className="mt-6"><p className="mt-3 text-xs text-ink/65">Disponibilidad, importe final y entrega se confirman en el chat. <Link href="/como-comprar" className="underline">Cómo comprar</Link></p></div></div></section>
     </>
   );
 }

@@ -10,7 +10,7 @@ import { assertConvertible, attachSale, closeLinkOnVoid, lockInquiry } from "@/f
 import { SaleError } from "./errors";
 import { accountingDateFilter, saleAccountingDay, type AccountingPeriod } from "@/features/contabilidad/period";
 import { catalog } from "@/content/catalog";
-import { paymentMethods } from "@/content/checkout-options";
+import { legacyPaymentLabels, paymentMethods } from "@/content/checkout-options";
 import type { Language, Product } from "@/content/schema";
 import { AdminError, writeStock, type Actor } from "@/features/catalog/overrides";
 import { listAllProducts } from "@/features/catalog/data";
@@ -31,7 +31,7 @@ import type { EffectiveRate } from "@/features/fx/convert";
  * Una consulta por WhatsApp o un carrito armado NO pasan por acá: nunca descuentan stock.
  */
 export const SALE_PAYMENT_IDS = [...paymentMethods.map((p) => p.id), "tarjeta", "tarjeta-cuotas"] as const;
-export const paymentLabelOf = (id: string) => id === "tarjeta" ? "Tarjeta · un pago" : id === "tarjeta-cuotas" ? "Tarjeta · cuotas" : paymentMethods.find((p) => p.id === id)?.label ?? id;
+export const paymentLabelOf = (id: string) => id === "tarjeta" ? "Tarjeta · un pago" : id === "tarjeta-cuotas" ? "Tarjeta · cuotas" : paymentMethods.find((p) => p.id === id)?.label ?? legacyPaymentLabels[id] ?? id;
 
 export { SaleError, type SaleErrorCode } from "./errors";
 

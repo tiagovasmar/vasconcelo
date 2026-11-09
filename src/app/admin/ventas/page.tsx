@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { AccountingChart } from "@/components/accounting-chart";
-import { averageCosts } from "@/features/costos/service";
+import { AdminAccountingSummary } from "@/components/admin-accounting-summary";
+import { averageCosts, profitReport } from "@/features/costos/service";
 import proposal from "@/content/real/propuesta-mayorista.json";
 import { AdminForm } from "@/components/admin-form";
-import { parseAccountingPeriod } from "@/features/contabilidad/period";
+import { currentAccountingMonth, parseAccountingPeriod } from "@/features/contabilidad/period";
 import { accountingOverview } from "@/features/contabilidad/service";
 import { formatARS } from "@/lib/format";
 import { AdminSaleForm, type SaleProduct } from "@/components/admin-sale-form";
@@ -22,7 +23,7 @@ export default async function Ventas({ searchParams }: { searchParams: Promise<{
   await requireAdmin("/admin/ventas");
   const db = getDb();
   const { mes, desde, hasta } = await searchParams;
-  const currentMonth = new Intl.DateTimeFormat("sv-SE", { timeZone: "America/Argentina/Buenos_Aires" }).format(new Date()).slice(0, 7);
+  const { month: currentMonth } = currentAccountingMonth();
   const selectedMonth = mes ?? (desde || hasta ? undefined : currentMonth);
   const monthStart = typeof selectedMonth === "string" ? `${selectedMonth}-01` : undefined;
   const monthDate = monthStart && /^\d{4}-(0[1-9]|1[0-2])-01$/.test(monthStart)
@@ -43,7 +44,10 @@ export default async function Ventas({ searchParams }: { searchParams: Promise<{
   });
   if (typeof selectedMonth === "string" && monthEnd && !months.includes(selectedMonth)) months.push(selectedMonth);
   const filtered = Boolean(period.from || period.to);
-  const [fx, low, sales, overview, costs] = await Promise.all([currentRate(db), getLowStock(db), listSales(db, 30, period), accountingOverview(db, period), averageCosts(db, catalog.products.map((product) => product.id))]);
+  const [fx, low, sales, overview, costs, report] = await Promise.all([currentRate(db), getLowStock(db), listSales(db, 30, period), accountingOverview(db, period), averageCosts(db, catalog.products.map((product) => product.id)), profitReport(db, period)]);
+  const billing = new Map<string, number>();
+  for (const row of report.rows) billing.set(row.day, (billing.get(row.day) ?? 0) + row.revenueMinor);
+  const reportQuery = new URLSearchParams({ ...(period.from ? { desde: period.from } : {}), ...(period.to ? { hasta: period.to } : {}), ...(!filtered ? { todo: "1" } : {}) });
   const products: SaleProduct[] = (await adminProducts(db, catalog.products, fx))
     .filter((a) => !catalog.products.find((x) => x.id === a.product.id)?.retired)
     .map((a) => ({ id: a.product.id, sku: a.product.sku, title: a.product.title, language: a.product.language, stock: a.product.stockQuantity, priceMinor: a.product.priceMinor, low: isLowStock(a.product.stockQuantity, Boolean(a.product.orderOnly), low.threshold), orderOnly: Boolean(a.product.orderOnly), packSize: a.product.packSize ?? null }));
@@ -82,17 +86,14 @@ export default async function Ventas({ searchParams }: { searchParams: Promise<{
       </div>
       {error && <p role="alert" className="mt-2 text-sm text-vermilion">{error} Se muestra el historial completo.</p>}
       <h2 className="mt-6 text-lg font-semibold">{filtered ? "Resumen del período" : "Resumen histórico"}</h2>
-      <dl className="mt-3 grid gap-3 sm:grid-cols-3" aria-label={filtered ? "Resumen del período" : "Resumen histórico"}>
-        {[
-          ["Facturación", overview.gross],
-          ["Cobros contabilizados", overview.net],
-          ["Gastos registrados", overview.spent],
-        ].map(([label, value]) => <div key={label} className="rounded-lg border border-ink/15 bg-white p-4"><dt className="text-sm">{label}</dt><dd className="text-xl font-bold">{formatARS(Number(value))}</dd></div>)}
-      </dl>
+      <section className="mt-3 rounded-lg border border-ink/15 bg-white p-4">
+        <AdminAccountingSummary report={report} />
+        <p className="mt-3 text-sm">Gastos registrados: <b>{formatARS(overview.spent)}</b> · <Link href={`/admin/costos?${reportQuery}`} className="font-semibold underline">Ver ganancia y comisiones del período</Link></p>
+      </section>
       {overview.pending > 0 && <p className="mt-2 text-sm text-ink/75">{overview.pending} ventas con tarjeta tienen el importe recibido pendiente.</p>}
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
-        <AccountingChart title="Facturación por día" rows={overview.billing} money from={period.from} to={period.to} empty="No hay facturación en estas fechas." />
+        <AccountingChart title="Facturación por día" rows={[...billing].sort(([a], [b]) => a.localeCompare(b)).map(([day, total]) => ({ day, total }))} money from={period.from} to={period.to} empty="No hay facturación en estas fechas." />
         <AccountingChart title="Visitas por día" rows={overview.visits} from={period.from} to={period.to} empty="Todavía no hay visitas medidas en estas fechas." />
       </div>
       <p className="mt-2 text-xs text-ink/70">Visitas estimadas: se cuenta una vez por navegador por día, desde que se habilita la medición.</p>

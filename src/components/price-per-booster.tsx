@@ -11,12 +11,12 @@ export function PricePerBooster({ product, className = "" }: { product: Pick<Pro
   const r = pricePerBooster(product);
   if (!r) return null;
   return (
-    <div className={`border-l-4 border-gold bg-white/70 px-3 py-2 ${className}`} data-testid="precio-por-sobre">
-      <p className="text-sm font-semibold sm:text-base">
-        <span data-testid="precio-por-sobre-ars">{r.approxArs ? "Aprox. " : ""}{formatARS(r.arsMinor)}</span> por sobre comprando la caja
-        {r.usdMinor !== null && <span className="ml-1 text-xs font-medium text-ink/65 sm:text-sm" data-testid="precio-por-sobre-usd">· {r.approxUsd ? "aprox. " : ""}{formatUSD(r.usdMinor)} por sobre</span>}
-      </p>
-      <p className="mt-0.5 text-xs text-ink/65">Caja de {r.boosters} sobres. Valor informativo: no incluye promociones, no cambia el precio de la caja y no permite comprar sobres sueltos de ella.</p>
-    </div>
+    <details className={`text-xs leading-relaxed text-ink/75 ${className}`} data-testid="precio-por-sobre">
+      <summary className="w-fit cursor-pointer py-1 marker:text-ink/60 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2">
+        <span className="font-semibold" data-testid="precio-por-sobre-ars">{r.approxArs ? "Aprox. " : ""}{formatARS(r.arsMinor)}</span> por sobre comprando la caja
+        {r.usdMinor !== null && <span className="inline-block" data-testid="precio-por-sobre-usd"> · {r.approxUsd ? "aprox. " : ""}{formatUSD(r.usdMinor)} por sobre</span>}
+      </summary>
+      <p className="pb-1 pl-3">Precio de la caja dividido por sus {r.boosters} sobres, antes de promociones. Los sobres adicionales tienen su propio precio.</p>
+    </details>
   );
 }

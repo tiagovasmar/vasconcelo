@@ -5,7 +5,7 @@ import { PRICE_STEP_PESOS } from "@/features/fx/convert";
  * Precio equivalente por sobre al comprar una CAJA: precio vigente de la caja ÷ cantidad confirmada de sobres por caja (no cartas).
  * Es solo informativo: no cambia el precio de la caja ni el del sobre individual (que puede ser otro) ni habilita comprar sobres sueltos.
  * Parte del precio principal ya convertido (dólar blue venta, múltiplos de $100) y del USD base de la caja; no consulta otra cotización ni
- * aplica el 10% de transferencia ni las cuotas. No se calcula si falta el precio o si la cantidad de sobres no está confirmada.
+ * aplica promociones. No se calcula si falta el precio o si la cantidad de sobres no está confirmada.
  */
 export type PerBooster = {
   boosters: number;

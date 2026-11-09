@@ -25,15 +25,14 @@ export type ServerLine = {
   product?: { slug: string; title: string; sku: string; language: Language; kind: keyof typeof kindLabel; fallbackTone: keyof typeof toneBg; packSize?: number | null; imageSrc: string | null; imageAlt: string };
 };
 export type Fx = { rate10k: number; mode: "auto" | "manual"; warn: boolean };
-/** Importes de una línea calculados por el SERVIDOR (lista, combo caja + sobres, transferencia y total a pagar). */
-export type ServerPricedLine = { productId: string; quantity: number; listUnitMinor: number; listTotalMinor: number; comboUnits: number; comboDiscountMinor: number; transferDiscountMinor: number; finalTotalMinor: number };
-export type ServerPricing = { lines: ServerPricedLine[]; subtotalMinor: number; comboDiscountMinor: number; transferDiscountMinor: number; totalMinor: number; qualifies: boolean };
+/** Importes de una línea calculados por el SERVIDOR (lista, combo caja + sobres y total a pagar). */
+export type ServerPricedLine = { productId: string; quantity: number; listUnitMinor: number; listTotalMinor: number; comboUnits: number; comboDiscountMinor: number; finalTotalMinor: number };
+export type ServerPricing = { lines: ServerPricedLine[]; subtotalMinor: number; comboDiscountMinor: number; totalMinor: number };
 export type ComboInfo = { headline: string; percent: number; perBox: number; enabled: boolean; boxes: number; slots: number; usedSlots: number; freeSlots: number };
 export type ServerSuggestion = { productId: string; slug: string; title: string; presentation: string; kind: keyof typeof kindLabel; reason: string; priceMinor: number; comboPriceMinor: number | null; imageSrc: string | null; imageAlt: string; maxQuantity: number; packSize: number | null };
-export type Validation = { key: string; lines: Record<string, ServerLine>; qualifies: boolean; fx: Fx | null; pricing: { base: ServerPricing; transferencia: ServerPricing } | null; combo: ComboInfo | null; suggestions: ServerSuggestion[] };
+export type Validation = { key: string; lines: Record<string, ServerLine>; fx: Fx | null; pricing: { base: ServerPricing } | null; combo: ComboInfo | null; suggestions: ServerSuggestion[] };
 
-/** Importes que corresponden al medio de pago elegido (la transferencia solo cuenta si el pedido califica). */
-export const pricingFor = (v: Validation | null | undefined, payment: string): ServerPricing | null => (v?.pricing ? (payment === "transferencia" && v.qualifies ? v.pricing.transferencia : v.pricing.base) : null);
+export const pricingFor = (v: Validation | null | undefined): ServerPricing | null => v?.pricing?.base ?? null;
 
 export const itemsKeyOf = (items: CartItem[]) => items.map((i) => `${i.productId}:${i.quantity}:${i.priceMinor}:${i.mode}`).join("|");
 
@@ -56,7 +55,7 @@ async function run(key: string, items: CartItem[]) {
   controller = ctl;
   try {
     // Plazo máximo: sin él, una red colgada deja «Verificando…» y los botones del pedido en espera hasta que el navegador corte (minutos).
-    const res = await requestJson<{ lines: ServerLine[]; qualifiesForPromo: boolean; fx?: Fx | null; pricing?: { base: ServerPricing; transferencia: ServerPricing }; combo?: ComboInfo; suggestions?: ServerSuggestion[] }>("/api/cart/validate", {
+    const res = await requestJson<{ lines: ServerLine[]; fx?: Fx | null; pricing?: { base: ServerPricing }; combo?: ComboInfo; suggestions?: ServerSuggestion[] }>("/api/cart/validate", {
       method: "POST", headers: { "Content-Type": "application/json" }, signal: ctl.signal, timeoutMs: VALIDATE_TIMEOUT_MS,
       body: JSON.stringify({ items: items.map((i) => ({ productId: i.productId, quantity: i.quantity, mode: i.mode, ...(i.mode === "buy" ? { expectedPriceMinor: i.priceMinor } : {}) })) }),
     });
@@ -71,7 +70,7 @@ async function run(key: string, items: CartItem[]) {
         added.push(`Ajustamos la cantidad de «${l.product?.title ?? "un producto"}» a ${l.maxQuantity}: es lo máximo disponible por pedido.`);
       }
     }
-    set({ data: { key, lines: Object.fromEntries(body.lines.map((l) => [l.productId, l])), qualifies: Boolean(body.qualifiesForPromo), fx: body.fx ?? null, pricing: body.pricing ?? null, combo: body.combo ?? null, suggestions: body.suggestions ?? [] }, error: "", pendingKey: null, notices: added.length ? [...snap.notices, ...added] : snap.notices });
+    set({ data: { key, lines: Object.fromEntries(body.lines.map((l) => [l.productId, l])), fx: body.fx ?? null, pricing: body.pricing ?? null, combo: body.combo ?? null, suggestions: body.suggestions ?? [] }, error: "", pendingKey: null, notices: added.length ? [...snap.notices, ...added] : snap.notices });
   } catch (e) {
     if (isAbort(e) || ctl.signal.aborted) return; // lo reemplazó un pedido más nuevo
     requestedKey = null;

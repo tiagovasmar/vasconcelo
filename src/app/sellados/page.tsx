@@ -8,31 +8,31 @@ import { ArrowIcon } from "@/components/icons";
 import { listExpansions, listProducts } from "@/features/catalog/data";
 import { filterProducts, hasActiveFilters, isAvailable, paginate, parseQuery, toSearchParams, type CatalogQuery, type RawParams } from "@/features/catalog/query";
 import { kindSlug, languageLabel } from "@/content/schema";
+import { catalogHref, gameLabel, gameSearchParams, parseGame } from "@/content/games";
+import { GameNavigation } from "@/components/game-navigation";
 
 export const metadata: Metadata = {
   title: "Todos los sellados",
-  description: "Sobres, packs y cajas Pokémon TCG selladas. Buscá por nombre, expansión o código y filtrá por formato, idioma, disponibilidad y precio.",
+  description: "Sobres, cajas y mazos de Pokémon, One Piece y Dragon Ball. Buscá por nombre o código y filtrá por formato, idioma, disponibilidad y precio.",
 };
 
 const field = "h-12 w-full border border-ink/40 bg-white px-3 text-base sm:text-sm";
 const label = "mb-1 block text-[.68rem] font-bold uppercase tracking-[.14em] text-ink/70";
 
-function pageHref(q: CatalogQuery, page: number) {
-  const s = toSearchParams({ ...q, page }).toString();
-  return s ? `/sellados?${s}` : "/sellados";
-}
-
 export default async function Sellados({ searchParams }: { searchParams: Promise<RawParams> }) {
   const raw = await searchParams;
+  const game = raw.juego === "todos" ? "todos" : parseGame(raw.juego);
+  const pageHref = (query: CatalogQuery, page: number) => catalogHref(game, toSearchParams({ ...query, page }));
   const q = parseQuery(raw);
   // URL canónica: sin parámetros vacíos ni inválidos, para compartir y volver atrás con una dirección limpia.
-  const canonical = toSearchParams(q);
+  const canonical = gameSearchParams(game, toSearchParams(q));
   const current = new URLSearchParams(Object.entries(raw).flatMap(([k, v]) => (Array.isArray(v) ? v : [v ?? ""]).map((x) => [k, x] as [string, string])));
   const sortKey = (u: URLSearchParams) => [...u.entries()].map(([k, v]) => `${k}=${v}`).sort().join("&");
-  if (sortKey(canonical) !== sortKey(current)) redirect(canonical.toString() ? `/sellados?${canonical}` : "/sellados");
-  const expansions = await listExpansions();
+  if (sortKey(canonical) !== sortKey(current)) redirect(pageHref(q, q.page));
+  const hasExpansions = game === "pokemon" || game === "todos";
+  const expansions = hasExpansions ? await listExpansions() : [];
   // Solo se ofrecen idiomas y expansiones que tienen productos activos en el catálogo actual.
-  const activos = await listProducts();
+  const activos = (await listProducts()).filter((product) => game === "todos" || (product.game ?? "pokemon") === game);
   const idiomas = Object.entries(languageLabel).filter(([k]) => k !== "na" && activos.some((p) => p.language === k)); // «No aplica» (accesorios) no es un idioma que se filtre
   const conProductos = expansions.filter((e) => activos.some((p) => p.expansionIds.includes(e.id)));
   const result = paginate(filterProducts(activos, expansions, q), q.page);
@@ -48,7 +48,7 @@ export default async function Sellados({ searchParams }: { searchParams: Promise
         <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_80%_20%,#1f8a63_0%,#0b4032_40%,#121715_85%)]" aria-hidden="true" />
         <div className="grid-lines absolute inset-0 -z-10 opacity-60" aria-hidden="true" />
         <div className="mx-auto max-w-[1440px] px-4 py-5 sm:px-8 sm:py-14">
-          <p className="eyebrow text-vermilion-bright">Sellados · Pokémon TCG</p>
+          <p className="eyebrow text-vermilion-bright">Sellados · {game === "todos" ? "Todos los juegos" : `${gameLabel[game]} TCG`}</p>
           <h1 className="display mt-1.5 text-[clamp(2rem,9vw,6rem)] sm:mt-3">
             Explorá <span className="text-gold">tu próxima apertura</span>
           </h1>
@@ -64,14 +64,17 @@ export default async function Sellados({ searchParams }: { searchParams: Promise
             </h2>
             <nav aria-label="Vista" className="flex gap-5 text-sm font-semibold sm:gap-6">
               <span aria-current="page" className="border-b-2 border-ink pb-1">Productos</span>
-              <Link href="/expansiones" className="border-b-2 border-transparent pb-1 text-ink/70 hover:border-ink hover:text-ink">Por expansión</Link>
+              {hasExpansions && <Link href="/expansiones" className="border-b-2 border-transparent pb-1 text-ink/70 hover:border-ink hover:text-ink">Por expansión</Link>}
             </nav>
           </div>
+
+          <div className="mt-3 sm:mt-5"><GameNavigation current={game === "todos" ? undefined : game} emphasizePokemon={false} /></div>
 
           <div className="mt-3 sm:mt-6">
             <FilterShell activeCount={activeCount}>
               <form method="get" action="/sellados" role="search" aria-label="Buscar y filtrar" className="px-4 pb-4 pt-4 lg:p-0">
-                <div className="grid gap-3 lg:grid-cols-[2fr_repeat(3,1fr)]">
+                {game !== "pokemon" && <input type="hidden" name="juego" value={game} />}
+                <div className={`grid gap-3 ${hasExpansions ? "lg:grid-cols-[2fr_repeat(3,1fr)]" : "lg:grid-cols-[2fr_repeat(2,1fr)]"}`}>
                   <div>
                     <label htmlFor="f-q" className={label}>Buscar</label>
                     <input id="f-q" name="q" type="search" defaultValue={q.q} placeholder="Nombre, expansión o código" maxLength={80} className={field} />
@@ -99,7 +102,7 @@ export default async function Sellados({ searchParams }: { searchParams: Promise
                       ))}
                     </select>
                   </div>
-                  <div>
+                  {hasExpansions && <div>
                     <label htmlFor="f-expansion" className={label}>Expansión</label>
                     <select id="f-expansion" name="expansion" defaultValue={q.expansion} className={field}>
                       <option value="">Todas</option>
@@ -107,7 +110,7 @@ export default async function Sellados({ searchParams }: { searchParams: Promise
                         <option key={e.id} value={e.id}>{e.name}</option>
                       ))}
                     </select>
-                  </div>
+                  </div>}
                 </div>
                 <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_1fr_auto]">
                   <div>
@@ -133,7 +136,7 @@ export default async function Sellados({ searchParams }: { searchParams: Promise
                   <div className="flex gap-2 self-end">
                     <button type="submit" className="h-12 flex-1 bg-ink px-6 text-sm font-bold text-paper hover:bg-emerald lg:flex-none">Aplicar</button>
                     {active && (
-                      <Link href="/sellados" className="flex h-12 items-center border border-ink px-4 text-sm font-semibold hover:bg-gold">Limpiar</Link>
+                      <Link href={catalogHref(game)} className="flex h-12 items-center border border-ink px-4 text-sm font-semibold hover:bg-gold">Limpiar</Link>
                     )}
                   </div>
                 </div>
@@ -157,7 +160,7 @@ export default async function Sellados({ searchParams }: { searchParams: Promise
             <div className="mt-4 border border-dashed border-ink/40 bg-white/50 p-8 text-center sm:p-14" data-testid="sin-stock">
               <p className="display text-4xl normal-case sm:text-5xl">Todavía no hay productos con stock confirmado.</p>
               <p className="mx-auto mt-3 max-w-md text-sm text-ink/70">Cuando la tienda cargue unidades disponibles van a aparecer acá. Mientras tanto podés recorrer el catálogo completo y consultar por encargo: no es una compra ni una reserva, la disponibilidad y la cotización se confirman por WhatsApp.</p>
-              <Link href="/sellados" className="mt-6 inline-flex items-center gap-3 bg-gold px-6 py-3.5 font-bold hover:bg-ink hover:text-paper">
+              <Link href={catalogHref(game)} className="mt-6 inline-flex items-center gap-3 bg-gold px-6 py-3.5 font-bold hover:bg-ink hover:text-paper">
                 Ver todo el catálogo <ArrowIcon />
               </Link>
             </div>
@@ -165,7 +168,7 @@ export default async function Sellados({ searchParams }: { searchParams: Promise
             <div className="mt-4 border border-dashed border-ink/40 bg-white/50 p-8 text-center sm:p-14">
               <p className="display text-4xl normal-case sm:text-5xl">No encontramos productos con esos filtros.</p>
               <p className="mx-auto mt-3 max-w-md text-sm text-ink/70">Probá con otra palabra, ampliá el rango de precio o quitá algún filtro.</p>
-              <Link href="/sellados" className="mt-6 inline-flex items-center gap-3 bg-gold px-6 py-3.5 font-bold hover:bg-ink hover:text-paper">
+              <Link href={catalogHref(game)} className="mt-6 inline-flex items-center gap-3 bg-gold px-6 py-3.5 font-bold hover:bg-ink hover:text-paper">
                 Limpiar filtros <ArrowIcon />
               </Link>
             </div>

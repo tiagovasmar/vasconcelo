@@ -4,7 +4,7 @@ import { currentRate } from "@/features/fx/service";
 import { hasAsset } from "@/components/slot";
 import { evaluateCart } from "@/features/inquiries/pricing";
 import { ValidateRequestSchema } from "@/features/inquiries/schemas";
-import { COMBO, COMBO_HEADLINE, pricingScenarios } from "@/features/promos/combo";
+import { COMBO, COMBO_HEADLINE } from "@/features/promos/combo";
 import { getComboConfig } from "@/features/promos/settings";
 import { buildSuggestions } from "@/features/promos/sugerencias";
 import { errorJson, json, readJson, rateLimited, sameOrigin } from "@/server/http";
@@ -13,7 +13,7 @@ export const runtime = "nodejs";
 
 /**
  * Revalida el carrito con el catálogo vigente: precios, disponibilidad y límites salen siempre del servidor. También calcula los importes (lista, combo caja + sobres,
- * transferencia y total) y las sugerencias del carrito lateral: el navegador solo muestra lo que recibe y nunca determina un importe.
+ * total) y las sugerencias del carrito lateral: el navegador solo muestra lo que recibe y nunca determina un importe.
  */
 export async function POST(req: Request) {
   if (!sameOrigin(req)) return errorJson(403, "forbidden", "Origen no permitido.");
@@ -35,19 +35,18 @@ export async function POST(req: Request) {
   const [products, comboSetting] = await Promise.all([listAllProducts(fx), getComboConfig(db)]);
   const combo = comboSetting.config;
   const ev = evaluateCart(parsed.data.items, products, combo);
-  const scenarios = pricingScenarios(ev.pricingInput, combo);
+  const pricing = ev.pricing;
   const imageOf = (p: (typeof products)[number]) => {
     const img = p.images[0];
     return { src: img && hasAsset(img.src) ? img.src : null, alt: img?.alt ?? p.title };
   };
-  const suggestions = buildSuggestions(products, parsed.data.items.map((i) => i.productId), scenarios.base, combo, imageOf);
+  const suggestions = buildSuggestions(products, parsed.data.items.map((i) => i.productId), pricing, combo, imageOf);
   return json({
     fx: fx.rate10k ? { rate10k: fx.rate10k, mode: fx.mode, warn: fx.warn } : null,
-    /** ¿El pedido califica para cuotas / 10% OFF por transferencia? (al menos una caja disponible; los encargos no cuentan). */
-    qualifiesForPromo: ev.qualifiesForPromo,
-    /** Importes del pedido: «base» (efectivo, cuotas o sin elegir) y «transferencia». Cada línea trae lista, descuento del combo, descuento por transferencia y total. */
-    pricing: scenarios,
-    combo: { headline: COMBO_HEADLINE, percent: COMBO.percent, perBox: COMBO.boostersPerBox, ...scenarios.base.combo },
+    // Compatibilidad con clientes anteriores durante el despliegue.
+    qualifiesForPromo: true,
+    pricing: { base: pricing, transferencia: pricing },
+    combo: { headline: COMBO_HEADLINE, percent: COMBO.percent, perBox: COMBO.boostersPerBox, ...pricing.combo },
     suggestions,
     lines: ev.lines.map((l) => {
       const p = l.product;

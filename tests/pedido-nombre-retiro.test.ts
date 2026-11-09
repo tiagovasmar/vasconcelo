@@ -65,22 +65,21 @@ describe("envío según la entrega", () => {
 });
 
 describe("métodos de pago: «Coordinar por WhatsApp» ya no existe", () => {
-  it("quedan los tres vigentes y el servidor rechaza el eliminado con un mensaje claro", async () => {
-    expect(paymentMethods.map((p) => p.id)).toEqual(["tarjeta-3-cuotas", "transferencia", "efectivo"]);
+  it("quedan los dos vigentes y el servidor rechaza el eliminado con un mensaje claro", async () => {
+    expect(paymentMethods.map((p) => p.id)).toEqual(["transferencia", "efectivo"]);
     const err = await fail(async () => await createInquiry(db, body({ payment: "coordinar" }), owner));
     expect(err.code).toBe("invalid_input");
     expect(JSON.stringify(err.details)).toMatch(/método de pago/);
   });
-  it("las reglas no cambiaron: cuotas y transferencia exigen una caja; el 10% solo en transferencia; no se acumulan", async () => {
-    expect((await fail(async () => await createInquiry(db, body({ payment: "transferencia" }), owner))).code).toBe("promo_not_eligible");
+  it("transferencia y efectivo tienen el mismo importe", async () => {
     const caja = [{ productId: "storm-caja", quantity: 1 }, { productId: "storm-sobre", quantity: 2 }];
     const t = (await createInquiry(db, body({ payment: "transferencia", items: caja }), owner)).inquiry;
-    const c = (await createInquiry(db, body({ payment: "tarjeta-3-cuotas", items: caja }), owner)).inquiry;
-    expect(t.discountMinor).toBeGreaterThan(0);
+    const c = (await createInquiry(db, body({ payment: "efectivo", items: caja }), owner)).inquiry;
+    expect(t.discountMinor).toBe(0);
     expect(c.discountMinor).toBe(0);
     const subtotal = catalog.products.find((p) => p.id === "storm-caja")!.priceMinor! + 2 * catalog.products.find((p) => p.id === "storm-sobre")!.priceMinor!;
     expect(t.subtotalMinor).toBe(subtotal);
-    expect(t.discountMinor).toBe(Math.round(subtotal / 100 / 10) * 100);
+    expect(c.subtotalMinor).toBe(subtotal);
   });
 });
 
@@ -94,14 +93,17 @@ describe("mensaje de WhatsApp: subtotal y total destacados (un asterisco por lad
     expect(inquiry.message).toContain("Entrega: Retiro en Av. Rivadavia 14600 (horario y dirección exacta a confirmar por WhatsApp)");
     expect(inquiry.message.match(/\*[^*\n]+\*/g)).toEqual(["*Subtotal: $ 61.000*", "*Total: $ 61.000*"]);
   });
-  it("con descuento: subtotal sin descuento, descuento aparte y total con descuento", async () => {
+  it("con combo: subtotal sin descuento, descuento aparte y total con descuento", async () => {
     const caja = [{ productId: "storm-caja", quantity: 1 }, { productId: "storm-sobre", quantity: 2 }];
-    const { inquiry } = await createInquiry(db, body({ payment: "transferencia", items: caja }), owner);
+    const { inquiry } = await createInquiry(db, body({ payment: "transferencia", items: caja }), {
+      ...owner,
+      combo: { enabled: true, boxIds: ["storm-caja"], boosterIds: ["storm-sobre"] },
+    });
     const lineas = inquiry.message.split("\n");
     expect(lineas.find((l) => l.startsWith("*Subtotal"))).toMatch(/^\*Subtotal: \$ [\d.]+\*$/);
-    expect(lineas.some((l) => l.startsWith("Descuento por transferencia: -"))).toBe(true);
+    expect(lineas).toContain("Descuento combo caja + sobres: -$ 1.900");
     expect(lineas.find((l) => l.startsWith("*Total"))).toMatch(/^\*Total: \$ [\d.]+\*$/);
-    expect(inquiry.discountMinor).toBeGreaterThan(0);
+    expect(inquiry.discountMinor).toBe(0);
   });
   it("buildMessage: sin productos de stock (solo encargo) no inventa subtotal ni total", () => {
     const m = buildMessage({ reference: "TT-X", contactName: "Ana Pérez", lines: [{ quantity: 1, title: "Caja china", language: "zh", sku: "ZH-1", unitPriceMinor: null }], subtotalMinor: 0, delivery: { method: "retiro" }, paymentLabel: "Efectivo · a coordinar" });

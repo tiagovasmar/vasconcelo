@@ -44,6 +44,14 @@ async function abrir() {
 }
 
 describe("acceso: solo cuentas aprobadas por el dueño, validado en el servidor", () => {
+  it("ordena primero los productos con precios publicados y deja los pendientes al final", async () => {
+    await abrir();
+    const { rows } = await wholesaleCatalog(db);
+    const priced = rows.filter((row) => row.tiers.length > 0);
+    expect(priced.length).toBeGreaterThan(0);
+    expect(rows.slice(0, priced.length)).toEqual(priced);
+    expect(rows.slice(priced.length).every((row) => row.tiers.length === 0)).toBe(true);
+  });
   it("sin sesión, sin solicitud, pendiente, rechazada o con el catálogo cerrado no hay acceso; aprobada y abierto, sí", async () => {
     expect(await wholesaleAccess(db, null)).toMatchObject({ ok: false, reason: "no_session" });
     expect(await wholesaleAccess(db, "ana")).toMatchObject({ ok: false, reason: "sin_solicitud" });

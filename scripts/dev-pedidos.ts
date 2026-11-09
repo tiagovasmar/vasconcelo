@@ -141,7 +141,7 @@ async function main() {
     }
     if (!product.draft) await publishTiers(db, product.id, actor, at(9));
   }
-  await saveRules(db, { minBoxes: 2, minUnits: null, minAmountMinor: null, combine: "producto", delayText: "entre 8 y 15 días", delayFrom: "la confirmación de la seña", refundPeriod: "Plazo FICTICIO de prueba, pendiente de definición real", cancellationPolicy: mayorista.cancellationPolicy, open: true }, actor, at(9));
+  await saveRules(db, { minBoxes: 3, minUnits: null, minAmountMinor: null, combine: "producto", delayText: "entre 8 y 15 días", delayFrom: "la confirmación de la seña", refundPeriod: "Plazo FICTICIO de prueba, pendiente de definición real", cancellationPolicy: mayorista.cancellationPolicy, open: true }, actor, at(9));
 
   // Avisos pendientes de los hechos anteriores: se "envían" al transporte LOCAL (archivos), nunca a nadie.
   await flushOutbox(db, { limit: 100 });

@@ -138,6 +138,28 @@ describe("«Continuar con Google»", () => {
 });
 
 describe("permisos: siempre validados en el servidor", () => {
+  it("Google vuelve al dominio desde el que se inicia, tanto tienda propia como Netlify; rechaza sitios ajenos", async () => {
+    process.env.BETTER_AUTH_URL = "https://vasconcelo.netlify.app";
+    const { auth } = await boot();
+    // Better Auth omite por defecto esta defensa en NODE_ENV=test; activar el comportamiento real.
+    (await auth.$context).skipOriginCheck = false;
+    for (const host of ["vasconcelo.shop", "www.vasconcelo.shop", "vasconcelo.netlify.app"]) {
+      const origin = `https://${host}`;
+      const response = await auth.handler(new Request(`${origin}/api/auth/sign-in/social`, { method: "POST", headers: { origin, "content-type": "application/json", "x-forwarded-for": `10.9.1.${host.length}` }, body: JSON.stringify({ provider: "google", callbackURL: "/cuenta" }) }));
+      expect(response.status).toBe(200);
+      const url = new URL((await response.json()).url);
+      expect(url.searchParams.get("redirect_uri")).toBe(`${origin}/api/auth/callback/google`);
+    }
+    const registration = await auth.handler(new Request("https://vasconcelo.shop/api/auth/sign-up/email", { method: "POST", headers: { origin: "https://vasconcelo.shop", "content-type": "application/json", "x-forwarded-for": "10.9.3.1" }, body: JSON.stringify({ name: "Cliente Prueba", email: "dominios@example.com", password: "Clave-de-prueba-2026!" }) }));
+    expect(registration.status).toBe(200);
+    for (const host of ["vasconcelo.shop", "vasconcelo.netlify.app"]) {
+      const response = await auth.handler(new Request(`https://${host}/api/auth/sign-in/email`, { method: "POST", headers: { origin: `https://${host}`, "content-type": "application/json", "x-forwarded-for": `10.9.4.${host.length}` }, body: JSON.stringify({ email: "dominios@example.com", password: "Clave-de-prueba-2026!" }) }));
+      expect(response.status).toBe(200);
+      expect(response.headers.getSetCookie().some((cookie) => cookie.includes("session_token"))).toBe(true);
+    }
+    const response = await auth.handler(new Request("https://vasconcelo.shop/api/auth/sign-in/social", { method: "POST", headers: { origin: "https://ajeno.example", cookie: "prueba=1", "content-type": "application/json", "x-forwarded-for": "10.9.2.99" }, body: JSON.stringify({ provider: "google", callbackURL: "/cuenta" }) }));
+    expect(response.status).toBe(403);
+  });
   it("el nombre o el correo que manda el navegador no otorgan permisos; el administrador es solo ADMIN_EMAIL con correo verificado", async () => {
     const { auth, admin } = await boot();
     // Una persona de Google con otro correo, aunque se llame «dueno» o «Administrador», no es admin.

@@ -264,13 +264,15 @@ test("mayorista: solicitud, tramos, pedido, seña y envío internacional", async
   // Aprobada pero con el catálogo cerrado (condiciones sin definir): sigue sin precios.
   await go(page, "/mayoristas/catalogo");
   await expect(page.getByTestId("mayorista-sin-acceso")).toContainText("todavía no está habilitado");
-  const tramos = ownerPage.getByTestId("form-tramo");
+  const pricesPage = await ownerPage.context().newPage();
+  await go(pricesPage, "/admin?q=storm");
+  const tramos = pricesPage.getByTestId("admin-fila-storm-sobre").getByTestId("mayorista-en-producto");
+  await tramos.locator("summary").click();
   for (const [cantidad, precio] of [["10", "10"], ["50", "8"]]) {
-    await tramos.getByLabel("Producto").selectOption("storm-sobre");
-    await tramos.getByLabel("Desde (unidades)").fill(cantidad);
-    await tramos.getByLabel("Precio unitario (USD)").fill(precio);
-    await tramos.getByRole("button", { name: "Guardar tramo (borrador)" }).click();
-    await expect(tramos.getByRole("status")).toHaveText("Tramo guardado como borrador.");
+    await tramos.getByLabel(/Desde unidades mayoristas/).fill(cantidad);
+    await tramos.getByLabel(/Nuevo precio mayorista/).fill(precio);
+    await tramos.getByRole("button", { name: "Guardar borrador" }).click();
+    await expect(tramos.getByRole("status")).toContainText("Tramo guardado como borrador.");
   }
 
   const reglas = ownerPage.getByTestId("form-reglas");
@@ -286,9 +288,9 @@ test("mayorista: solicitud, tramos, pedido, seña y envío internacional", async
   await guardar.click();
   await expect(reglas.getByRole("alert")).toContainText(/tramo/i);
 
-  ownerPage.once("dialog", (d) => void d.accept());
-  await ownerPage.getByRole("button", { name: "Revisé los precios: publicar" }).click();
-  await expect(ownerPage.getByTestId("tramos-producto").getByTestId("tramo").filter({ hasText: "Publicado" })).toHaveCount(2);
+  await tramos.getByRole("button", { name: "Publicar precios mayoristas" }).click();
+  await expect(tramos.getByText("Publicado", { exact: true })).toHaveCount(2);
+  await pricesPage.close();
   await guardar.click();
   await expect(reglas.getByRole("status")).toHaveText("Condiciones guardadas.");
   await expect(ownerPage.getByTestId("estado-catalogo-mayorista")).toContainText("ABIERTO");
@@ -370,6 +372,7 @@ test("mayorista: solicitud, tramos, pedido, seña y envío internacional", async
   await otra.ctx.close();
 
   await go(ownerPage, `/admin/pedidos/${ref}`);
+  await ownerPage.getByText("Acordé el importe en pesos", { exact: true }).click();
   const importe = ownerPage.getByTestId("form-importe");
   await importe.getByLabel(/Importe acordado/).fill("600.000");
   await importe.getByRole("button", { name: "Guardar importe" }).click();

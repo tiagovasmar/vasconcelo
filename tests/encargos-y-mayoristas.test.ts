@@ -83,42 +83,32 @@ describe("consulta por encargo", () => {
   });
 });
 
-describe("promoción por caja en la consulta (servidor)", () => {
+describe("transferencia sin descuento en la consulta (servidor)", () => {
   const caja = { productId: "storm-caja", quantity: 1 };
   const sobre = { productId: "storm-sobre", quantity: 2 };
-  it("caja sola con transferencia: 10% de descuento guardado y escrito en el mensaje", async () => {
+  it("caja sola con transferencia: conserva el precio de lista", async () => {
     const { inquiry } = await createInquiry(db, body(10, [caja], { payment: "transferencia" }), owner);
     expect(inquiry.subtotalMinor).toBe(18500000);
-    expect(inquiry.discountMinor).toBe(1850000);
-    expect(inquiry.message).toContain("Descuento por transferencia: -$ 18.500");
-    expect(inquiry.message).toContain("*Total: $ 166.500*");
-    expect((await db.select().from(inquiries).where(eq(inquiries.id, inquiry.reference)))[0]!.discountMinor).toBe(1850000);
+    expect(inquiry.discountMinor).toBe(0);
+    expect(inquiry.message).not.toContain("Descuento por transferencia");
+    expect(inquiry.message).toContain("*Total: $ 185.000*");
+    expect((await db.select().from(inquiries).where(eq(inquiries.id, inquiry.reference)))[0]!.discountMinor).toBe(0);
   });
-  it("caja + sobres con transferencia: el 10% alcanza a todo el subtotal de productos; el envío queda aparte", async () => {
+  it("caja + sobres con transferencia: el envío queda aparte", async () => {
     const { inquiry } = await createInquiry(db, body(11, [caja, sobre], { payment: "transferencia" }), owner);
     expect(inquiry.subtotalMinor).toBe(20400000);
-    expect(inquiry.discountMinor).toBe(2040000);
+    expect(inquiry.discountMinor).toBe(0);
     expect(inquiry.message).not.toMatch(/Envío:/); // retiro: sin línea de envío
   });
-  it("cuotas con una caja: se acepta y no hay descuento (son alternativas)", async () => {
-    const { inquiry } = await createInquiry(db, body(12, [caja], { payment: "tarjeta-3-cuotas" }), owner);
-    expect(inquiry.discountMinor).toBe(0);
-    expect(inquiry.paymentLabel).toContain("3 cuotas sin interés");
+  it("la opción anterior de cuotas se rechaza incluso si el pedido incluye una caja", async () => {
+    const err = await fail(async () => await createInquiry(db, body(12, [caja], { payment: "tarjeta-3-cuotas" }), owner));
+    expect(err).toMatchObject({ code: "invalid_input", status: 400 });
   });
-  it("sobres solos con cuotas o transferencia: rechazado (409 promo_not_eligible)", async () => {
-    for (const [n, payment] of [[13, "transferencia"], [14, "tarjeta-3-cuotas"]] as const) {
-      const err = await fail(async () => await createInquiry(db, body(n, [sobre], { payment }), owner));
-      expect(err.code).toBe("promo_not_eligible");
-      expect(err.status).toBe(409);
-    }
-    expect((await db.select().from(inquiries))).toHaveLength(0); // no se guardó nada
-  });
-  it("una caja que solo se consulta por encargo no habilita la promoción", async () => {
-    expect((await fail(async () => await createInquiry(db, body(15, [{ ...caja, mode: "encargo" }, sobre], { payment: "transferencia" }), owner))).code).toBe("promo_not_eligible");
-  });
-  it("efectivo vale siempre y sin descuento (el 10% no se extendió al efectivo)", async () => {
-    const { inquiry } = await createInquiry(db, body(16, [sobre], { payment: "efectivo" }), owner);
-    expect(inquiry.discountMinor).toBe(0);
+  it("acepta transferencia para sobres solos y para encargos", async () => {
+    const { inquiry } = await createInquiry(db, body(13, [sobre], { payment: "transferencia" }), owner);
+    expect(inquiry).toMatchObject({ subtotalMinor: 1900000, discountMinor: 0, paymentLabel: "Transferencia" });
+    const mixed = await createInquiry(db, body(15, [{ ...caja, mode: "encargo" }, sobre], { payment: "transferencia" }), owner);
+    expect(mixed.inquiry).toMatchObject({ subtotalMinor: 1900000, discountMinor: 0, paymentLabel: "Transferencia" });
   });
   it("«A coordinar por WhatsApp» ya no existe: el servidor lo rechaza y pide elegir un método vigente", async () => {
     const err = await fail(async () => await createInquiry(db, body(17, [sobre], { payment: "coordinar" }), owner));

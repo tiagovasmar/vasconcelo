@@ -3,6 +3,7 @@ import { flushQuietly } from "@/features/avisos/outbox";
 import { applyLineCost } from "@/features/costos/service";
 import { confirmPayment, markRefunded, openIncident, registerRefund, rejectReceipt, resolveIncident, voidPayment } from "@/features/pedidos/pagos";
 import { recordDelivery } from "@/features/pedidos/envios";
+import { addWholesaleCost, setWholesaleGuide, voidWholesaleCost } from "@/features/pedidos/mayorista-admin";
 import { addNote, cancelOrder, issueAccessLink, openTracking, setAgreedAmount, setStage } from "@/features/pedidos/service";
 import { SaleError } from "@/features/sales/errors";
 import { adminAction } from "@/server/admin-api";
@@ -36,6 +37,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
         case "mark_refunded": return markRefunded(db, String(b.refundId ?? ""), b, actor);
         case "delivery": return recordDelivery(db, id, { ...b, lines: b.lines ?? [{ lineId: Number(b.lineId), quantity: b.quantity }] }, actor);
         case "access_link": return issueAccessLink(db, id);
+        case "wholesale_cost": return addWholesaleCost(db, id, b, actor);
+        case "wholesale_void_cost": return voidWholesaleCost(db, id, b, actor);
+        case "wholesale_guide": return setWholesaleGuide(db, id, b);
         case "apply_cost": return applyLineCost(db, { refKind: "order_line", refId: b.lineId, unitCostMinor: b.unitCostMinor ?? undefined }, actor);
         default: throw new SaleError(400, "invalid_input", "Acción desconocida.");
       }

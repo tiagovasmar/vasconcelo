@@ -135,7 +135,7 @@ export default async function PurchaseDetail({ params }: { params: Promise<{ id:
                     { name: "quantity", label: "Cantidad total en este envío (0 para quitar)", type: "int", required: true },
                   ]} submit="Guardar tramo" />
                 </details>}
-                {assigned.map(({ parcel, shipment }) => <p key={parcel.id} className="text-xs">{shipment.label} · {parcel.quantity} u. · {SHIPMENT_LABEL[shipment.status as ShipmentStatus]}</p>)}
+                {assigned.map(({ parcel, shipment }) => <p key={parcel.id} className="text-xs"><a href={`#recepcion-${parcel.id}`} className="font-semibold underline">{shipment.label}</a> · {parcel.quantity} u. · {SHIPMENT_LABEL[shipment.status as ShipmentStatus]}</p>)}
               </div>;
             })}
             {draft && remaining > 0 && <details>
@@ -146,7 +146,7 @@ export default async function PurchaseDetail({ params }: { params: Promise<{ id:
         })}
       </section>}
 
-      <section className={section}>
+      <section className={section} id="recepcion">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-lg font-semibold">Envíos y recepción</h2>
           <Link href="/admin/envios" className="text-sm font-semibold underline">Crear o actualizar envíos</Link>
@@ -159,8 +159,8 @@ export default async function PurchaseDetail({ params }: { params: Promise<{ id:
           const a = allocations.find((a) => a.id === parcel.allocationId)!;
           const item = p.items.find((i) => i.id === a.itemId)!;
           const pending = parcel.quantity - parcel.accepted - parcel.missing - parcel.damaged;
-          return <article className={tile} key={parcel.id}>
-            <h3 className="font-semibold">{shipment.label} · {title(item.productId)}</h3>
+          return <article className={tile} key={parcel.id} id={`recepcion-${parcel.id}`}>
+            <h3 className="font-semibold"><Link href={`/admin/envios#${shipment.id}`} className="underline">{shipment.label}</Link> · {title(item.productId)}</h3>
             <p className="text-sm">{names[a.destination as keyof typeof names]} · {parcel.quantity} u. · {SHIPMENT_LABEL[shipment.status as ShipmentStatus]}</p>
             <p className="break-words text-sm">{[[shipment.sentAt, "Salida"], [shipment.originReceivedAt, "Depósito de origen"], [shipment.transitAt, "Tránsito"], [shipment.arrivedAt, "Argentina"]].map(([d, label]) => d ? `${label} ${date(Number(d))}` : "").filter(Boolean).join(" · ")}</p>
             {(shipment.carrier || shipment.trackingNumber) && <p className="break-words text-sm">{shipment.carrier} {shipment.trackingNumber}</p>}

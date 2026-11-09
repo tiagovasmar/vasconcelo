@@ -4,7 +4,7 @@ import { go } from "./helpers";
 // Catálogo REAL (44 fichas publicadas, todas con precio y stock pendientes). Escritorio y móvil.
 const imagenCargada = (page: Page, name: RegExp) => page.getByRole("img", { name }).first().evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 100);
 
-test("inicio: franja de promociones con condición y «Las cartas que querés encontrar» más arriba, una sola vez", async ({ page }) => {
+test("inicio: «Las cartas que querés encontrar» más arriba, una sola vez", async ({ page }) => {
   await go(page, "/");
   const top = (sel: string) => page.locator(sel).evaluate((el) => el.getBoundingClientRect().top + scrollY);
   const formatos = await top("section[aria-labelledby=cat-title]");
@@ -15,10 +15,7 @@ test("inicio: franja de promociones con condición y «Las cartas que querés en
   await expect(page.locator("#cards-title")).toHaveCount(1);
   await expect(page.getByTestId("cartas-destacadas").locator("li")).toHaveCount(3);
   for (const a of await page.getByTestId("cartas-destacadas").locator("a").all()) await expect(a).toHaveAttribute("href", /\/expansiones\//);
-  await expect(page.getByTestId("franja-promos")).toContainText("3 cuotas sin interés o 10% OFF por transferencia · compras que incluyan al menos una caja");
-  // la franja queda cerca del inicio: dentro de la primera sección bajo el carrusel, antes de las tarjetas de formatos
-  expect(await top("[data-testid=franja-promos]")).toBeLessThan(await top("[data-testid=categoria-cajas]"));
-  expect(await top("[data-testid=franja-promos]")).toBeLessThan(cartas);
+
 });
 
 test("nombre principal de las colecciones chinas en inglés (resto del sitio en español), con el nombre original como dato secundario", async ({ page }) => {
@@ -74,7 +71,7 @@ test("encargo desde un producto sin precio ni stock: tarjeta → ficha → carri
   await expect(page.getByTestId("lineas-compra")).toHaveCount(0);
   await expect(page.getByTestId("resumen-encargo")).toContainText("cotización a confirmar");
   await expect(page.locator("aside")).not.toContainText(/\$\s?\d/); // ningún importe ni seña inventados
-  await expect(page.getByRole("radio", { name: /Transferencia/ })).toBeDisabled();
+  await expect(page.getByRole("radio", { name: /Transferencia/ })).toBeEnabled();
   await page.getByRole("radio", { name: /Retiro/ }).check();
   await page.getByLabel(/Nombre y apellido/).fill("Ana Pérez");
   await page.getByRole("radio", { name: /Efectivo/ }).check();

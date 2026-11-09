@@ -31,7 +31,7 @@ function ficha(cart: Cart, chosen: number, picked: Record<string, number>) {
   // Estado del carrito después de agregar lo que se puede: de ahí salen los cupos «oficiales» del servidor.
   const merged = new Map(cart.map((c) => [c.productId, c.quantity]));
   for (const a of add) merged.set(a.productId, (merged.get(a.productId) ?? 0) + a.quantity);
-  const after = evaluateCart([...merged].map(([productId, quantity]) => line(productId, quantity)), products, CFG).pricing("");
+  const after = evaluateCart([...merged].map(([productId, quantity]) => line(productId, quantity)), products, CFG).pricing;
   return { client, server, after, addQty, room };
 }
 

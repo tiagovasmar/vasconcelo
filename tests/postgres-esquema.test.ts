@@ -16,7 +16,7 @@ beforeAll(() => { dir = fs.mkdtempSync(path.join(os.tmpdir(), "esquema-")); });
 afterAll(() => { fs.rmSync(dir, { recursive: true, force: true }); });
 
 const NUEVAS = ["sales", "sale_lines", "stock_movements", "inquiry_events", "inquiry_sales", "restock_alerts", "order_tracks", "order_events", "order_payments", "payment_receipts", "order_incidents", "order_refunds", "shipments", "shipment_items", "line_deliveries", "notification_outbox", "cost_purchases", "cost_purchase_items", "cost_expenses", "cost_expense_shares", "applied_costs", "sale_commissions", "wholesale_tiers", "accounting_expenses", "storefront_visits",
-  "import_allocations", "import_parcels", "import_receipts", "import_documents", "import_disbursements", "import_reservations"];
+  "import_allocations", "import_parcels", "import_receipts", "import_documents", "import_disbursements", "import_reservations", "wholesale_order_costs"];
 // Columnas e índices que la consulta del dueño (migración 0002) agregó a `inquiries`: no existen en el SQLite original.
 const COLUMNAS_NUEVAS: Record<string, string[]> = { inquiries: ["contact_phone", "source", "crm_status", "contact_confirmed_at", "lost_reason", "combo_discount_minor", "order_kind"], inquiry_lines: ["base_currency", "combo_units", "combo_discount_minor", "transfer_discount_minor", "pack_size"], product_overrides: ["price_ars_minor"] };
 const NOT_NULL_NUEVAS: Record<string, string[]> = { inquiries: ["source", "crm_status", "combo_discount_minor", "order_kind"], inquiry_lines: ["combo_units", "combo_discount_minor", "transfer_discount_minor"] };

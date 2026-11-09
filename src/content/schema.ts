@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { catalogGames } from "./games";
 
 export { kindLabel, languageLabel, wideKinds } from "./labels";
 
@@ -81,6 +82,8 @@ export const ProductSchema = z.object({
   title: z.string().min(1),
   /** booster = sobre · pack = pack armado · box = caja de sobres · bundle = conjunto · kit = kit de mazo · special-box = caja especial · illustration-set = set de ilustraciones. */
   kind: z.enum(productKinds),
+  /** Las fichas preexistentes pertenecen al catálogo Pokémon. */
+  game: z.enum(catalogGames).optional(),
   /** Diferencia fichas de la misma colección y formato (p. ej. «5 cartas» y «20 cartas», «Vol.2» y «Vol.3»). */
   variant: z.string().min(1).optional(),
   /** Origen del nombre principal en inglés (solo fichas que no heredan el nombre de una colección). */
