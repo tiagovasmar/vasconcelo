@@ -1,7 +1,7 @@
 import { AccessLinkButton } from "@/components/access-link-button";
 import { AdminForm, type FormField } from "@/components/admin-form";
 import { when } from "@/features/consultas/ui";
-import { formatRate, formatUSD } from "@/features/fx/convert";
+import { formatUSD } from "@/features/fx/convert";
 import type { listWholesaleOrderCosts } from "@/features/pedidos/mayorista-admin";
 import { BASIC_COSTS, COST_LABELS, wholesaleCostTotal, wholesaleResult } from "@/features/pedidos/mayorista-costos";
 
@@ -86,8 +86,8 @@ export function AdminWholesaleOrder({ id, carrier, trackingNumber, costs, agreed
   return (
     <>
       <section className={card} aria-labelledby="admin-mayorista-guia">
-        <h2 id="admin-mayorista-guia" className="text-base font-semibold">Enlace y guía para el cliente</h2>
-        <p className="my-2 text-sm text-ink/75">Compartí el enlace por WhatsApp. Permite ver el estado y las etapas del pedido sin iniciar sesión. La guía aparece cuando cargás estos dos campos.</p>
+        <h2 id="admin-mayorista-guia" className="text-base font-semibold">Seguimiento para el cliente</h2>
+        <p className="my-2 text-sm text-ink/75">El enlace muestra la etapa y la guía del envío.</p>
         <AccessLinkButton inquiryId={id} />
         <div className="mt-4">
           <AdminForm key={JSON.stringify([carrier, trackingNumber])} endpoint={endpoint} fixed={{ action: "wholesale_guide" }} fields={[
@@ -119,7 +119,6 @@ export function AdminWholesaleOrder({ id, carrier, trackingNumber, costs, agreed
         </dl>
         {commission > 0 && <p className="mt-2 text-xs text-ink/75">Comisión de la venta vinculada: {commissionUsd === null ? money(commission) : formatUSD(commissionUsd)}.</p>}
         {!complete && <p className="mt-2 text-xs text-ink/75">El resultado se completa al registrar Producto, Envío y Aduana, incluso si alguno fue cero.</p>}
-        {rate && <p className="mt-2 text-xs text-ink/75">Cotización guardada del pedido {formatRate(rate)} por USD.</p>}
       </section>
     </>
   );

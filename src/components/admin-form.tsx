@@ -33,8 +33,8 @@ export const newKey = (): string => (globalThis.crypto?.randomUUID?.() ?? `${Dat
 export const dateToMs = (ymd: string): number | null => (/^\d{4}-\d{2}-\d{2}$/.test(ymd) && Number.isFinite(Date.parse(`${ymd}T12:00:00-03:00`)) ? Date.parse(`${ymd}T12:00:00-03:00`) : null);
 export const todayYmd = (): string => new Intl.DateTimeFormat("sv-SE", { timeZone: "America/Argentina/Buenos_Aires" }).format(new Date());
 
-export function AdminForm({ endpoint, method = "POST", fixed = {}, fields, submit, ok = "Guardado.", compact = false, confirmText, idempotent = true, testId }: {
-  endpoint: string; method?: "POST" | "PATCH" | "PUT"; fixed?: Record<string, unknown>; fields: FormField[]; submit: string; ok?: string; compact?: boolean; confirmText?: string; idempotent?: boolean; testId?: string;
+export function AdminForm({ endpoint, method = "POST", fixed = {}, fields, submit, ok = "Guardado.", compact = false, confirmText, idempotent = true, resetAfterSave = true, testId }: {
+  endpoint: string; method?: "POST" | "PATCH" | "PUT"; fixed?: Record<string, unknown>; fields: FormField[]; submit: string; ok?: string; compact?: boolean; confirmText?: string; idempotent?: boolean; resetAfterSave?: boolean; testId?: string;
 }) {
   const router = useRouter();
   const formId = useId();
@@ -73,7 +73,7 @@ export function AdminForm({ endpoint, method = "POST", fixed = {}, fields, submi
       if (!res.ok) { setMsg({ ok: false, text: data?.error?.message ?? "No se pudo guardar. Intentá de nuevo." }); return; }
       setMsg({ ok: true, text: data?.replayed ? "Ya estaba registrado: no se duplicó." : ok });
       key.current = newKey();
-      setValues(init());
+      if (resetAfterSave) setValues(init());
       router.refresh();
     } catch {
       // Sin red: el formulario conserva lo escrito y la MISMA clave, así reintentar es seguro.

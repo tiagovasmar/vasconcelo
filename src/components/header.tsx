@@ -1,10 +1,12 @@
 import Link from "next/link";
+import { connection } from "next/server";
 import { store } from "@/content/store";
 import { PAY_ON_DELIVERY_NOTICE } from "@/content/checkout-options";
 import { SearchIcon, TruckIcon, ArrowIcon } from "./icons";
 import { AccountLink } from "./account-provider";
 import { CartLink } from "./cart-widgets";
 import { MobileMenu } from "./mobile-menu";
+import { storefrontOnce } from "@/features/admin/storefront";
 
 const nav = [
   { href: "/", label: "Inicio" },
@@ -16,7 +18,10 @@ const nav = [
   { href: "/mayoristas", label: "Mayoristas" },
 ];
 
-export function Header() {
+export async function Header() {
+  await connection();
+  const showUpcoming = await storefrontOnce().then((config) => config.upcomingEnabled, () => true);
+  const links = nav.filter((item) => showUpcoming || item.href !== "/proximamente");
   return (
     <header className="relative z-40">
       <div className="bg-emerald text-paper">
@@ -35,7 +40,7 @@ export function Header() {
             <span className="mono-label mt-1 text-[.55rem] text-ink/70">{store.descriptor}</span>
           </Link>
           <nav aria-label="Principal" className="hidden flex-wrap gap-x-4 gap-y-1 text-sm xl:gap-x-7 font-medium lg:flex">
-            {nav.map((n) => (
+            {links.map((n) => (
               <Link key={n.href} href={n.href} className="border-b-2 border-transparent py-1 hover:border-ink">
                 {n.label}
               </Link>
@@ -70,7 +75,7 @@ export function Header() {
                     <input id="q-mobile" name="q" type="search" placeholder="Buscar productos…" className="h-12 w-full bg-transparent text-base outline-none placeholder:text-ink/50" />
                   </form>
                   <ul className="mt-2 divide-y divide-ink/15">
-                    {nav.map((n, i) => (
+                    {links.map((n, i) => (
                       <li key={n.href}>
                         <Link href={n.href} className="flex min-h-14 items-center justify-between gap-4 py-3 text-lg font-semibold hover:text-emerald">
                           <span className="flex items-baseline gap-3">

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AdminProductTable, type AdminRow, type RowState } from "@/components/admin-product-table";
 import { catalog } from "@/content/catalog";
+import { catalogGames, gameLabel, type CatalogGame } from "@/content/games";
 import { kindLabel, languageLabel, languages, productKinds } from "@/content/schema";
 import { getDb } from "@/db/client";
 import { commercialState } from "@/features/catalog/commercial";
@@ -10,7 +11,6 @@ import { AdminLowStockSettings } from "@/components/admin-low-stock";
 import { currentRate } from "@/features/fx/service";
 import { hasAsset } from "@/components/slot";
 import { requireAdmin } from "@/server/admin";
-import { listTiersForAdmin } from "@/features/mayorista/precios";
 import { productFilters, matchesProductFilter } from "@/features/admin/product-filters";
 
 export const dynamic = "force-dynamic";
@@ -25,43 +25,53 @@ export default async function Admin({ searchParams }: { searchParams: Promise<Re
   const q = (typeof sp.q === "string" ? sp.q : "").trim().slice(0, 80);
   const estado = productFilters.find((e) => e.id === sp.estado)?.id ?? "todos";
   const idioma = languages.find((l) => l === sp.idioma) ?? "";
+  const juego = catalogGames.find((g) => g === sp.juego) ?? "";
   const formato = productKinds.find((k) => k === sp.formato) ?? "";
   const coleccion = typeof sp.coleccion === "string" ? sp.coleccion.slice(0, 80) : "";
 
   const db = getDb();
-  const [fx, low, wholesaleTiers] = await Promise.all([currentRate(db), getLowStock(db), listTiersForAdmin(db)]);
+  const [fx, low] = await Promise.all([currentRate(db), getLowStock(db)]);
   const expOf = (ids: string[]) => ids.map((id) => catalog.expansions.find((e) => e.id === id)).filter((e) => e !== undefined);
-  const all = (await adminProducts(db, catalog.products, fx)).map((a): AdminRow & { search: string; lang: string; kindId: string; expIds: string[] } => {
+  const all = (await adminProducts(db, catalog.products, fx)).map((a): AdminRow & { search: string; lang: string; game: CatalogGame; kindId: string; expIds: string[] } => {
     const p = a.product;
     const base = catalog.products.find((x) => x.id === p.id)!;
     const exps = expOf(p.expansionIds);
     const state: RowState = base.retired ? "retired" : !p.active ? (base.draftNote ? "draft" : "hidden") : p.orderOnly ? "order" : commercialState(p);
     return {
-      id: p.id, sku: p.sku, title: p.title, expansion: exps.map((e) => e.name).join(", ") || "—", kind: kindLabel[p.kind], language: languageLabel[p.language], lang: p.language, state,
-      wholesaleBaseUsd: wholesaleTiers.find((tier) => tier.productId === p.id && tier.state === "publicado")?.unitPriceUsdMinor ?? null,
+      id: p.id, sku: p.sku, title: p.title, expansion: exps.map((e) => e.name).join(", ") || "—", kind: kindLabel[p.kind], language: languageLabel[p.language], lang: p.language, game: p.game ?? "pokemon", state,
       lowStock: state !== "retired" && state !== "hidden" && state !== "draft" && isLowStock(p.stockQuantity, Boolean(p.orderOnly), low.threshold), kindId: p.kind, expIds: p.expansionIds,
       usdMinor: p.priceUsdMinor ?? null, arsMinor: p.priceMinor, priceBase: base.priceBase ?? "usd", packSize: p.packSize ?? null, stock: p.stockQuantity, orderOnly: Boolean(p.orderOnly), version: a.version, overridden: a.overridden,
       thumb: p.images[0] && hasAsset(p.images[0].src) ? thumbOf(p.images[0].src) : null, slug: p.slug,
       search: norm(`${p.title} ${p.originalTitle ?? ""} ${p.sku} ${p.id} ${exps.map((e) => `${e.name} ${e.code ?? ""}`).join(" ")}`),
     };
-  }).sort((a, b) => Number(b.usdMinor !== null || b.arsMinor !== null || b.wholesaleBaseUsd != null) - Number(a.usdMinor !== null || a.arsMinor !== null || a.wholesaleBaseUsd != null) || a.title.localeCompare(b.title, "es"));
+  }).sort((a, b) => Number(b.usdMinor !== null || b.arsMinor !== null) - Number(a.usdMinor !== null || a.arsMinor !== null) || a.title.localeCompare(b.title, "es"));
   const terms = norm(q).split(/\s+/).filter(Boolean);
-  const matching = all.filter((r) => (!idioma || r.lang === idioma) && (!formato || r.kindId === formato) && (!coleccion || r.expIds.includes(coleccion)) && terms.every((t) => r.search.includes(t)));
+  const matching = all.filter((r) => (!juego || r.game === juego) && (!idioma || r.lang === idioma) && (!formato || r.kindId === formato) && (!coleccion || r.expIds.includes(coleccion)) && terms.every((t) => r.search.includes(t)));
   const counts = Object.fromEntries(productFilters.map(({ id }) => [id, matching.filter((r) => matchesProductFilter(r, id)).length]));
   const rows = matching.filter((r) => matchesProductFilter(r, estado));
   const visibleTotal = all.filter((r) => estado !== "todos" || r.state !== "retired").length;
-  const href = (e: string) => `/admin/productos?${new URLSearchParams({ ...(q ? { q } : {}), ...(idioma ? { idioma } : {}), ...(formato ? { formato } : {}), ...(coleccion ? { coleccion } : {}), ...(e !== "todos" ? { estado: e } : {}) }).toString()}`;
+  const href = (e: string) => `/admin/productos?${new URLSearchParams({ ...(q ? { q } : {}), ...(juego ? { juego } : {}), ...(idioma ? { idioma } : {}), ...(formato ? { formato } : {}), ...(coleccion ? { coleccion } : {}), ...(e !== "todos" ? { estado: e } : {}) }).toString()}`;
   const colecciones = catalog.expansions.filter((e) => catalog.products.some((p) => p.expansionIds.includes(e.id) && !p.retired)).sort((a, b) => a.name.localeCompare(b.name));
-  const hayFiltros = Boolean(q || idioma || formato || coleccion || estado !== "todos");
+  const hayFiltros = Boolean(q || juego || idioma || formato || coleccion || estado !== "todos");
 
   return (
     <div className="mx-auto max-w-[1240px] px-4 py-6 sm:px-6">
       <p className="eyebrow text-emerald">Productos</p>
-      <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Precios y stock</h1>
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Precios y stock</h1>
+        <Link href="/admin/precios-mayoristas" prefetch={false} className="inline-flex min-h-11 items-center px-1 text-sm font-semibold underline underline-offset-4">Ir a precios mayoristas ↗</Link>
+      </div>
       <form action="/admin/productos" role="search" className="mt-4 flex flex-wrap items-end gap-2">
         <div className="min-w-0 flex-1 basis-64">
           <label htmlFor="admin-q" className="block text-[.7rem] font-bold uppercase tracking-[.12em] text-ink/70">Buscar por nombre, colección o SKU</label>
           <input id="admin-q" name="q" type="search" defaultValue={q} placeholder="Ej.: Storm, 30th, ZH-…, caja…" className="mt-1 block min-h-11 w-full rounded-md border border-ink/40 bg-white px-3 text-base outline-none focus:border-emerald focus:ring-2 focus:ring-emerald/30" />
+        </div>
+        <div>
+          <label htmlFor="admin-juego" className="block text-[.7rem] font-bold uppercase tracking-[.12em] text-ink/70">Juego</label>
+          <select id="admin-juego" name="juego" defaultValue={juego} className="mt-1 block min-h-11 rounded-md border border-ink/40 bg-white px-3 text-base">
+            <option value="">Todos</option>
+            {catalogGames.map((g) => <option key={g} value={g}>{gameLabel[g]}</option>)}
+          </select>
         </div>
         <div>
           <label htmlFor="admin-idioma" className="block text-[.7rem] font-bold uppercase tracking-[.12em] text-ink/70">Idioma</label>
@@ -103,7 +113,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<Re
         <p className="mt-4 rounded-xl border border-dashed border-ink/40 bg-white/60 p-8 text-center text-ink/70">Ningún producto coincide con la búsqueda.</p>
       ) : (
         <div className="mt-3">
-          <AdminProductTable rows={rows.map(({ search, lang, kindId, expIds, ...row }) => { void search; void lang; void kindId; void expIds; return row; })} lowThreshold={low.threshold} rate10k={fx.rate10k} />
+          <AdminProductTable rows={rows.map(({ search, lang, game, kindId, expIds, ...row }) => { void search; void lang; void game; void kindId; void expIds; return row; })} lowThreshold={low.threshold} rate10k={fx.rate10k} />
         </div>
       )}
       <div id="stock-bajo" className="scroll-mt-4">

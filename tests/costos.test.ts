@@ -6,6 +6,7 @@ import { appliedCosts, costExpenseShares, costPurchaseItems, saleLines } from "@
 import { addCommission, allocateProportional, applyLineCost, averageCosts, confirmPurchase, createPurchase, itemBaseCostMinor, listPurchases, profitReport } from "@/features/costos/service";
 import { registerSale, SaleError } from "@/features/sales/service";
 import { suggestedFromCost } from "@/features/mayorista/precios";
+import { listProductCosts, saveProductCost } from "@/features/costos/product-costs";
 import type { EffectiveRate } from "@/features/fx/convert";
 
 /**
@@ -101,6 +102,22 @@ describe("compras: borrador, confirmación y costo final por unidad", () => {
 describe("costo histórico por venta y ganancia", () => {
   const vender = (productId: string, qty: number, price: number, over: Record<string, unknown> = {}) =>
     registerSale(db, { items: [{ productId, quantity: qty, unitPriceMinor: price * 100 }], paymentMethod: "efectivo", idempotencyKey: key(), ...over }, actor, { fx: FX, now: T });
+
+  it("usa la referencia en USD como respaldo, congela el importe y mantiene prioridad para las compras confirmadas", async () => {
+    const input = { productId: "storm-sobre", currency: "USD", amountMinor: 321, expectedVersion: 0 };
+    await saveProductCost(db, input, actor.email);
+    const { sale } = await vender(input.productId, 2, 6000);
+    expect((await db.select().from(appliedCosts))[0]).toMatchObject({ basis: "referencia_producto", unitCostMinor: 396_114 });
+    const entry = (await listProductCosts(db, [input.productId])).get(input.productId)!;
+    await saveProductCost(db, { ...input, amountMinor: 500, expectedVersion: entry.version }, actor.email);
+    expect(await code(saveProductCost(db, input, actor.email))).toBe("stale");
+    const purchase = await createPurchase(db, compra({ items: [{ productId: input.productId, quantity: 10, unitPriceOriginalMinor: 1000 }], expenses: [] }), actor, T);
+    await confirmPurchase(db, purchase.id, actor, T);
+    const next = await vender(input.productId, 1, 6000);
+    const report = await profitReport(db);
+    expect(report.rows.find((r) => r.ref === sale.id)?.costMinor).toBe(792_228);
+    expect(report.rows.find((r) => r.ref === next.sale.id)?.costMinor).toBe(200_000);
+  });
 
   it("congela el costo al vender: una reposición posterior más cara no modifica la ganancia anterior", async () => {
     const c1 = await createPurchase(db, compra({ items: [{ productId: "storm-sobre", quantity: 10, unitPriceOriginalMinor: 1000 }], expenses: [] }), actor, T); // $2.000 c/u

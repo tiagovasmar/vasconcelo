@@ -1,7 +1,7 @@
 import { arrivalEstimate } from "@/content/incoming-arrivals";
 import { PreorderForm } from "@/components/preorder-form";
 import { preorderOffers } from "@/features/importaciones/preorders";
-import { incomingProducts } from "@/features/importaciones/service";
+import { publicUpcoming } from "@/features/importaciones/public-upcoming";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { catalogHref, gameLabel } from "@/content/games";
@@ -90,7 +90,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
 
   const [related, incoming, offers] = await Promise.all([
     relatedProducts(product, 4),
-    preview || product.addonOnly ? Promise.resolve(undefined) : incomingProducts(getDb(), product.id).then((items) => items.get(product.id)),
+    preview || product.addonOnly ? Promise.resolve(undefined) : publicUpcoming(product.id).then((items) => items.get(product.id)),
     preview || product.addonOnly ? Promise.resolve([]) : preorderOffers(getDb(), product.id),
   ]);
   // Adicionales de la ficha de una caja (sobres con 10% OFF y protectores): el servidor filtra y calcula; el navegador solo muestra.
@@ -145,9 +145,10 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
             <StockBadge product={product} size="page" className="mt-1.5 sm:mt-2" />
             {(state === "available" || !offers.length) && <AddToCartPanel productId={product.id} title={product.title} imageSrc={product.images[0] && hasAsset(product.images[0].src) ? product.images[0].src : null} priceMinor={product.priceMinor ?? 0} max={maxFor(product)} state={state} stockKnown={isInStock(product)} orderOnly={Boolean(product.orderOnly)} packSize={product.packSize ?? null} addons={addons} />}
             {(incoming || offers.length > 0) && <aside className="my-4 rounded-xl border border-emerald/30 bg-emerald/10 p-4 text-sm">
-              <p><strong>{incoming?.traveling || offers.length ? "En camino" : "Próximamente"}</strong>. Todavía no disponibles para entrega inmediata.</p><p className="mt-2 font-semibold">{arrivalEstimate(product.id)}</p>
+              <p><strong>{incoming ? (incoming.traveling || offers.length ? "En camino" : "Próximamente") : "Preventa"}</strong>. El próximo ingreso todavía no está disponible para entrega inmediata.</p>
+              {(incoming?.fromPurchase || offers.length > 0) && <p className="mt-2 font-semibold">{arrivalEstimate(product.id)}</p>}
               {offers.map((offer) => <PreorderForm key={offer.parcelId} {...offer} productPath={`/productos/${product.slug}`} />)}
-              <Link href="/proximamente" className="mt-2 inline-block font-semibold underline">Ver próximamente</Link>
+              {incoming && <Link href="/proximamente" className="mt-2 inline-block font-semibold underline">Ver próximamente</Link>}
             </aside>}
             {product.stockQuantity === 0 && !product.retired && <RestockNotify productId={product.id} title={product.title} />}
             <FavoriteButton productId={product.id} title={product.title} withLabel className="mt-2 min-h-11 sm:mt-3 border border-ink/40 bg-white px-4 text-sm font-semibold hover:bg-gold" />

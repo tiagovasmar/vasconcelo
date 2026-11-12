@@ -95,13 +95,18 @@ export const senaFor = (agreedMinor: number | null): number | null => (agreedMin
 
 export type OrderPaymentInput = { kind: TrackKind; stage: string; agreedMinor: number | null; confirmedMinor: number; pendingReceipts: number; cancelled: boolean };
 
+export function remainingOrderBalance(agreedMinor: number | null, confirmedMinor: number): number | null {
+  return agreedMinor === null ? null : Math.max(0, agreedMinor - confirmedMinor);
+}
+
 /** Solo pide transferir con disponibilidad e importe confirmados. Nunca vuelve a cobrar lo ya confirmado. */
 export function transferDue(p: OrderPaymentInput): { kind: "sena" | "resto"; amountMinor: number } | null {
   if (p.kind === "stock" || p.cancelled || p.stage === "entregado" || p.pendingReceipts > 0) return null;
   const sena = senaFor(p.agreedMinor);
   const r = rank(p.kind, p.stage);
-  if (sena === null || p.agreedMinor === null || r < rank(p.kind, "confirmado_tienda") || p.confirmedMinor >= p.agreedMinor) return null;
-  if (r >= rank(p.kind, "recibido_argentina")) return { kind: "resto", amountMinor: p.agreedMinor - p.confirmedMinor };
+  const balance = remainingOrderBalance(p.agreedMinor, p.confirmedMinor);
+  if (sena === null || !balance || r < rank(p.kind, "confirmado_tienda")) return null;
+  if (r >= rank(p.kind, "recibido_argentina")) return { kind: "resto", amountMinor: balance };
   if (p.confirmedMinor < sena) return { kind: "sena", amountMinor: sena - p.confirmedMinor };
   return null;
 }
@@ -121,7 +126,7 @@ export function nextAction(p: OrderPaymentInput, fmt: (minor: number) => string)
       ? `Para completar la seña del ${encargo.senaPercent}%, falta abonar ${fmt(due.amountMinor)}. Podés adjuntar el comprobante acá.`
       : `Para avanzar con la compra, abonar la seña del ${encargo.senaPercent}% (${fmt(due.amountMinor)}). Podés adjuntar el comprobante acá.`;
     if (due?.kind === "resto") return `Tu pedido ya está en Argentina. Falta abonar el resto del importe acordado (${fmt(due.amountMinor)}) antes del despacho o del retiro. Podés adjuntar el comprobante acá.`;
-    return `Cuando tu pedido llegue a Argentina te avisamos para abonar el ${100 - encargo.senaPercent}% restante, antes del despacho o del retiro.`;
+    return "La seña ya se descontó del total. Cuando el pedido llegue a Argentina te avisamos para abonar el saldo antes del despacho o del retiro.";
   }
   if (p.agreedMinor !== null && p.confirmedMinor < p.agreedMinor && p.pendingReceipts === 0 && rank("stock", p.stage) < rank("stock", "entregado")) return "Si ya transferiste, adjuntá el comprobante acá para que lo revisemos.";
   if (p.pendingReceipts > 0) return "Recibimos tu comprobante y lo estamos revisando.";

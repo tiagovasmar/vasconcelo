@@ -1,5 +1,5 @@
 import { getDb } from "@/db/client";
-import { deleteTier, publishTiers, saveRules, saveTier, unpublishTiers } from "@/features/mayorista/precios";
+import { deleteTier, publishTiers, saveRules, saveTier, setWholesaleCatalogOpen, unpublishTiers } from "@/features/mayorista/precios";
 import { SaleError } from "@/features/sales/errors";
 import { adminAction } from "@/server/admin-api";
 import { adminFromRequest } from "@/server/admin";
@@ -26,6 +26,7 @@ export async function POST(req: Request) {
     const actor = { id: user.id, email: user.email };
     switch (b.action) {
       case "rules": return saveRules(db, b.rules ?? b, actor);
+      case "catalog_access": return setWholesaleCatalogOpen(db, b, actor);
       case "tier": return saveTier(db, b, actor);
       case "delete_tier": return deleteTier(db, String(b.productId ?? ""), Number(b.minQty));
       case "publish": return publishTiers(db, String(b.productId ?? ""), actor);

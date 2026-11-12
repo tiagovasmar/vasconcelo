@@ -10,7 +10,6 @@ import { formatARS } from "@/lib/format";
 import { formatUSD, parseUsdInput, usdInputText, usdToArsMinor } from "@/features/fx/convert";
 import { stateInfo, type RowState } from "./admin-product-table";
 import { useUnsavedGuard } from "./use-unsaved-guard";
-import { AdminWholesalePrices } from "./admin-wholesale-prices";
 
 export type GalleryItem = { src: string; thumb: string; alt: string; width: number; height: number; source?: "store" | "supplier" | "manufacturer" | "illustration"; origin?: string; upload: boolean; /** El archivo no existe en el servidor (ilustración de reserva): no se puede mostrar la miniatura. */ missing?: boolean };
 export type LibraryItem = { src: string; thumb: string; alt: string; from: string };
@@ -423,7 +422,7 @@ export function AdminProductEditor({ data }: { data: EditorData }) {
         </div>
         <p className="text-xs text-ink/60">{data.overridden ? `Valores del panel · último cambio ${data.updatedLabel}.` : "Valores del catálogo por código (sin cambios en el panel)."}</p>
       </form>
-      {!data.retired && <AdminWholesalePrices productId={data.id} title={data.title} />}
+      {!data.retired && <a href={`/admin/precios-mayoristas?q=${encodeURIComponent(data.sku)}`} className="inline-flex min-h-11 items-center text-sm font-semibold underline underline-offset-4">Editar precios mayoristas ↗</a>}
 
       <section aria-labelledby="h-fotos" className="space-y-4 rounded-xl border border-ink/15 bg-white p-4 sm:p-6" data-testid="editor-fotos">
         <div className="flex flex-wrap items-start justify-between gap-3">

@@ -7,6 +7,7 @@ import { inquiries, inquiryLines, inquirySales, lineDeliveries, notificationOutb
 import { createInquiry, hashToken } from "@/features/inquiries/service";
 import { adminOrderDetail, canView, customerOrderView, issueAccessLink, lineProgress, openTracking, setAgreedAmount, setStage, addNote, cancelOrder, sharedWholesaleStatus, listOrders } from "@/features/pedidos/service";
 import { addWholesaleCost, costUsdEquivalent, listWholesaleOrderCosts, setWholesaleGuide, voidWholesaleCost } from "@/features/pedidos/mayorista-admin";
+import { createManualWholesaleOrder, updateWholesaleContact } from "@/features/pedidos/mayorista-manual";
 import { confirmPayment, markRefunded, openIncident, registerRefund, rejectReceipt, sniffReceiptType, uploadReceipt, voidPayment } from "@/features/pedidos/pagos";
 import { createShipment, recordDelivery, setShipmentItem, updateShipmentStatus } from "@/features/pedidos/envios";
 import { flushOutbox } from "@/features/avisos/outbox";
@@ -61,6 +62,30 @@ async function encargoComprado(userId: string | null = "ana") {
 }
 
 describe("control del pedido mayorista", () => {
+  it("organiza pedidos externos con cotización, contacto, seña y guía privada de seguimiento", async () => {
+    const input = { contactName: "Comercio de prueba", contactPhone: "5491155550000", amountUsdMinor: 170_600, rateMinor: 150_000, note: "Solo admin", idempotencyKey: key(), lines: [{ productId: "storm-sobre", quantity: 16 }] };
+    const concurrent = await Promise.all([createManualWholesaleOrder(db, input, actor, day(0)), createManualWholesaleOrder(db, input, actor, day(0))]);
+    const ref = concurrent[0].reference;
+    expect(concurrent.map((result) => result.reference)).toEqual([ref, ref]);
+    expect(concurrent.filter((result) => !result.replayed)).toHaveLength(1);
+    expect(await code(createManualWholesaleOrder(db, { ...input, contactName: "Otro" }, actor, day(0)))).toBe("idempotency_conflict");
+    await updateWholesaleContact(db, ref, { contactName: "Cliente de prueba", contactPhone: input.contactPhone }, actor, day(1));
+    await setAgreedAmount(db, ref, { agreedUsdMinor: input.amountUsdMinor, rateMinor: 160_000 }, actor, day(1));
+    const detail = await adminOrderDetail(db, ref);
+    expect(detail?.inquiry).toMatchObject({ source: "manual", fxRate10k: 16_000_000, contactName: "Cliente de prueba" });
+    expect(detail?.items).toMatchObject([{ quantity: 16, fulfillment: "mayorista" }]);
+    expect(detail?.senaMinor).toBe(54_592_000);
+    await st(ref, "confirmado_tienda", 1);
+    await pay(ref, 54_592_000, 2);
+    expect(await code(setAgreedAmount(db, ref, { agreedUsdMinor: input.amountUsdMinor, rateMinor: 170_000 }, actor, day(3)))).toBe("order_rule");
+    await setWholesaleGuide(db, ref, { carrier: "Courier de prueba", trackingNumber: "GUIA-1234" }, day(3));
+    expect(await listOrders(db, { kind: "mayorista", search: "GUIA-1234" })).toMatchObject([{ reference: ref, phone: input.contactPhone, tracking: "GUIA-1234", agreedUsdMinor: input.amountUsdMinor, confirmedMinor: 54_592_000 }]);
+    const { token } = await issueAccessLink(db, ref);
+    const shared = await sharedWholesaleStatus(db, ref, token);
+    expect(shared).toMatchObject({ trackingNumber: "GUIA-1234" });
+    expect(JSON.stringify(shared)).not.toMatch(/Cliente de prueba|5491155550000|Solo admin|54592000/);
+  });
+
   async function mayorista() {
     const ref = await encargo("ana");
     await db.update(inquiries).set({ orderKind: "mayorista" }).where(eq(inquiries.id, ref));

@@ -3,6 +3,7 @@ import { SHIPMENT_LABEL, SHIPMENT_STATUSES, shipmentRank } from "@/features/pedi
 import Link from "next/link";
 import { purchaseProducts } from "./products";
 import { getDb } from "@/db/client";
+import { listTaobaoSuppliers } from "@/features/admin/taobao-suppliers";
 import { listPurchases } from "@/features/costos/service";
 import { requireAdmin } from "@/server/admin";
 import { PurchaseForm } from "@/components/purchase-form";
@@ -22,7 +23,8 @@ export default async function PurchasesPage({ searchParams }: { searchParams: Pr
   const awaitingReceipt = get("recepcion") === "pendiente";
   const labels = new Map(purchaseProducts().map((p) => [p.value, p.label]));
   const db = getDb();
-  const [records, progress] = await Promise.all([listPurchases(db), importProgress(db)]);
+  const [records, progress, suppliers] = await Promise.all([listPurchases(db), importProgress(db), listTaobaoSuppliers(db)]);
+  const supplierNames = [...new Set(suppliers.filter((supplier) => !supplier.archived).map((supplier) => supplier.name))];
   const stages: Record<string, string> = { registrada: "Compra registrada", comprada: "Comprada al proveedor", ...SHIPMENT_LABEL, finalizada: "Recepción revisada y finalizada" };
   const purchases = records.map((p) => {
     const parts = progress.get(p.id) ?? [];
@@ -45,7 +47,10 @@ export default async function PurchasesPage({ searchParams }: { searchParams: Pr
       </header>
       <details open={get("nueva") === "1" || undefined} className="rounded-xl border border-ink/20 bg-white p-4">
         <summary className="cursor-pointer font-semibold">+ Registrar compra</summary>
-        <div className="mt-4"><PurchaseForm products={purchaseProducts()} managed /></div>
+        <div className="mt-4">
+          <Link href="/admin/proveedores" className="mb-3 inline-flex min-h-11 items-center text-sm font-semibold underline underline-offset-4">Ver proveedores guardados</Link>
+          <PurchaseForm products={purchaseProducts()} supplierNames={supplierNames} managed />
+        </div>
       </details>
       <section className="rounded-xl border border-ink/20 bg-white p-4">
         <h2 className="text-lg font-semibold">Compras registradas</h2>

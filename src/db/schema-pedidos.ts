@@ -426,7 +426,7 @@ export const costExpenseShares = pgTable(
 
 /**
  * Costo HISTÓRICO aplicado a una línea de venta o de pedido (encargo/mayorista): se congela al registrarse y no cambia con reposiciones ni cotizaciones.
- * Sin fila = «Costo pendiente» (nunca se asume cero). `basis`: promedio_compras (costo promedio de las compras confirmadas en ese momento) · manual.
+ * Sin fila = «Costo pendiente». `basis`: promedio_compras · referencia_producto · manual.
  */
 export const appliedCosts = pgTable(
   "applied_costs",

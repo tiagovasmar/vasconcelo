@@ -6,6 +6,8 @@ import { realCatalog } from "@/content/catalog";
 import datos from "@/content/colecciones/origen/china/productos.json";
 import registro from "@/content/colecciones/imagenes-china.json";
 import supplementalPhotos from "@/content/real/fotos-proveedor-noviembre.json";
+import { products as figures } from "@/content/real/china-figures";
+import { products as balls } from "@/content/real/china-pikachu-balls";
 import { commercialState, isPurchasable, priceLabel } from "@/features/catalog/commercial";
 import { filterProducts, parseQuery } from "@/features/catalog/query";
 import { ratesForProduct } from "@/features/catalog/pull-rates";
@@ -16,7 +18,9 @@ import { applyOverrides } from "@/features/catalog/overrides";
 
 // Lote chino: 16 carpetas de Tmall/Taobao → fichas del catálogo real. Ninguna prueba depende de la carpeta Downloads del equipo.
 const all = realCatalog.products.filter((product) => (product.game ?? "pokemon") === "pokemon");
-const zh = all.filter((p) => p.language === "zh" && !p.id.startsWith("zh-151-") && !p.id.startsWith("zh-30th-") && !["zh-30-zhounian-caja", "zh-black-bolt-slim-caja", "zh-white-flare-slim-caja"].includes(p.id));
+const collectibles = [...figures, ...balls];
+const collectibleIds = new Set(collectibles.map((p) => p.id));
+const zh = all.filter((p) => p.language === "zh" && !collectibleIds.has(p.id) && !p.id.startsWith("zh-151-") && !p.id.startsWith("zh-30th-") && !["zh-30-zhounian-caja", "zh-black-bolt-slim-caja", "zh-white-flare-slim-caja"].includes(p.id));
 /** Fichas chinas publicadas (sin las retiradas). */
 const zhPub = zh.filter((p) => p.active);
 const zhExp = realCatalog.expansions.filter((e) => e.language === "zh" && !["zh-black-bolt", "zh-white-flare"].includes(e.id));
@@ -191,16 +195,16 @@ describe("catálogo chino: fotos propias del proyecto, con procedencia", () => {
 
 describe("catálogo chino: búsqueda y filtros", () => {
   it("idioma, formato y colección", () => {
-    expect(f({ idioma: "zh" })).toHaveLength(38);
+    expect(f({ idioma: "zh" })).toHaveLength(43);
     expect(f({ idioma: "ja" })).toHaveLength(22); // 16 + las seis cajas del 14/10/2026
     expect(f({ formato: "kit" })).toHaveLength(5);
-    expect(f({ formato: "especial" })).toHaveLength(5);
+    expect(f({ formato: "especial" })).toHaveLength(10);
     expect(f({ formato: "ilustraciones" })).toHaveLength(2);
     expect(f({ formato: "caja", idioma: "zh" })).toHaveLength(9);
     expect(f({ formato: "caja" })).toHaveLength(23);
     expect(f({ formato: "sobre" })).toHaveLength(24); // 8 japoneses + 16 chinos
     expect(f({ expansion: "zh-gongzhu-rongguang" })).toHaveLength(1); // el de 20 cartas fue retirado
-    expect(f({ expansion: "zh-30-zhounian" })).toHaveLength(10);
+    expect(f({ expansion: "zh-30-zhounian" })).toHaveLength(11);
   });
   it("se busca por nombre chino, por romanización, por código del envase y por texto en español", () => {
     expect(f({ q: "真实玄虚" }).map((p) => p.id)).toEqual(["zh-zhenshi-xuanxu-sobre-5"]);
@@ -210,10 +214,22 @@ describe("catálogo chino: búsqueda y filtros", () => {
     expect(f({ q: "ogerpon" })).toHaveLength(2);
     expect(f({ q: "storm" })).toHaveLength(2); // sigue encontrando las japonesas
   });
-  it("paginación: 60 sellados públicos, accesorios solo como adicionales, en 5 páginas de 12", () => {
-    expect(f({})).toHaveLength(60);
-    expect(Math.ceil(f({}).length / 12)).toBe(5);
+  it("paginación: 65 sellados públicos en 6 páginas, accesorios solo como adicionales", () => {
+    expect(f({})).toHaveLength(65);
+    expect(Math.ceil(f({}).length / 12)).toBe(6);
   });
+});
+
+it("las tres figuras y las dos Poké Balls tienen ficha, foto y contenido, con precio pendiente y stock inicial cero", () => {
+  expect(collectibleIds.size).toBe(5);
+  expect(f({ idioma: "zh", formato: "especial" }).filter((p) => collectibleIds.has(p.id))).toHaveLength(5);
+  for (const p of collectibles) {
+    expect(p).toMatchObject({ kind: "special-box", stockQuantity: 0, priceMinor: null, priceUsdMinor: null });
+    expect(p.contents.length).toBeGreaterThan(0);
+    expect(p.images[0]).toMatchObject({ status: "reference", view: "front" });
+    expect(fs.existsSync(pub(p.images[0].src)), p.id).toBe(true);
+    expect(isPurchasable(p)).toBe(false);
+  }
 });
 
 const CJK = /[\u3400-\u9fff]/;

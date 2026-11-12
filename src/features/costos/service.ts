@@ -12,6 +12,7 @@ import { SaleError, type SaleErrorCode } from "@/features/sales/errors";
 import { RATE_SCALE } from "@/features/fx/convert";
 import { accountingDateFilter, accountingDay, saleAccountingDay, type AccountingPeriod } from "@/features/contabilidad/period";
 import { wholesaleResult } from "@/features/pedidos/mayorista-costos";
+import { listProductCosts } from "./product-costs";
 
 /**
  * Costos PRIVADOS (solo panel). Nada de este módulo se importa desde páginas públicas ni rutas de clientes.
@@ -23,7 +24,7 @@ import { wholesaleResult } from "@/features/pedidos/mayorista-costos";
  *  - al confirmar la compra los costos se congelan;
  *  - el costo que se aplica a una venta es el PROMEDIO de las compras confirmadas al momento de la venta (costo promedio ponderado) y se guarda en la propia venta:
  *    una reposición o un cambio de cotización posterior no modifica la ganancia ya calculada;
- *  - sin compras confirmadas del producto: «Costo pendiente». Nunca se asume cero.
+ *  - si no hay compras confirmadas, se usa el costo de referencia del producto cuando puede expresarse en ARS.
  */
 const fail = (status: number, code: SaleErrorCode, message: string, details?: unknown): never => { throw new SaleError(status, code, message, details); };
 function parseOr400<T>(schema: z.ZodType<T>, body: unknown): T {
@@ -194,14 +195,20 @@ export async function averageCosts(q: Q, productIds: string[]): Promise<Map<stri
 }
 
 /** Congela el costo de cada línea de una venta recién registrada (dentro de la misma transacción de la venta). Las líneas sin costo conocido quedan «pendiente». */
-export async function snapshotSaleCosts(tx: Tx, saleId: string, now: number): Promise<number> {
+export async function snapshotSaleCosts(tx: Tx, saleId: string, now: number, rate10k: number | null): Promise<number> {
   const lines = await tx.select().from(saleLines).where(eq(saleLines.saleId, saleId));
-  const avg = await averageCosts(tx, [...new Set(lines.map((l) => l.productId))]);
+  const ids = [...new Set(lines.map((l) => l.productId))];
+  const avg = await averageCosts(tx, ids);
+  const reference = await listProductCosts(tx, ids.filter((id) => !avg.has(id)));
   let n = 0;
   for (const l of lines) {
-    const c = avg.get(l.productId);
+    const average = avg.get(l.productId);
+    const manual = reference.get(l.productId)?.cost;
+    const c = average ?? (manual?.currency === "ARS" ? manual.amountMinor : manual && rate10k
+      ? divRound(BigInt(manual.amountMinor) * BigInt(rate10k), BigInt(RATE_SCALE))
+      : undefined);
     if (c === undefined) continue;
-    const r = await tx.insert(appliedCosts).values({ refKind: "sale_line", refId: l.id, unitCostMinor: c, basis: "promedio_compras", createdAt: now }).onConflictDoNothing().returning({ id: appliedCosts.id });
+    const r = await tx.insert(appliedCosts).values({ refKind: "sale_line", refId: l.id, unitCostMinor: c, basis: average === undefined ? "referencia_producto" : "promedio_compras", createdAt: now }).onConflictDoNothing().returning({ id: appliedCosts.id });
     n += r.length;
   }
   return n;

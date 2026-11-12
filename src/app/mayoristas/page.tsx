@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowIcon } from "@/components/icons";
 import { encargo, mayorista } from "@/content/politicas";
+import { getDb } from "@/db/client";
+import { getRules } from "@/features/mayorista/precios";
 
 export const metadata: Metadata = {
   title: "Mayoristas",
@@ -15,7 +17,10 @@ const pendientes = [
   "Desde cuándo se cuenta la demora estimada de 8 a 15 días.",
 ];
 
-export default function Mayoristas() {
+export const dynamic = "force-dynamic";
+
+export default async function Mayoristas() {
+  const rules = await getRules(getDb()).catch(() => null);
   return (
     <>
       <section className="relative isolate overflow-hidden bg-ink text-paper" aria-labelledby="may-title">
@@ -50,14 +55,14 @@ export default function Mayoristas() {
             </ul>
           </section>
 
-          <section aria-labelledby="may-pend" className="max-w-3xl border-l-4 border-gold bg-white/70 p-5" data-testid="mayorista-pendiente">
+          {!rules?.open && <section aria-labelledby="may-pend" className="max-w-3xl border-l-4 border-gold bg-white/70 p-5" data-testid="mayorista-pendiente">
             <p className="eyebrow text-vermilion">02 / Condiciones por definir</p>
             <h2 id="may-pend" className="display mt-2 text-3xl normal-case sm:text-4xl">Lo que todavía no está definido</h2>
             <ul className="mt-3 list-disc space-y-1 pl-5 text-sm">
               {pendientes.map((p) => <li key={p}>{p}</li>)}
             </ul>
-            <p className="mt-3 text-sm text-ink/75">Hasta que la tienda las defina y abra el catálogo, no hay precios mayoristas publicados ni demoras prometidas. La demora estimada se informa antes de pagar la seña, indicando desde qué momento se cuenta; no hay fechas garantizadas.</p>
-          </section>
+            <p className="mt-3 text-sm text-ink/75">Las cuentas aprobadas pueden consultar los precios cuando se habilite el catálogo. La tienda informa la demora estimada antes de que pagues la seña.</p>
+          </section>}
 
           <section aria-labelledby="may-encargo" className="max-w-3xl">
             <p className="eyebrow text-vermilion">03 / Encargos minoristas</p>

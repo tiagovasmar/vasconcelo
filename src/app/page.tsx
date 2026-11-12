@@ -3,7 +3,7 @@ import Link from "next/link";
 import { GameNavigation } from "@/components/game-navigation";
 import { store } from "@/content/store";
 import { SafeImage } from "@/components/safe-image";
-import { ArrowIcon, CartIcon, ChatIcon, CubeIcon } from "@/components/icons";
+import { ArrowIcon, CartIcon, ChatIcon, CubeIcon, InstagramIcon } from "@/components/icons";
 import { HomeCarousel } from "@/components/home-carousel";
 import { banners } from "@/content/banners";
 import { ProductCard } from "@/components/product-card";
@@ -14,8 +14,8 @@ import { hasAsset } from "@/components/slot";
 
 import { kindSlug, type Expansion, type Product } from "@/content/schema";
 import { LanguageBadge } from "@/components/language-badge";
-import { getDb } from "@/db/client";
-import { incomingProducts } from "@/features/importaciones/service";
+import { storefrontOnce } from "@/features/admin/storefront";
+import { publicUpcoming } from "@/features/importaciones/public-upcoming";
 
 /** Colecciones japonesas del inicio (las ocho originales, en el orden del catálogo). */
 const COLECCIONES_JA_INICIO = ["black-bolt", "white-flare", "heat-wave-arena", "inferno-x", "mega-dream-ex", "30th-celebration", "storm-emeralda", "abyss-eye"];
@@ -44,10 +44,10 @@ function ArrowLink({ href, children, className = "" }: { href: string; children:
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [allProducts, allInStock, expansions, destacados, incoming] = await Promise.all([listProducts(), inStockProducts(), listExpansions(), featuredProducts(4), incomingProducts(getDb())]);
+  const [allProducts, allInStock, expansions, destacados, incoming, { instagram }] = await Promise.all([listProducts(), inStockProducts(), listExpansions(), featuredProducts(4), publicUpcoming(), storefrontOnce()]);
   const products = allProducts.filter((product) => (product.game ?? "pokemon") === "pokemon");
   const enStock = allInStock.filter((product) => (product.game ?? "pokemon") === "pokemon");
-  const upcoming = products.filter((product) => incoming.has(product.id));
+  const upcoming = allProducts.filter((product) => incoming.has(product.id));
   // Un banner por colección que exista en el catálogo (arranca con Storm Emeralda).
   const slides = banners.filter((b) => expansions.some((e) => e.id === b.expansionId));
   // Cajas: Inferno X y MEGA Dream ex. Sobres: Black Bolt y White Flare. (Con respaldo por formato si faltara alguna.)
@@ -98,10 +98,15 @@ export default async function Home() {
               <p className="mt-1.5 text-sm leading-relaxed text-paper/85">Enterate de ofertas limitadas, sorteos, cupones y novedades.</p>
             </div>
           </div>
-          <a href={store.whatsappGroupUrl} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" className="relative inline-flex min-h-12 max-w-full items-center justify-center gap-2 rounded-lg bg-gold px-4 py-3 text-center text-sm font-bold text-ink transition hover:bg-paper focus-visible:outline-paper lg:shrink-0" data-testid="unirse-grupo-whatsapp">
-            Unirme al grupo de WhatsApp<ArrowIcon className="h-4 w-4 shrink-0" />
-            <span className="sr-only"> (se abre en una pestaña nueva)</span>
-          </a>
+          <div className="flex flex-wrap items-center gap-2">
+            <a href={store.whatsappGroupUrl} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" className="inline-flex min-h-12 max-w-full items-center justify-center gap-2 rounded-lg bg-gold px-4 py-3 text-center text-sm font-bold text-ink transition hover:bg-paper focus-visible:outline-paper" data-testid="unirse-grupo-whatsapp">
+              Unirme al grupo de WhatsApp<ArrowIcon className="h-4 w-4 shrink-0" />
+              <span className="sr-only"> (se abre en una pestaña nueva)</span>
+            </a>
+            {instagram && <a href={`https://www.instagram.com/${instagram}/`} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-12 max-w-full items-center justify-center gap-2 rounded-lg border border-paper/60 px-4 py-3 text-center text-sm font-bold text-paper transition hover:bg-paper hover:text-emerald focus-visible:outline-paper">
+              <InstagramIcon /> Escribinos por Instagram<span className="sr-only"> (se abre en una pestaña nueva)</span>
+            </a>}
+          </div>
         </div>
       </section>
 
@@ -130,15 +135,15 @@ export default async function Home() {
             <div><p className="eyebrow kicker text-emerald">Nuestros próximos ingresos</p><h2 id="upcoming-title" className="title-rule mt-2 text-2xl font-semibold leading-tight tracking-tight sm:text-3xl">Próximamente.</h2></div>
             <ArrowLink href="/proximamente">Ver todos los próximos ingresos ({upcoming.length})</ArrowLink>
           </div>
-          <p className="mt-3 text-sm text-ink/75">Estas cajas todavía no están disponibles para entrega inmediata.</p>
+          <p className="mt-3 text-sm text-ink/75">Conocé los próximos ingresos de la tienda.</p>
           <ul className="mt-5 grid grid-cols-2 gap-3 max-[359px]:grid-cols-1 sm:gap-5 lg:grid-cols-4">
             {upcoming.map((product) => <li key={product.id} className="min-w-0 overflow-hidden rounded-xl border border-ink/15 bg-white">
               <Link href={`/productos/${product.slug}`} className="group flex h-full flex-col">
                 <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden bg-paper-2 p-3"><ProductImage product={product} className="h-full w-full object-contain" sizes="(min-width:1024px) 320px, 45vw" /></div>
                 <div className="flex flex-1 flex-col p-3 sm:p-4">
-                  <span className="self-start rounded-full bg-emerald px-2.5 py-1 text-xs font-semibold text-white">{incoming.get(product.id)!.traveling > 0 ? "En camino" : "Próximamente"}</span>
+                  <span className="self-start rounded-full bg-emerald px-2.5 py-1 text-xs font-semibold text-white">{incoming.get(product.id)?.traveling ? "En camino" : "Próximamente"}</span>
                   <h3 className="mt-3 break-words text-sm font-semibold sm:text-base">{product.title}</h3>
-                  <p className="mt-2 text-sm text-ink/75">{arrivalEstimate(product.id)}</p>
+                  {incoming.get(product.id)?.fromPurchase && <p className="mt-2 text-sm text-ink/75">{arrivalEstimate(product.id)}</p>}
                   <span className="mt-4 text-sm font-semibold underline">Ver producto ↗</span>
                 </div>
               </Link>

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-export function WholesaleExport({ productIds, minBoxes }: { productIds: string[]; minBoxes?: number | null }) {
+export function WholesaleExport({ productIds, minBoxes, includeDrafts = false }: { productIds?: string[]; minBoxes?: number | null; includeDrafts?: boolean }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [images, setImages] = useState<{ url: string; filename: string }[]>([]);
@@ -12,22 +12,26 @@ export function WholesaleExport({ productIds, minBoxes }: { productIds: string[]
   const urls = useRef<string[]>([]);
   useEffect(() => () => urls.current.forEach(URL.revokeObjectURL), []);
 
-  async function generate() {
+  async function generate(format: "png" | "pdf" = "png") {
     setBusy(true); setMessage("");
     urls.current.forEach(URL.revokeObjectURL); urls.current = []; setImages([]); setPdf(null); snapshot.current = null;
     try {
-      const response = await fetch("/api/mayoristas/exportar", { cache: "no-store" });
+      const endpoint = includeDrafts ? "/api/mayoristas/exportar?incluirBorradores=1" : "/api/mayoristas/exportar";
+      const response = await fetch(endpoint, { cache: "no-store" });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error?.message || "No pudimos actualizar el catálogo.");
       const { renderCatalogImages, exportDate } = await import("@/features/mayorista/export-image");
-      const ids = new Set(productIds);
-      data.rows = data.rows.filter((row: { productId: string }) => ids.has(row.productId));
-      if (!data.rows.length) throw new Error("No hay productos con precio para exportar con estos filtros.");
+      if (productIds) {
+        const ids = new Set(productIds);
+        data.rows = data.rows.filter((row: { productId: string }) => ids.has(row.productId));
+      }
+      if (!data.rows.length) throw new Error(productIds ? "No hay productos con precio para exportar con estos filtros." : "Todavía no hay productos con precio mayorista cargado.");
       const result = await renderCatalogImages(data);
       snapshot.current = { blobs: result.blobs, generatedAt: data.generatedAt, date: exportDate(data.generatedAt).replaceAll("/", "-") };
       urls.current = result.blobs.map((blob) => URL.createObjectURL(blob));
       setImages(urls.current.map((url, i) => ({ url, filename: `vasconcelo-mayorista-${exportDate(data.generatedAt).replaceAll("/", "-")}-${i + 1}.png` })));
-      setMessage(`Generado con precios actualizados. ${result.missing ? `${result.missing} productos sin foto: figuran con nombre y precio.` : ""}`);
+      setMessage(`Catálogo generado con ${data.rows.length} productos. ${result.missing ? `${result.missing} sin foto.` : ""}`);
+      if (format === "pdf") await downloadPdf();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "No pudimos generar las imágenes. Intentá nuevamente.");
     } finally { setBusy(false); }
@@ -55,8 +59,11 @@ export function WholesaleExport({ productIds, minBoxes }: { productIds: string[]
   return <section className="my-4 rounded-lg border border-ink/20 bg-white p-4" aria-label="Exportar catálogo mayorista">
     {minBoxes && <p className="mb-3 font-bold text-emerald">Compra mínima mayorista: {minBoxes} cajas en total.</p>}
     <div className="flex flex-wrap items-center justify-between gap-3">
-      <div><h2 className="font-bold">Catálogo para compartir</h2><p className="text-sm text-ink/75">Fotos, nombres y precio base en USD. Incluye fecha y cotización; respeta los filtros actuales.</p></div>
-      <button type="button" onClick={generate} disabled={busy || pdfBusy || !productIds.length} className="min-h-11 rounded-md bg-emerald px-4 font-bold text-white disabled:opacity-50">{busy ? "Generando láminas…" : "Generar imágenes"}</button>
+      <div><h2 className="font-bold">Catálogo para compartir</h2><p className="text-sm text-ink/75">Fotos, nombres y precio base en USD. Incluye fecha y cotización. {productIds ? "Respeta los filtros actuales." : "Incluye precios publicados y en borrador."}</p></div>
+      <div className="flex flex-wrap gap-2">
+        {!productIds && <button type="button" onClick={() => generate("pdf")} disabled={busy || pdfBusy} className="min-h-11 rounded-md bg-emerald px-4 font-bold text-white disabled:opacity-50">{busy ? "Generando catálogo…" : "Descargar catálogo PDF"}</button>}
+        <button type="button" onClick={() => generate()} disabled={busy || pdfBusy || productIds?.length === 0} className="min-h-11 rounded-md border border-emerald px-4 font-bold text-emerald disabled:opacity-50">{busy ? "Generando láminas…" : "Generar imágenes"}</button>
+      </div>
     </div>
     <p className="mt-2 text-xs text-ink/75">Solo productos con precio. Hasta 6 por lámina, con marca de agua. Descargá PNG individuales o un PDF con todas las láminas. Cada generación consulta los precios vigentes.</p>
     <p role="status" aria-live="polite" className="mt-2 text-sm">{message}</p>

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AdminNavigation } from "@/components/admin-navigation";
+import { AdminNotificationsLink } from "@/components/admin-notifications";
 import { store } from "@/content/store";
 
 export const metadata: Metadata = { title: "Panel del dueño", robots: { index: false, follow: false } };
@@ -14,7 +15,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <span className="display hidden text-lg italic sm:block">{store.name}</span>
             <span className="eyebrow text-gold">Panel del dueño</span>
           </div>
-          <Link href="/" className="inline-flex min-h-10 items-center text-sm underline-offset-4 hover:underline">Ver la tienda ↗</Link>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <AdminNotificationsLink />
+            <Link href="/" className="inline-flex min-h-10 items-center text-sm underline-offset-4 hover:underline">Ver la tienda ↗</Link>
+          </div>
         </header>
         <div className="grid min-w-0 lg:grid-cols-[10rem_minmax(0,1fr)]">
           <AdminNavigation>{children}</AdminNavigation>

@@ -5,7 +5,7 @@ import type { Db } from "@/db/client";
 import { lockKey } from "@/db/lock";
 import { adminSettings, inquiries, inquiryEvents, inquiryLines, wholesaleTiers } from "@/db/schema";
 import { catalog } from "@/content/catalog";
-import { listProducts } from "@/features/catalog/data";
+import { listAllProducts, listProducts } from "@/features/catalog/data";
 import type { Actor } from "@/features/catalog/overrides";
 import { currentRate } from "@/features/fx/service";
 import { usdToArsMinor, type EffectiveRate } from "@/features/fx/convert";
@@ -38,7 +38,7 @@ const sha = (s: string) => createHash("sha256").update(s).digest("hex");
 
 const K = { minBoxes: "wholesale.minBoxes", minUnits: "wholesale.minUnits", minAmount: "wholesale.minAmountMinor", combine: "wholesale.combine", delayText: "wholesale.delayText", delayFrom: "wholesale.delayFrom", refundPeriod: "wholesale.refundPeriod", cancellationPolicy: "wholesale.cancellationPolicy", open: "wholesale.open" } as const;
 
-export async function getRules(db: Db): Promise<WholesaleRules> {
+export async function getRules(db: Pick<Db, "select">): Promise<WholesaleRules> {
   const rows = await db.select().from(adminSettings).where(inArray(adminSettings.key, Object.values(K)));
   const g = (k: string) => rows.find((r) => r.key === k)?.value ?? null;
   const int = (v: string | null) => (v !== null && /^\d+$/.test(v) ? Number(v) : null);
@@ -55,17 +55,37 @@ export const RulesSchema = z.object({
   delayFrom: z.string().trim().min(3).max(120).nullable(),
   refundPeriod: z.string().trim().min(3).max(500).nullable().default(null),
   cancellationPolicy: z.string().trim().min(3).max(1000).nullable().default(null),
-  open: z.boolean(),
+  open: z.boolean().optional(),
 });
+
+async function validateCatalogOpening(db: Pick<Db, "select">, rules: WholesaleRules) {
+  const published = await db.select({ productId: wholesaleTiers.productId }).from(wholesaleTiers).where(eq(wholesaleTiers.state, "publicado")).limit(1);
+  const missing = missingForOpening(rules, published.length);
+  if (missing.length) fail(409, "order_rule", `Para habilitar el catálogo, completá ${missing.join(", ")}.`);
+}
+
+export async function setWholesaleCatalogOpen(db: Db, body: unknown, actor: Actor, now = Date.now()) {
+  const { open } = parseOr400(z.object({ open: z.boolean() }), body);
+  await db.transaction(async (tx) => {
+    await lockKey(tx, "wholesale-rules");
+    if (open) {
+      await validateCatalogOpening(tx, await getRules(tx));
+      const values = { value: "1", updatedAt: now, updatedByEmail: actor.email };
+      await tx.insert(adminSettings).values({ key: K.open, ...values }).onConflictDoUpdate({ target: adminSettings.key, set: values });
+    } else {
+      await tx.delete(adminSettings).where(eq(adminSettings.key, K.open));
+    }
+  });
+  return { open };
+}
 
 export async function saveRules(db: Db, body: unknown, actor: Actor, now = Date.now()): Promise<WholesaleRules> {
   const v = parseOr400(RulesSchema, body);
-  if (v.open) {
-    const missing = missingForOpening(v, (await db.select({ n: wholesaleTiers.productId }).from(wholesaleTiers).where(eq(wholesaleTiers.state, "publicado"))).length);
-    if (missing.length) return fail(409, "order_rule", `No se puede abrir el catálogo mayorista: falta definir ${missing.join(", ")}.`);
-  }
   await db.transaction(async (tx) => {
     await lockKey(tx, "wholesale-rules");
+    const current = await getRules(tx);
+    const next = { ...v, minBoxes: v.minBoxes === undefined ? current.minBoxes : v.minBoxes, open: v.open ?? current.open };
+    if (next.open) await validateCatalogOpening(tx, next);
     const put = async (key: string, value: string | null) => {
       if (value === null) { await tx.delete(adminSettings).where(eq(adminSettings.key, key)); return; }
       const vals = { value, updatedAt: now, updatedByEmail: actor.email };
@@ -79,7 +99,7 @@ export async function saveRules(db: Db, body: unknown, actor: Actor, now = Date.
     await put(K.delayFrom, v.delayFrom);
     await put(K.refundPeriod, v.refundPeriod);
     await put(K.cancellationPolicy, v.cancellationPolicy);
-    await put(K.open, v.open ? "1" : null);
+    if (v.open !== undefined) await put(K.open, v.open ? "1" : null);
   });
   return getRules(db);
 }
@@ -144,12 +164,20 @@ export async function wholesaleAccess(db: Db, userId: string | null): Promise<Wh
   return { ok: true };
 }
 
-/** Productos de la tienda con sus tramos PUBLICADOS, si tienen. No incluye costos, stock minorista ni nada interno. Solo se llama tras `wholesaleAccess`. */
-export async function wholesaleCatalog(db: Db): Promise<{ rows: WholesaleRow[]; rules: WholesaleRules; rate10k: number | null; fx: EffectiveRate }> {
-  const [rules, tiers, products, fx] = await Promise.all([getRules(db), db.select().from(wholesaleTiers).where(eq(wholesaleTiers.state, "publicado")).orderBy(asc(wholesaleTiers.minQty)), listProducts(db), currentRate(db)]);
+/** El catálogo para clientes usa tramos publicados. La exportación privada del dueño puede usar los tramos cargados. */
+export async function wholesaleCatalog(db: Db, { includeDrafts = false } = {}): Promise<{ rows: WholesaleRow[]; rules: WholesaleRules; rate10k: number | null; fx: EffectiveRate }> {
+  const [rules, tiers, products, fx] = await Promise.all([
+    getRules(db),
+    db.select().from(wholesaleTiers)
+      .where(includeDrafts ? inArray(wholesaleTiers.state, ["publicado", "borrador"]) : eq(wholesaleTiers.state, "publicado"))
+      .orderBy(asc(wholesaleTiers.minQty)),
+    includeDrafts ? listAllProducts(undefined, db) : listProducts(db),
+    currentRate(db),
+  ]);
   const rate = fx.rate10k ?? null;
   const rows: WholesaleRow[] = [];
   for (const p of products) {
+    if (p.retired) continue;
     const mine = tiers.filter((t) => t.productId === p.id);
     const img = p.images[0];
     rows.push({ productId: p.id, slug: p.slug, sku: p.sku, title: p.title, language: p.language, kind: p.kind, image: img && img.status !== "demo" ? { src: img.src, alt: img.alt } : null, tiers: mine.map((t) => ({ minQty: t.minQty, unitUsdMinor: t.unitPriceUsdMinor, unitArsMinor: rate ? usdToArsMinor(t.unitPriceUsdMinor, rate) : null })) });

@@ -24,6 +24,9 @@ export const ArrowIcon = ({ className }: { className?: string }) => (
 export const ChatIcon = () => (
   <svg {...base} width={30} height={30}><path d="M4 20l1.4-4.2A8 8 0 1 1 8.2 18.6z" /><path d="M9 9.5c.5 2 2.5 4 5 5l1.5-1.5-2-1-1 .8c-.8-.4-1.6-1.2-2-2l.8-1-1-2z" /></svg>
 );
+export const InstagramIcon = () => (
+  <svg {...base} width={25} height={25}><rect x="3" y="3" width="18" height="18" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.7" r="1" fill="currentColor" stroke="none" /></svg>
+);
 export const CubeIcon = () => (
   <svg {...base} width={30} height={30}><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9z" /><path d="m4 7.5 8 4.5 8-4.5M12 12v9" /></svg>
 );

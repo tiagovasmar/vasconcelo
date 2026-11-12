@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { dateToMs, newKey, parseMoney, todayYmd } from "./admin-form";
 
 type Opt = { value: string; label: string };
@@ -25,8 +25,9 @@ const lbl = "block text-[.7rem] font-bold uppercase tracking-[.12em] text-ink/70
  * Alta de una compra o lote (solo panel): proveedor, moneda y cotización usada, artículos con su precio original y gastos compartidos, cada uno con su REGLA de reparto
  * (por unidades, por valor o manual). Queda en borrador; el costo final por unidad se calcula y congela al confirmarla.
  */
-export function PurchaseForm({ products, draft, managed = false }: { products: Opt[]; draft?: Draft; managed?: boolean }) {
+export function PurchaseForm({ products, draft, managed = false, supplierNames = [] }: { products: Opt[]; draft?: Draft; managed?: boolean; supplierNames?: string[] }) {
   const router = useRouter();
+  const supplierList = useId();
   const [supplier, setSupplier] = useState(draft?.supplier ?? "");
   const [date, setDate] = useState(draft ? dateString(draft.purchasedAt) : todayYmd());
   const [currency, setCurrency] = useState(draft?.currency ?? "RMB");
@@ -91,7 +92,11 @@ export function PurchaseForm({ products, draft, managed = false }: { products: O
   return (
     <form onSubmit={submit} className="space-y-4" data-testid="form-compra">
       <div className="grid gap-3 sm:grid-cols-4">
-        <div className="sm:col-span-2"><label htmlFor="c-prov" className={lbl}>Proveedor</label><input id="c-prov" value={supplier} onChange={(e) => setSupplier(e.target.value)} className={field} /></div>
+        <div className="sm:col-span-2">
+          <label htmlFor="c-prov" className={lbl}>Proveedor</label>
+          <input id="c-prov" value={supplier} onChange={(e) => setSupplier(e.target.value)} list={supplierNames.length ? supplierList : undefined} className={field} />
+          {supplierNames.length > 0 && <datalist id={supplierList}>{supplierNames.map((name) => <option key={name} value={name} />)}</datalist>}
+        </div>
         <div><label htmlFor="c-fecha" className={lbl}>Fecha de compra</label><input id="c-fecha" type="date" value={date} onChange={(e) => setDate(e.target.value)} className={field} /></div>
         <div><label htmlFor="c-mon" className={lbl}>Moneda del precio original</label><select id="c-mon" value={currency} onChange={(e) => setCurrency(e.target.value)} className={field}><option value="RMB">RMB</option><option value="USD">USD</option><option value="ARS">ARS</option></select></div>
         {currency !== "ARS" && <div><label htmlFor="c-cot" className={lbl}>Cotización usada ($ por {currency})</label><input id="c-cot" inputMode="decimal" value={rate} onChange={(e) => setRate(e.target.value)} placeholder="Ej.: 210" className={field} /></div>}

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
 import { paymentMethods } from "@/content/checkout-options";
 import { todayYmd } from "./admin-form";
+import { refreshAdminNotifications } from "./admin-notifications";
 import { parseMoney } from "@/lib/money-input";
 import { formatARS } from "@/lib/format";
 
@@ -92,6 +93,7 @@ export function AdminSaleForm({ products, inquiry }: { products: SaleProduct[]; 
     try {
       const { res, data } = await call("/api/admin/ventas");
       if (!res.ok) { setError(data?.error?.message ?? "No se pudo registrar la venta."); if (res.status === 409) setStep("armar"); return; }
+      refreshAdminNotifications();
       // Desde una consulta, el resultado se ve en la propia consulta (queda «Convertida en venta», con la venta vigente y el historial).
       if (inquiry) { router.push(`/admin/consultas/${encodeURIComponent(inquiry.id)}?venta=${data.replayed ? "repetida" : "ok"}`); return; }
       setDone({ id: data.sale.id, replayed: Boolean(data.replayed), total: data.sale.totalMinor });

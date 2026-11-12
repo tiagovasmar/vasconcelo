@@ -2,6 +2,8 @@ import Link from "next/link";
 import { AccountingChart } from "@/components/accounting-chart";
 import { AdminAccountingSummary } from "@/components/admin-accounting-summary";
 import { averageCosts, profitReport } from "@/features/costos/service";
+import { listProductCosts } from "@/features/costos/product-costs";
+import { formatUSD } from "@/features/fx/convert";
 import proposal from "@/content/real/propuesta-mayorista.json";
 import { AdminForm } from "@/components/admin-form";
 import { currentAccountingMonth, parseAccountingPeriod } from "@/features/contabilidad/period";
@@ -44,7 +46,8 @@ export default async function Ventas({ searchParams }: { searchParams: Promise<{
   });
   if (typeof selectedMonth === "string" && monthEnd && !months.includes(selectedMonth)) months.push(selectedMonth);
   const filtered = Boolean(period.from || period.to);
-  const [fx, low, sales, overview, costs, report] = await Promise.all([currentRate(db), getLowStock(db), listSales(db, 30, period), accountingOverview(db, period), averageCosts(db, catalog.products.map((product) => product.id)), profitReport(db, period)]);
+  const ids = catalog.products.map((product) => product.id);
+  const [fx, low, sales, overview, costs, report, manualCosts] = await Promise.all([currentRate(db), getLowStock(db), listSales(db, 30, period), accountingOverview(db, period), averageCosts(db, ids), profitReport(db, period), listProductCosts(db, ids)]);
   const billing = new Map<string, number>();
   for (const row of report.rows) billing.set(row.day, (billing.get(row.day) ?? 0) + row.revenueMinor);
   const reportQuery = new URLSearchParams({ ...(period.from ? { desde: period.from } : {}), ...(period.to ? { hasta: period.to } : {}), ...(!filtered ? { todo: "1" } : {}) });
@@ -99,16 +102,18 @@ export default async function Ventas({ searchParams }: { searchParams: Promise<{
       <p className="mt-2 text-xs text-ink/70">Visitas estimadas: se cuenta una vez por navegador por día, desde que se habilita la medición.</p>
       <details className="mt-6 rounded-lg border border-ink/15 bg-white p-4">
         <summary className="cursor-pointer font-semibold">Costo por producto</summary>
-        <p className="mt-2 text-sm text-ink/70">Se muestra el costo promedio de compras confirmadas. Las referencias de proveedor y logística se identifican como estimadas.</p>
+        <p className="mt-2 text-sm text-ink/70">Se muestra el promedio de compras confirmadas, el costo de referencia cargado en el panel o la estimación de proveedor y logística, en ese orden.</p>
         <ul className="mt-3 max-h-80 divide-y divide-ink/10 overflow-y-auto text-sm">
           {products.map((product) => {
             const cost = costs.get(product.id);
+            const manual = manualCosts.get(product.id)?.cost;
             const estimate = proposal.find((row) => row.id === product.id);
             const reference = estimate?.providerRmb != null && estimate.logisticsUsd != null ? (estimate.providerRmb / 6.6611 + estimate.logisticsUsd) : null;
-            return <li key={product.id} className="flex flex-wrap justify-between gap-x-4 gap-y-1 py-2"><span>{product.title}</span><b>{cost != null ? formatARS(cost) : reference != null ? `USD ${reference.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} estimados` : "Costo pendiente"}</b></li>;
+            const manualLabel = manual && (manual.currency === "USD" ? formatUSD(manual.amountMinor) : formatARS(manual.amountMinor));
+            return <li key={product.id} className="flex flex-wrap justify-between gap-x-4 gap-y-1 py-2"><span>{product.title}</span><b>{cost != null ? formatARS(cost) : manualLabel ? `${manualLabel} · Referencia` : reference != null ? `USD ${reference.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} estimados` : "Costo pendiente"}</b></li>;
           })}
         </ul>
-        <Link href="/admin/costos" className="mt-3 inline-block text-sm font-semibold underline">Ir a Costos, compras y ganancia</Link>
+        <Link href="/admin/costos-productos" className="mt-3 inline-block text-sm font-semibold underline">Editar costos por producto</Link>
       </details>
       <div className="mt-6 grid gap-8 lg:grid-cols-[1.1fr_1fr] lg:items-start">
         <section aria-labelledby="registrar-title" className="min-w-0">

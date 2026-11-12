@@ -134,7 +134,7 @@ export async function previewSale(db: Db, body: unknown): Promise<SalePreview> {
   return { lines, totalMinor: lines.reduce((n, l) => n + l.lineTotalMinor, 0), ok: lines.every((l) => !l.problem) };
 }
 
-async function loadSale(db: Db, id: string): Promise<SaleView | null> {
+export async function loadSale(db: Db, id: string): Promise<SaleView | null> {
   const [s] = await db.select().from(sales).where(eq(sales.id, id));
   if (!s) return null;
   const [origin] = await originsOf(db, [id]);
@@ -216,7 +216,7 @@ export async function registerSale(db: Db, body: unknown, actor: Actor, ctx: { f
           discountMinor: it.discountMinor, baseCurrency: (live?.priceUsdMinor ?? null) !== null ? "USD" : "ARS", packSize: p.packSize ?? null,
           discountKind: it.discountMinor === 0 ? null : (() => { const q = inquiryLinesByProduct.get(p.id); return q && q.comboDiscountMinor + q.transferDiscountMinor === it.discountMinor ? discountKindOf(q) : "manual"; })() });
       }
-      await snapshotSaleCosts(tx, id, now); // congela el costo promedio vigente de cada línea: reposiciones o cambios de cotización posteriores no lo alteran
+      await snapshotSaleCosts(tx, id, now, fx.rate10k); // congela el costo vigente de cada línea al registrar la venta
       if (inquiry) await attachSale(tx, { inquiry, saleId: id, kind: "convertida", totalMinor: total, actor, now });
     });
   } catch (e) {

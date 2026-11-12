@@ -2,6 +2,7 @@ import { getDb } from "@/db/client";
 import { addCommission, applyLineCost, confirmPurchase, createPurchase } from "@/features/costos/service";
 import { SaleError } from "@/features/sales/errors";
 import { adminAction } from "@/server/admin-api";
+import { saveProductCost } from "@/features/costos/product-costs";
 
 export const runtime = "nodejs";
 
@@ -15,6 +16,7 @@ export async function POST(req: Request) {
       case "create_purchase": return createPurchase(db, b, actor);
       case "confirm_purchase": return confirmPurchase(db, String(b.purchaseId ?? ""), actor);
       case "apply_cost": return applyLineCost(db, b, actor);
+      case "product_cost": return saveProductCost(db, b, user.email);
       case "commission": return addCommission(db, b, actor);
       default: throw new SaleError(400, "invalid_input", "Acción desconocida.");
     }

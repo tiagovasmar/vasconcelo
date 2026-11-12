@@ -12,7 +12,7 @@ import type { Actor } from "@/features/catalog/overrides";
 import { noticeForOrder, type NoticeEvent } from "@/features/avisos/outbox";
 import { SaleError, type SaleErrorCode } from "@/features/sales/errors";
 import { formatARS } from "@/lib/format";
-import { formatUSD, usdToArsMinor } from "@/features/fx/convert";
+import { formatUSD, toRate10k, usdToArsMinor } from "@/features/fx/convert";
 import { encargo } from "@/content/politicas";
 import {
   firstStage, isShippingStage, nextAction, rank, senaFor, shipmentRank, STAGE_LABEL, stagesFor, summarizePayments, type Stage, type TrackKind,
@@ -227,6 +227,7 @@ export const AgreedSchema = z.object({
 });
 const AgreedUsdSchema = z.object({
   agreedUsdMinor: z.number().int().min(1).max(100_000_000),
+  rateMinor: z.number().int().positive().max(100_000_000).optional(),
 });
 
 /** Fija el importe acordado y confirmado por la tienda. Mientras no haya pagos confirmados se puede corregir; después, no (cambiaría el cálculo de lo ya abonado). */
@@ -237,22 +238,27 @@ export async function setAgreedAmount(db: Db, inquiryId: string, body: unknown, 
     const track = await ensureTrack(tx, inquiryId, now);
     let agreedMinor: number;
     let agreedUsdMinor: number | null = null;
+    let replacementRate: number | null = null;
     if ("agreedUsdMinor" in input) {
       if (track.kind !== "mayorista") return fail(409, "order_rule", "Este pedido se acuerda en pesos.");
-      const [order] = await tx.select({ rate: inquiries.fxRate10k }).from(inquiries).where(eq(inquiries.id, inquiryId));
-      const converted = order?.rate ? usdToArsMinor(input.agreedUsdMinor, order.rate) : null;
+      const [order] = await tx.select({ rate: inquiries.fxRate10k, source: inquiries.source }).from(inquiries).where(eq(inquiries.id, inquiryId));
+      if (input.rateMinor !== undefined && order?.source !== "manual") return fail(409, "order_rule", "El pedido del catálogo conserva su cotización original.");
+      const rate = input.rateMinor === undefined ? order?.rate : toRate10k(input.rateMinor / 100);
+      if (rate && rate !== order?.rate) replacementRate = rate;
+      const converted = rate ? usdToArsMinor(input.agreedUsdMinor, rate) : null;
       if (converted === null) return fail(409, "order_rule", "El pedido no tiene una cotización guardada. Cargá el importe acordado en pesos.");
       ({ agreedMinor } = parseOr400(AgreedSchema, { agreedMinor: converted }));
       agreedUsdMinor = input.agreedUsdMinor;
     } else {
       agreedMinor = input.agreedMinor;
     }
-    const unchanged = track.agreedMinor === agreedMinor && track.agreedUsdMinor === agreedUsdMinor;
+    const unchanged = replacementRate === null && track.agreedMinor === agreedMinor && track.agreedUsdMinor === agreedUsdMinor;
     if (await holdState(tx, inquiryId, now) && !unchanged) return fail(409, "order_rule", "El importe de la preventa quedó acordado al solicitar la reserva.");
     if (track.cancelledAt) return fail(409, "order_rule", "El pedido está cancelado.");
     if (unchanged) return { agreedMinor, changed: false };
     const { confirmedMinor } = await paymentTotals(tx, inquiryId);
     if (confirmedMinor > 0) return fail(409, "order_rule", "Ya hay pagos confirmados: el importe acordado no se puede cambiar. Registrá la diferencia como una nota o un ajuste explícito.");
+    if (replacementRate !== null) await tx.update(inquiries).set({ fxRate10k: replacementRate, fxMode: "manual", fxAsOf: now, fxSource: null }).where(eq(inquiries.id, inquiryId));
     await tx.update(orderTracks).set({ agreedMinor, agreedUsdMinor, updatedAt: now }).where(eq(orderTracks.inquiryId, inquiryId));
     const label = agreedUsdMinor === null ? formatARS(agreedMinor) : `${formatUSD(agreedUsdMinor)} (equivalente de ${formatARS(agreedMinor)})`;
     await tx.insert(orderEvents).values({ inquiryId, kind: "system", publicText: `Importe acordado: ${label}.`, internalText: track.agreedMinor === null ? null : `Antes: ${formatARS(track.agreedMinor)}`, occurredAt: now, createdAt: now, actorEmail: actor.email });
@@ -401,18 +407,19 @@ export async function customerOrderView(db: Db, inquiryId: string): Promise<Cust
 
 export type AdminOrderRow = {
   reference: string; kind: TrackKind; stage: string; cancelled: boolean; createdAt: number; name: string | null; agreedMinor: number | null; confirmedMinor: number; pendingReceipts: number; openIncidents: number; failedNotices: number;
+  phone: string | null; carrier: string | null; tracking: string | null; agreedUsdMinor: number | null; rate10k: number | null;
 };
 
 export async function listOrders(db: Db, opts: { kind?: string; stage?: string; search?: string; pending?: "comprobantes" | "retiro"; limit?: number } = {}): Promise<AdminOrderRow[]> {
   const query = opts.search?.trim().slice(0, 100).replace(/[\\%_]/g, "\\$&");
   const pattern = query ? `%${query}%` : null;
-  const rows = await db.select({ t: orderTracks, name: inquiries.contactName, createdAt: inquiries.createdAt }).from(orderTracks).innerJoin(inquiries, eq(inquiries.id, orderTracks.inquiryId))
+  const rows = await db.select({ t: orderTracks, name: inquiries.contactName, phone: inquiries.contactPhone, rate10k: inquiries.fxRate10k, createdAt: inquiries.createdAt }).from(orderTracks).innerJoin(inquiries, eq(inquiries.id, orderTracks.inquiryId))
     .where(and(
       opts.kind ? eq(orderTracks.kind, opts.kind) : undefined,
       opts.stage ? eq(orderTracks.stage, opts.stage) : undefined,
       opts.pending === "retiro" ? and(eq(orderTracks.stage, "listo_retiro"), sql`${orderTracks.cancelledAt} is null`) : undefined,
       opts.pending === "comprobantes" ? sql`exists (select 1 from ${paymentReceipts} where ${paymentReceipts.inquiryId} = ${orderTracks.inquiryId} and ${paymentReceipts.status} = 'pendiente_revision')` : undefined,
-      pattern ? or(ilike(inquiries.id, pattern), ilike(inquiries.contactName, pattern), ilike(inquiries.contactPhone, pattern)) : undefined,
+      pattern ? or(ilike(inquiries.id, pattern), ilike(inquiries.contactName, pattern), ilike(inquiries.contactPhone, pattern), ilike(orderTracks.customerTrackingNumber, pattern)) : undefined,
     )).orderBy(desc(orderTracks.updatedAt)).limit(Math.min(opts.limit ?? 200, 500));
   if (!rows.length) return [];
   const ids = rows.map((r) => r.t.inquiryId);
@@ -423,7 +430,11 @@ export async function listOrders(db: Db, opts: { kind?: string; stage?: string; 
     db.select({ id: notificationOutbox.inquiryId, n: sql<number>`count(*)::int` }).from(notificationOutbox).where(and(inArray(notificationOutbox.inquiryId, ids), inArray(notificationOutbox.status, ["pendiente", "fallido"]))).groupBy(notificationOutbox.inquiryId),
   ]);
   const by = <T extends { id: string | null; n: unknown }>(a: T[], id: string) => Number(a.find((x) => x.id === id)?.n ?? 0);
-  return rows.map(({ t, name, createdAt }) => ({ reference: t.inquiryId, kind: t.kind as TrackKind, stage: t.stage, cancelled: t.cancelledAt !== null, createdAt, name, agreedMinor: t.agreedMinor, confirmedMinor: by(pays, t.inquiryId), pendingReceipts: by(recs, t.inquiryId), openIncidents: by(incs, t.inquiryId), failedNotices: by(notices, t.inquiryId) }));
+  return rows.map(({ t, name, phone, rate10k, createdAt }) => ({
+    reference: t.inquiryId, kind: t.kind as TrackKind, stage: t.stage, cancelled: t.cancelledAt !== null, createdAt, name,
+    phone, rate10k, carrier: t.customerCarrier, tracking: t.customerTrackingNumber, agreedMinor: t.agreedMinor, agreedUsdMinor: t.agreedUsdMinor,
+    confirmedMinor: by(pays, t.inquiryId), pendingReceipts: by(recs, t.inquiryId), openIncidents: by(incs, t.inquiryId), failedNotices: by(notices, t.inquiryId),
+  }));
 }
 
 /** Detalle completo para el panel (incluye notas internas). Nunca se usa para la cliente. */

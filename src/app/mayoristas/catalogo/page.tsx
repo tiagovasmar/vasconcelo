@@ -3,6 +3,7 @@ import Link from "next/link";
 import { WholesaleCatalog } from "@/components/wholesale-catalog";
 import { getDb } from "@/db/client";
 import { wholesaleAccess, wholesaleCatalog } from "@/features/mayorista/precios";
+import { isAdmin } from "@/server/admin";
 import { getUser } from "@/server/session";
 
 export const metadata: Metadata = { title: "Catálogo mayorista", robots: { index: false, follow: false } };
@@ -22,9 +23,9 @@ export default async function CatalogoMayorista() {
     const msg = {
       no_session: { t: "Ingresá con tu cuenta.", b: "El catálogo mayorista es solo para cuentas mayoristas aprobadas.", a: { href: `/cuenta/ingresar?next=${encodeURIComponent(NEXT)}`, l: "Ingresar" } },
       sin_solicitud: { t: "Todavía no solicitaste la cuenta.", b: "Solicitá tu cuenta mayorista: la tienda la revisa y la aprueba a mano.", a: { href: "/mayoristas/solicitar", l: "Solicitar cuenta mayorista" } },
-      pendiente: { t: "Tu solicitud está pendiente.", b: "La tienda todavía no aprobó tu cuenta. Cuando lo haga vas a ver acá los precios por tramo.", a: { href: "/cuenta", l: "Ver el estado en Mi cuenta" } },
+      pendiente: { t: "Tu solicitud está pendiente.", b: "La tienda todavía no aprobó tu cuenta. Una vez aprobada, vas a ver los precios por tramo cuando el catálogo esté abierto.", a: { href: "/cuenta", l: "Ver el estado en Mi cuenta" } },
       rechazada: { t: "La solicitud no fue aprobada.", b: "Si querés más información, consultá con la tienda por WhatsApp.", a: { href: "/mayoristas", l: "Cómo funcionan los mayoristas" } },
-      cerrado: { t: "El catálogo mayorista todavía no está habilitado.", b: "La tienda está definiendo las condiciones (compra mínima, escalas de precio y demoras). Tu cuenta ya está aprobada: te avisamos cuando se abra.", a: { href: "/mayoristas", l: "Cómo funcionan los mayoristas" } },
+      cerrado: { t: "El catálogo mayorista todavía no está habilitado.", b: "Tu cuenta ya está aprobada. Podés volver a esta página para ver los precios por tramo cuando la tienda abra el catálogo.", a: { href: "/mayoristas", l: "Cómo funcionan los mayoristas" } },
     }[access.reason];
     return (
       <div className="paper-texture">
@@ -33,6 +34,7 @@ export default async function CatalogoMayorista() {
           <h1 className="display mt-3 text-[clamp(2.2rem,7vw,4rem)] normal-case leading-[.95]">{msg.t}</h1>
           <p className="mt-4 text-lg text-ink/80">{msg.b}</p>
           <Link href={msg.a.href} className="mt-6 inline-flex min-h-12 items-center bg-gold px-6 font-bold hover:bg-ink hover:text-paper">{msg.a.l}</Link>
+          {isAdmin(user) && <Link href="/admin/mayoristas" className="ml-3 mt-3 inline-flex min-h-12 items-center border border-ink/25 px-5 font-semibold">Configurar y descargar catálogo</Link>}
         </div>
       </div>
     );

@@ -63,7 +63,7 @@ Origen: 16 carpetas locales de Tmall/Taobao (Principal_/SKU_/Detalle_ + `_URL.tx
 - **Fichas creadas (2):**
   - `zh-30-zhounian-sobre-6` — 30周年庆典 · Sobre de 6 cartas · Sobre · 6 cartas (SKU `ZH-1079986406064-SOBRE`)
   - `zh-30-zhounian-set-monedas` — 30周年庆典 · Set con monedas · Set · Set con monedas (SKU `ZH-1079986406064-SKU08`)
-- Importados: sobre de 6 cartas y set con monedas. **No importado:** SKU_01 es un kit de manualidades («绘梦点睛 30周年皮卡丘手办套装»), no un producto TCG. **Pendientes puntuales:** las cajas de regalo de SKU_14–21 (Eevee solar, Eevee lunar, Eevee hada y Greninja ex), la caja amarilla SKU_06 y el exhibidor SKU_11: sus contenidos no se leen en las imágenes.
+- Importados en este lote: sobre de 6 cartas y set con monedas. La variante SKU_01 se incorporó después como set de figura de Pikachu del 30.º aniversario. Pokémon China confirma que incluye una figura sorpresa, la carta correspondiente y un sobre. **Pendientes puntuales:** las cajas de regalo de SKU_14–21 (Eevee solar, Eevee lunar, Eevee hada y Greninja ex), la caja amarilla SKU_06 y el exhibidor SKU_11: sus contenidos no se leen en las imágenes.
 
 ### 1064307763243 · 太晶盛聚 (17.5)
 - Origen: https://item.taobao.com/item.htm?id=1064307763243&skuId=6114037237060 · tienda «jc19950904的小店1» (Taobao)

@@ -8,7 +8,7 @@ import { when } from "@/features/consultas/ui";
 import { shipmentProgressLabel, STAGE_LABEL, stagesFor, type Stage, type TrackKind } from "@/features/pedidos/etapas";
 import { adminOrderDetail, INCIDENT_KIND_LABEL } from "@/features/pedidos/service";
 import { linkedSaleCommission, listWholesaleOrderCosts, orderUsdEquivalent } from "@/features/pedidos/mayorista-admin";
-import { PAYMENT_STATUS_LABEL, senaFor, summarizePayments } from "@/features/pedidos/etapas";
+import { PAYMENT_STATUS_LABEL, remainingOrderBalance, senaFor, summarizePayments } from "@/features/pedidos/etapas";
 import { averageCosts } from "@/features/costos/service";
 import { formatRate, formatUSD } from "@/features/fx/convert";
 import { formatARS } from "@/lib/format";
@@ -20,6 +20,7 @@ const kindName = { stock: "Compra de stock", encargo: "Encargo", mayorista: "Ped
 const noticeState: Record<string, string> = { pendiente: "Pendiente", enviando: "Enviando", enviado: "Enviado", fallido: "Falló" };
 const card = "mt-6 rounded-xl border border-ink/15 bg-white p-4 sm:p-5";
 const h2 = "text-base font-semibold";
+const paymentKind = { sena: "Seña", saldo: "Saldo", pago_total: "Pago total", otro: "Otro pago" };
 
 export default async function AdminPedidoDetalle({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -42,36 +43,31 @@ export default async function AdminPedidoDetalle({ params }: { params: Promise<{
   const wholesaleRate = kind === "mayorista" ? i.fxRate10k : null;
   const confirmedUsd = wholesaleRate ? orderUsdEquivalent(totals.confirmedMinor, wholesaleRate) : null;
   const depositUsd = wholesaleRate && d.senaMinor !== null ? senaFor(track?.agreedUsdMinor ?? null) ?? orderUsdEquivalent(d.senaMinor, wholesaleRate) : null;
+  const balance = remainingOrderBalance(track?.agreedMinor ?? null, totals.confirmedMinor);
+  const useUsd = track?.agreedUsdMinor != null;
+  const paidUsd = balance === 0 ? track?.agreedUsdMinor ?? confirmedUsd
+    : totals.confirmedMinor === d.senaMinor ? depositUsd : confirmedUsd;
+  const remainingDeposit = remainingOrderBalance(d.senaMinor, totals.confirmedMinor);
+  const needsWholesaleDeposit = kind === "mayorista" && !track?.cancelledAt
+    && (balance === null || (remainingDeposit !== null && remainingDeposit > 0));
+  const amountForSummary = (ars: number, usd: number | null = null) => useUsd && usd !== null ? formatUSD(usd) : formatARS(ars);
+  const canEditRate = kind === "mayorista" && i.source === "manual";
   const agreedInPesosForm = <AdminForm endpoint={ep} compact fixed={{ action: "agreed" }} fields={[{
     name: "agreedMinor", label: "Importe acordado", type: "pesos", required: true,
     defaultValue: track?.agreedMinor ? String(track.agreedMinor / 100) : "",
   }]} submit="Guardar importe" ok="Importe guardado." idempotent={false} testId="form-importe" />;
 
-  return (
-    <div className="mx-auto max-w-[1000px] px-4 py-8 sm:px-8 sm:py-10">
-      <p className="text-sm"><Link href={kind === "mayorista" ? "/admin/pedidos?tipo=mayorista" : "/admin/pedidos"} className="underline underline-offset-4">← {kind === "mayorista" ? "Pedidos mayoristas" : "Pedidos"}</Link> · <Link href={`/admin/consultas/${id}`} className="underline underline-offset-4">Ver la consulta original</Link></p>
-      <p className="eyebrow mt-3 text-emerald">{kindName[kind]} <span className="font-mono">{id}</span></p>
-      <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">{i.contactName ?? "Sin nombre"}</h1>
-      <p className="mt-1 text-sm text-ink/75">{i.userId ? "Con cuenta" : "Invitado"} · {i.contactPhone ?? "sin teléfono"} · {when(i.createdAt)}</p>
-      {track && kind === "mayorista" && <p className="mt-2 text-sm"><a className="font-semibold underline" href="#admin-mayorista-costos">Ir a costos y ganancia</a></p>}
-
-      {!track ? (
-        <section className={card}>
-          <h2 className={h2}>Todavía sin seguimiento</h2>
-          <p className="mt-1 text-sm text-ink/75">Abrí el seguimiento cuando confirmes el pedido. La cliente lo ve en su cuenta (o por un enlace privado si compró como invitada).</p>
-          <div className="mt-3"><AdminButton endpoint={ep} body={{ action: "open" }} label="Abrir seguimiento" ok="Seguimiento abierto." /></div>
-        </section>
-      ) : (
-        <>
+  const stageSection = track && (
           <section className={card} id="entrega" data-testid="admin-etapa">
             <h2 className={h2}>Etapa del pedido</h2>
             <p className="mt-1 text-lg font-bold" data-testid="admin-etapa-actual">{track.cancelledAt ? "Cancelado" : STAGE_LABEL[track.stage as Stage]}</p>
+            <details className="mt-2" open={kind !== "mayorista"}><summary className="cursor-pointer text-sm font-semibold underline">Ver etapas del pedido</summary>
             <ol className="mt-2 flex flex-wrap gap-2 text-xs" aria-label="Etapas">
               {stagesFor(kind).map((s) => { const done = events.some((e) => e.kind === "stage" && e.stage === s); return <li key={s} className={`rounded-full px-2.5 py-1 ring-1 ${s === track.stage ? "bg-emerald text-paper ring-emerald" : done ? "bg-emerald/10 ring-emerald/40" : "ring-ink/20 text-ink/75"}`}>{STAGE_LABEL[s]}</li>; })}
-            </ol>
+            </ol></details>
             {!track.cancelledAt && (
               <div className="mt-4">
-                <p className="mb-2 text-xs text-ink/70">Cargá cada etapa con su fecha real. Las etapas de transporte internacional las gobiernan los <Link href="/admin/envios" className="underline">envíos agrupados</Link>: el pedido avanza solo cuando todas sus unidades llegaron a esa etapa. Algunas etapas exigen el importe acordado, la seña o el pago completo confirmados.</p>
+                <p className="mb-2 text-xs text-ink/70">Cargá la etapa con su fecha real. El transporte internacional se actualiza desde <Link href="/admin/envios" className="underline">Envíos</Link>.</p>
                 <AdminForm endpoint={ep} fields={[
                   { name: "stage", label: "Nueva etapa", type: "select", options: stageOptions, required: true, defaultValue: track.stage },
                   { name: "occurredAt", label: "Fecha real", type: "date", required: true },
@@ -82,51 +78,103 @@ export default async function AdminPedidoDetalle({ params }: { params: Promise<{
               </div>
             )}
           </section>
+  );
+  return (
+    <div className="mx-auto max-w-[1000px] px-4 py-8 sm:px-8 sm:py-10">
+      <p className="text-sm"><Link href={kind === "mayorista" ? "/admin/pedidos?tipo=mayorista" : "/admin/pedidos"} className="underline underline-offset-4">← {kind === "mayorista" ? "Pedidos mayoristas" : "Pedidos"}</Link> · <Link href={`/admin/consultas/${id}`} className="underline underline-offset-4">Ver la consulta original</Link></p>
+      <p className="eyebrow mt-3 text-emerald">{kindName[kind]} <span className="font-mono">{id}</span></p>
+      <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">{i.contactName ?? "Sin nombre"}</h1>
+      <p className="mt-1 text-sm text-ink/75">{i.userId ? "Con cuenta" : "Invitado"} · {i.contactPhone ?? "sin teléfono"} · {when(i.createdAt)}</p>
+      {track && kind === "mayorista" && <section className={card} aria-labelledby="mayorista-resumen">
+        <h2 id="mayorista-resumen" className={h2}>Resumen del pedido</h2>
+        <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-3">
+          <div><dt className="text-ink/75">Total acordado</dt><dd className="text-lg font-bold">{track.agreedMinor === null ? "A confirmar" : amountForSummary(track.agreedMinor, track.agreedUsdMinor)}</dd></div>
+          <div><dt className="text-ink/75">Pagos confirmados</dt><dd className="text-lg font-bold" data-testid="mayorista-pagado">{amountForSummary(totals.confirmedMinor, paidUsd)}</dd></div>
+          <div className="rounded-lg bg-emerald/10 px-3 py-2 sm:-my-2"><dt className="font-semibold text-emerald">Queda por pagar</dt><dd className="text-lg font-bold" data-testid="mayorista-saldo">{track.cancelledAt ? "Pedido cancelado" : balance === null ? "A confirmar" : amountForSummary(balance, track.agreedUsdMinor === null || paidUsd === null ? null : Math.max(0, track.agreedUsdMinor - paidUsd))}</dd></div>
+        </dl>
+        {needsWholesaleDeposit && (
+          <a className="mt-4 inline-flex min-h-11 items-center rounded-md bg-emerald px-4 text-sm font-semibold text-white" href="#admin-pago">
+            Registrar seña
+          </a>
+        )}
+        {!track.cancelledAt && <p className="mt-2 text-sm text-ink/75">La seña se resta del total cuando confirmás el pago.</p>}
+        {wholesaleRate && <p className="mt-1 text-xs text-ink/75">Cotización acordada: {formatRate(wholesaleRate)} por USD.</p>}
+        <nav aria-label="Gestión del pedido mayorista" className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm font-semibold">
+          <a className="underline" href="#admin-pago">Pagos</a>
+          <a className="underline" href="#entrega">Etapa</a>
+          <a className="underline" href="#admin-mayorista-guia">Seguimiento</a>
+          <a className="underline" href="#admin-mayorista-costos">Costos y ganancia</a>
+        </nav>
+        <details className="mt-3">
+          <summary className="cursor-pointer text-sm font-semibold underline">Editar contacto</summary>
+          <div className="mt-2"><AdminForm endpoint={ep} compact fixed={{ action: "wholesale_contact" }} fields={[
+            { name: "contactName", label: "Cliente o comercio", required: true, defaultValue: i.contactName ?? "", maxLength: 100 },
+            { name: "contactPhone", label: "Teléfono / WhatsApp", defaultValue: i.contactPhone ?? "", maxLength: 24 },
+          ]} submit="Guardar contacto" ok="Contacto guardado." idempotent={false} resetAfterSave={false} /></div>
+        </details>
+      </section>}
 
-          {kind === "mayorista" && <AdminWholesaleOrder id={id} carrier={track.customerCarrier} trackingNumber={track.customerTrackingNumber}
-            costs={wholesaleCosts} agreed={track.agreedMinor} agreedUsd={track.agreedUsdMinor} received={totals.confirmedMinor}
-            refunded={paidRefunds} rate={wholesaleRate} cancelled={track.cancelledAt !== null} saleCommission={saleCommission} />}
-
-          <section className={card} data-testid="admin-pago">
-            <h2 className={h2}>Pago (separado de la logística)</h2>
-            <dl className="mt-2 grid gap-2 text-sm sm:grid-cols-3">
+      {!track ? (
+        <section className={card}>
+          <h2 className={h2}>Todavía sin seguimiento</h2>
+          <p className="mt-1 text-sm text-ink/75">Abrí el seguimiento cuando confirmes el pedido. La cliente lo ve en su cuenta (o por un enlace privado si compró como invitada).</p>
+          <div className="mt-3"><AdminButton endpoint={ep} body={{ action: "open" }} label="Abrir seguimiento" ok="Seguimiento abierto." /></div>
+        </section>
+      ) : (
+        <>
+          {kind !== "mayorista" && stageSection}
+          <section className={`${card} scroll-mt-32`} id="admin-pago" data-testid="admin-pago">
+            <h2 className={h2}>{needsWholesaleDeposit ? "Registrar seña" : kind === "mayorista" ? "Pagos" : "Pago"}</h2>
+            {needsWholesaleDeposit && balance === null && (
+              <p className="mt-2 text-sm text-ink/75">Primero guardá el total acordado. Después vas a poder registrar la seña del 20% acá mismo.</p>
+            )}
+            {kind === "mayorista" && d.senaMinor !== null && !track.cancelledAt && <p className="mt-2 text-sm text-ink/75">
+              {balance === 0 ? "Pago completo confirmado." : remainingDeposit ? <>Falta confirmar {formatARS(remainingDeposit)} de la seña del 20%.</> : "Seña confirmada. El saldo se paga cuando el pedido llega a Argentina, antes del despacho o al retirar."}
+            </p>}
+            {kind !== "mayorista" && <dl className="mt-2 grid gap-2 text-sm sm:grid-cols-3">
               <div><dt className="text-xs text-ink/75">Importe acordado</dt><dd className="font-extrabold">{track.agreedMinor === null ? "A confirmar" : track.agreedUsdMinor === null ? formatARS(track.agreedMinor) : <>{formatUSD(track.agreedUsdMinor)} <span className="block text-xs font-normal">Equivalente {formatARS(track.agreedMinor)}</span></>}</dd></div>
               <div><dt className="text-xs text-ink/75">Confirmado</dt><dd className="font-extrabold">{formatARS(totals.confirmedMinor)}{confirmedUsd !== null && <span className="block text-xs font-normal">Equivale a {formatUSD(confirmedUsd)}</span>}</dd></div>
               <div><dt className="text-xs text-ink/75">Estado</dt><dd className="font-semibold">{PAYMENT_STATUS_LABEL[pay.status]}</dd></div>
-            </dl>
-            {d.senaMinor !== null && kind !== "stock" && <p className="mt-1 text-xs text-ink/70">Seña del 20% {depositUsd === null ? formatARS(d.senaMinor) : `${formatUSD(depositUsd)} (${formatARS(d.senaMinor)})`} · saldo del 80% al llegar a Argentina, antes del despacho o del retiro.</p>}
-            {!track.cancelledAt && (
-              <div className="mt-4 border-t border-ink/10 pt-4">
-                <h3 className="text-sm font-semibold">Importe acordado</h3>
-                <p className="mb-2 text-xs text-ink/70">Lo confirma la tienda (producto, disponibilidad e importe). Después del primer pago confirmado ya no se puede cambiar.</p>
-                {wholesaleRate ? <>
+            </dl>}
+            {d.senaMinor !== null && kind === "encargo" && <p className="mt-1 text-xs text-ink/70">Seña del 20% {formatARS(d.senaMinor)}. Los pagos confirmados se descuentan del total.</p>}
+            {!track.cancelledAt && (kind !== "mayorista" || totals.confirmedMinor === 0) && (
+              <details className="mt-3" open={kind !== "mayorista" || track.agreedMinor === null}>
+                <summary className="cursor-pointer text-sm font-semibold underline">{track.agreedMinor === null ? "Cargar total acordado" : "Editar total y cotización"}</summary>
+                <p className="my-2 text-xs text-ink/70">Podés corregirlo hasta confirmar el primer pago.</p>
+                {wholesaleRate || canEditRate ? <>
                   <AdminForm endpoint={ep} compact fixed={{ action: "agreed" }} fields={[{
                     name: "agreedUsdMinor", label: "Importe acordado en USD", type: "usd", required: true,
                     defaultValue: track.agreedUsdMinor === null ? "" : String(track.agreedUsdMinor / 100),
-                    help: `Se calcula el equivalente para la seña y el saldo a ${formatRate(wholesaleRate)} por dólar.`,
-                  }]} submit="Guardar importe en USD" ok="Importe guardado." idempotent={false} testId="form-importe-usd" />
+                    help: wholesaleRate ? `Se usa la cotización guardada de ${formatRate(wholesaleRate)} por USD.` : "Ingresá la cotización para calcular el equivalente en pesos.",
+                  }, ...(canEditRate ? [{
+                    name: "rateMinor", label: "Nueva cotización (ARS por USD)", type: "pesos" as const, optional: true,
+                    help: "Dejá el campo vacío para conservar la cotización guardada.",
+                  }] : [])]} submit="Guardar importe en USD" ok="Importe guardado." idempotent={false} testId="form-importe-usd" />
                   <details className="mt-3">
                     <summary className="mb-2 cursor-pointer text-sm font-semibold underline">Acordé el importe en pesos</summary>
                     {agreedInPesosForm}
                   </details>
                 </> : agreedInPesosForm}
-              </div>
+              </details>
             )}
             <ul className="mt-4 divide-y divide-ink/10 text-sm" aria-label="Pagos">
               {payments.map((p) => (
                 <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 py-2" data-testid="pago-fila">
-                  <span><b>{formatARS(p.amountMinor)}</b> · {p.kind} · {p.method} · {when(p.paidAt)} <span className="font-mono text-xs text-ink/75">{p.id}</span>{p.status === "anulado" && <b className="ml-2 text-vermilion">ANULADO ({p.voidReason})</b>}</span>
-                  {p.status === "confirmado" && <AdminForm endpoint={ep} compact fixed={{ action: "void_payment", paymentId: p.id }} fields={[{ name: "reason", label: "Motivo de la anulación", required: true }]} submit="Anular pago" ok="Pago anulado." confirmText="¿Anular este pago? Queda registrado como anulado." idempotent={false} />}
+                  <span><b>{formatARS(p.amountMinor)}</b> · {paymentKind[p.kind as keyof typeof paymentKind] ?? "Pago"} · {p.method} · {when(p.paidAt)}{p.status === "anulado" && <b className="ml-2 text-vermilion">ANULADO ({p.voidReason})</b>}</span>
+                  {p.status === "confirmado" && <details className="w-full" open={kind !== "mayorista"}>
+                    <summary className="cursor-pointer text-xs underline">Corregir pago</summary>
+                    <div className="mt-2"><AdminForm endpoint={ep} compact fixed={{ action: "void_payment", paymentId: p.id }} fields={[{ name: "reason", label: "Motivo de la anulación", required: true }]} submit="Anular pago" ok="Pago anulado." confirmText="¿Anular este pago? Queda registrado como anulado." idempotent={false} /></div>
+                  </details>}
                 </li>
               ))}
             </ul>
-            {!track.cancelledAt && (
+            {!track.cancelledAt && (kind !== "mayorista" || (balance !== null && balance > 0)) && (
               <div className="mt-4 border-t border-ink/10 pt-4">
-                <h3 className="text-sm font-semibold">Registrar un ingreso confirmado</h3>
-                <p className="mb-2 text-xs text-ink/70">Registralo recién cuando viste el dinero en tu cuenta. Si viene de un comprobante, elegilo para dejarlo aceptado.</p>
+                {!needsWholesaleDeposit && <h3 className="text-sm font-semibold">Registrar pago recibido</h3>}
+                <p className="mb-2 text-xs text-ink/70">Cargá el importe recibido en pesos. Si hay un comprobante, podés vincularlo.</p>
                 <AdminForm endpoint={ep} fixed={{ action: "payment" }} fields={[
-                  { name: "kind", label: "Tipo", type: "select", required: true, options: kind === "stock" ? [{ value: "pago_total", label: "Pago total" }, { value: "otro", label: "Otro pago" }] : [{ value: "sena", label: "Seña" }, { value: "saldo", label: "Saldo" }, { value: "pago_total", label: "Pago total" }, { value: "otro", label: "Otro" }] },
-                  { name: "amountMinor", label: "Importe", type: "pesos", required: true },
+                  { name: "kind", label: "Tipo", type: "select", required: true, defaultValue: kind === "stock" ? "pago_total" : kind === "mayorista" && remainingDeposit === 0 ? "saldo" : "sena", options: kind === "stock" ? [{ value: "pago_total", label: "Pago total" }, { value: "otro", label: "Otro pago" }] : [{ value: "sena", label: "Seña" }, { value: "saldo", label: "Saldo" }, { value: "pago_total", label: "Pago total" }, { value: "otro", label: "Otro" }] },
+                  { name: "amountMinor", label: "Importe recibido en pesos", type: "pesos", required: true },
                   { name: "method", label: "Medio", type: "select", required: true, options: [{ value: "transferencia", label: "Transferencia" }, { value: "efectivo", label: "Efectivo" }, { value: "otro", label: "Otro" }] },
                   { name: "paidAt", label: "Fecha real del ingreso", type: "date", required: true },
                   { name: "receiptId", label: "Comprobante que respalda el pago", type: "select", optional: true, options: pendingReceipts.map((r) => ({ value: r.id, label: `${r.id} · ${when(r.createdAt)}${r.declaredAmountMinor ? ` · dice ${formatARS(r.declaredAmountMinor)}` : ""}` })) },
@@ -135,6 +183,11 @@ export default async function AdminPedidoDetalle({ params }: { params: Promise<{
               </div>
             )}
           </section>
+
+          {kind === "mayorista" && stageSection}
+          {kind === "mayorista" && <AdminWholesaleOrder id={id} carrier={track.customerCarrier} trackingNumber={track.customerTrackingNumber}
+            costs={wholesaleCosts} agreed={track.agreedMinor} agreedUsd={track.agreedUsdMinor} received={totals.confirmedMinor}
+            refunded={paidRefunds} rate={wholesaleRate} cancelled={track.cancelledAt !== null} saleCommission={saleCommission} />}
 
           <section className={card} id="comprobantes" data-testid="admin-comprobantes">
             <h2 className={h2}>Comprobantes subidos</h2>

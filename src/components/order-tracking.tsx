@@ -1,5 +1,5 @@
 import { INCIDENT_KIND_LABEL, REFUND_STATUS_LABEL, type CustomerOrderView } from "@/features/pedidos/service";
-import { shipmentProgressLabel, senaFor, transferDue } from "@/features/pedidos/etapas";
+import { remainingOrderBalance, shipmentProgressLabel, senaFor, transferDue } from "@/features/pedidos/etapas";
 import { encargo, mayorista } from "@/content/politicas";
 import { transferencia } from "@/content/transferencia";
 import { formatARS } from "@/lib/format";
@@ -20,7 +20,9 @@ export function OrderTracking({ view, whatsappNumber, linkToken }: { view: Custo
   const wa = whatsappNumber ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(`Hola, consulto por mi pedido ${view.reference}.`)}` : null;
   const k = linkToken ? `?k=${encodeURIComponent(linkToken)}` : "";
   const sena = view.kind === "stock" ? null : senaFor(view.agreedMinor);
-  const due = transferDue({ ...view, confirmedMinor: view.payments.reduce((sum, p) => sum + p.amountMinor, 0) });
+  const confirmedMinor = view.payments.reduce((sum, p) => sum + p.amountMinor, 0);
+  const due = transferDue({ ...view, confirmedMinor });
+  const balance = remainingOrderBalance(view.agreedMinor, confirmedMinor);
   return (
     <section aria-labelledby="seguimiento-title" className="mt-8 border border-ink/25 bg-white/80 p-5" data-testid="seguimiento">
       <p className="eyebrow text-vermilion">{view.preorder ? "Preventa" : kindName[view.kind]} · {view.reference}</p>
@@ -53,6 +55,10 @@ export function OrderTracking({ view, whatsappNumber, linkToken }: { view: Custo
           <dl className="mt-2 space-y-1 text-sm">
             <div className="flex justify-between gap-4"><dt>Importe acordado</dt><dd className="font-extrabold" data-testid="importe-acordado">{view.agreedMinor === null ? "A confirmar por la tienda" : formatARS(view.agreedMinor)}</dd></div>
             {sena !== null && <div className="flex flex-wrap justify-between gap-x-4 gap-y-1"><dt>Seña del {encargo.senaPercent}% del total</dt><dd className="text-lg font-extrabold" data-testid="importe-sena">{formatARS(sena)}</dd></div>}
+            {view.kind === "mayorista" && !view.cancelled && balance !== null && confirmedMinor > 0 && <>
+              <div className="flex flex-wrap justify-between gap-x-4"><dt>Pagado</dt><dd className="font-semibold">{formatARS(confirmedMinor)}</dd></div>
+              <div className="flex flex-wrap justify-between gap-x-4 border-t border-ink/15 pt-2"><dt>Queda por pagar</dt><dd className="font-extrabold" data-testid="saldo-pedido">{formatARS(balance)}</dd></div>
+            </>}
             <div className="flex justify-between gap-4"><dt>Estado del pago</dt><dd className="font-semibold" data-testid="estado-pago">{view.paymentStatusLabel}</dd></div>
           </dl>
           {view.payments.length > 0 && (

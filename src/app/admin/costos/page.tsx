@@ -28,7 +28,7 @@ export default async function AdminCostos({ searchParams }: { searchParams: Prom
       <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Ganancia y comisiones</h1>
       <p className="mt-2 max-w-3xl text-sm text-ink/75">El costo de mercadería se guarda con cada venta. Para mayoristas se usan los gastos de su pedido y la cotización guardada allí.</p>
 
-      <p className="mt-3 text-sm"><Link href="/admin/compras" className="font-semibold underline">Gestionar compras e importaciones</Link> · <Link href="/admin/costos?todo=1" className="underline">Ver historial completo</Link></p>
+      <p className="mt-3 text-sm"><Link href="/admin/costos-productos" className="font-semibold underline">Editar costos por producto</Link> · <Link href="/admin/compras" className="underline">Gestionar compras e importaciones</Link> · <Link href="/admin/costos?todo=1" className="underline">Ver historial completo</Link></p>
       <section className={card} data-testid="ganancia">
         <h2 className="text-base font-semibold">Ganancia</h2>{error && <p role="alert" className="text-sm text-vermilion">{error}</p>}
         <form className="mt-2 flex flex-wrap items-end gap-3" method="get">

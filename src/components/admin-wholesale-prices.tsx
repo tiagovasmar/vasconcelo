@@ -8,16 +8,22 @@ import { useUnsavedGuard } from "./use-unsaved-guard";
 type Tier = { minQty: number; unitPriceUsdMinor: number; state: "borrador" | "publicado" };
 const field = "min-h-11 min-w-0 w-full rounded-md border border-ink/40 bg-white px-3 text-base";
 
-export function AdminWholesalePrices({ productId, title, baseUsd }: { productId: string; title: string; baseUsd?: number | null }) {
+export function AdminWholesalePrices({ productId, title, baseUsd, initialTiers }: { productId: string; title: string; baseUsd?: number | null; initialTiers?: Tier[] }) {
   const router = useRouter();
-  const loaded = useRef(false);
-  const [tiers, setTiers] = useState<Tier[]>([]);
+  const loaded = useRef(initialTiers !== undefined);
+  const [tiers, setTiers] = useState<Tier[]>(initialTiers ?? []);
   const [edits, setEdits] = useState<Record<number, string>>({});
   const [minQty, setMinQty] = useState("1");
   const [price, setPrice] = useState("");
   const [busy, setBusy] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [message, setMessage] = useState("");
   useUnsavedGuard(Object.keys(edits).length > 0 || price.trim() !== "");
+  const baseTier = tiers[0];
+  const baseQuantity = baseTier?.minQty ?? 1;
+  const basePriceText = baseTier ? usdInputText(baseTier.unitPriceUsdMinor) : "";
+  const editedBase = edits[baseQuantity] ?? basePriceText;
+  const hasQuickEdit = initialTiers !== undefined;
 
   async function load() {
     const response = await fetch(`/api/admin/mayorista?productId=${encodeURIComponent(productId)}`, { cache: "no-store" });
@@ -49,8 +55,29 @@ export function AdminWholesalePrices({ productId, title, baseUsd }: { productId:
     void action({ action: "tier", minQty: quantity, unitPriceUsdMinor }, "Tramo guardado como borrador. Publicalo cuando revises todos los precios.");
   }
 
-  return <details className="mt-3 min-w-0 rounded-lg border border-ink/20 bg-paper/60 p-3" onToggle={(event) => { if (event.currentTarget.open) void open(); }} data-testid="mayorista-en-producto">
-    <summary className="min-h-8 cursor-pointer font-semibold text-sm">Precios mayoristas{baseUsd ? ` · base ${formatUSD(baseUsd)}` : " · configurar"}</summary>
+  return <>
+    {hasQuickEdit && <form className="mt-3 flex flex-wrap items-end gap-2" onSubmit={(event) => { event.preventDefault(); if (!busy && editedBase !== basePriceText) save(baseQuantity, editedBase); }}>
+      <label className="block min-w-0 max-w-44 text-sm font-semibold">
+        Precio base (USD)
+        <input aria-label={`Precio base mayorista: ${title}`} inputMode="decimal" autoComplete="off" className={`${field} mt-1`} placeholder="Sin precio" value={editedBase} disabled={busy} onChange={(event) => {
+          const value = event.target.value;
+          setEdits((current) => {
+            const next = { ...current };
+            if (value === basePriceText) delete next[baseQuantity];
+            else next[baseQuantity] = value;
+            return next;
+          });
+        }} />
+      </label>
+      <button type="submit" disabled={busy || editedBase === basePriceText} className="min-h-11 rounded-md bg-emerald px-3 text-sm font-semibold text-white disabled:opacity-50">Guardar precio base</button>
+      {baseTier && <p className="mb-3 text-xs text-ink/75">Desde {baseQuantity} {baseQuantity === 1 ? "unidad" : "unidades"}</p>}
+    </form>}
+    <details className="mt-3 min-w-0 rounded-lg border border-ink/20 bg-paper/60 p-3" onToggle={(event) => {
+      const expanded = event.currentTarget.open;
+      setDetailsOpen(expanded);
+      if (expanded) void open();
+    }} data-testid="mayorista-en-producto">
+    <summary className="min-h-8 cursor-pointer font-semibold text-sm">{hasQuickEdit ? "Editar tramos y publicar" : `Precios mayoristas${baseUsd ? ` · base ${formatUSD(baseUsd)}` : " · configurar"}`}</summary>
     <div className="mt-3 min-w-0" aria-label={`Precios mayoristas de ${title}`}>
       <p className="text-xs text-ink/75">Precio unitario en USD por cantidad. El primer tramo es el precio base. Guardar no cambia stock ni precio minorista; publicá los tramos para mostrarlos en mayoristas.</p>
       {tiers.map((tier) => <div key={tier.minQty} className="mt-3 grid min-w-0 gap-2 rounded-md border border-ink/15 bg-white p-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto_auto] sm:items-end">
@@ -69,5 +96,7 @@ export function AdminWholesalePrices({ productId, title, baseUsd }: { productId:
       {tiers.length > 0 && <div className="mt-3 flex flex-wrap gap-2"><button type="button" disabled={busy || Object.keys(edits).length > 0} onClick={() => void action({ action: tiers.some((tier) => tier.state === "borrador") ? "publish" : "unpublish" }, tiers.some((tier) => tier.state === "borrador") ? "Precios publicados en el catálogo mayorista." : "Precios pasados a borrador.")} className="min-h-11 rounded-md border border-emerald px-3 text-sm font-bold disabled:opacity-50">{tiers.some((tier) => tier.state === "borrador") ? "Publicar precios mayoristas" : "Pasar precios a borrador"}</button></div>}
       <p role="status" className="mt-2 text-sm">{busy ? "Procesando…" : message}</p>
     </div>
-  </details>;
+    </details>
+    {hasQuickEdit && !detailsOpen && (busy || message) && <p role="status" className="mt-2 text-sm">{busy ? "Procesando…" : message}</p>}
+  </>;
 }

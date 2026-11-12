@@ -52,6 +52,7 @@ export function WholesaleRequestForm({ userName }: { userName: string }) {
         return;
       }
       if (res.status === 401) return setFormError("Tu sesión venció. Ingresá de nuevo para enviar la solicitud.");
+      if (res.status === 403) return setFormError("Recargá la página de solicitud desde la tienda y volvé a intentar.");
       if (data?.error?.code === "invalid_input" && Array.isArray(data.error.details)) {
         const fe: Record<string, string> = {};
         for (const d of data.error.details as Array<{ path: string; message: string }>) fe[d.path] ??= d.message;
@@ -59,7 +60,7 @@ export function WholesaleRequestForm({ userName }: { userName: string }) {
       }
       setFormError(data?.error?.message ?? "No pudimos guardar tu solicitud. Intentá de nuevo.");
     } catch {
-      setFormError("No pudimos conectarnos. Tu solicitud no se guardó: revisá tu conexión e intentá de nuevo.");
+      setFormError("No pudimos confirmar la solicitud. Revisá el estado en Mi cuenta o intentá de nuevo. Si ya quedó guardada, no se duplica.");
     } finally {
       setBusy(false);
     }

@@ -20,10 +20,11 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
   const db = getDb();
   const { month, period } = currentAccountingMonth();
   const [attention, report] = await Promise.all([adminAttention(db), profitReport(db, period)]);
-  const { receipt, ready, purchase, failed } = attention;
+  const { receipt, ready, purchase, failed, wholesalePending } = attention;
   const monthLabel = new Intl.DateTimeFormat("es-AR", { month: "long", year: "numeric", timeZone: "UTC" })
     .format(new Date(`${month}-01T00:00:00Z`));
   const pending = [
+    { label: "Solicitudes mayoristas pendientes", n: wholesalePending, action: "Revisar solicitudes", href: "/admin/mayoristas#solicitudes" },
     { label: "Comprobantes por revisar", n: receipt?.n ?? 0, action: "Revisar comprobantes", href: receipt ? `/admin/pedidos/${receipt.id}#comprobantes` : "/admin/pedidos?pendiente=comprobantes" },
     { label: "Pedidos listos para entregar", n: ready?.n ?? 0, action: "Ver entrega", href: ready ? `/admin/pedidos/${ready.id}#entrega` : "/admin/pedidos?pendiente=retiro" },
     { label: "Compras por recibir", n: purchase?.n ?? 0, action: "Ver recepción", href: purchase ? `/admin/compras/${purchase.id}#recepcion` : "/admin/compras" },

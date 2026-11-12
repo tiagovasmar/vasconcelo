@@ -23,7 +23,7 @@ export default async function AdminReposicion() {
             <thead><tr className="bg-paper-2 text-left text-xs uppercase tracking-wide"><th className="p-2">Producto</th><th className="p-2 text-right">Esperando</th><th className="p-2 text-right">Stock actual</th><th className="p-2"></th></tr></thead>
             <tbody>
               {rows.map(({ p, n }) => (
-                <tr key={p.id} className="border-t border-ink/10" data-testid="reposicion-fila">
+                <tr key={p.id} id={p.id} className="scroll-mt-4 border-t border-ink/10" data-testid="reposicion-fila">
                   <td className="p-2">{p.title}<span className="block font-mono text-xs text-ink/75">{p.sku}</span></td>
                   <td className="p-2 text-right text-lg font-semibold tabular-nums" data-testid="reposicion-cantidad">{n}</td>
                   <td className="p-2 text-right">{p.stockQuantity === null ? "Pendiente" : p.stockQuantity}</td>

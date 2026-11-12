@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { formatARS } from "@/lib/format";
 import type { SaleView } from "@/features/sales/service";
+import { refreshAdminNotifications } from "./admin-notifications";
 
 const when = (ms: number) => new Intl.DateTimeFormat("es-AR", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Argentina/Buenos_Aires" }).format(new Date(ms));
 
@@ -24,6 +25,7 @@ export function AdminSalesList({ sales }: { sales: SaleView[] }) {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { setError(data?.error?.message ?? "No se pudo anular."); return; }
       setOpen(null); setReason("");
+      refreshAdminNotifications();
       router.refresh();
     } catch { setError("No hay conexión con el servidor. No se anuló nada."); } finally { setBusy(false); }
   }

@@ -1,9 +1,9 @@
 import { and, desc, eq, gt, isNull, ne, sql } from "drizzle-orm";
 import type { Db } from "@/db/client";
-import { costPurchaseItems, importAllocations, importParcels, notificationOutbox, orderTracks, paymentReceipts, shipments } from "@/db/schema";
+import { costPurchaseItems, importAllocations, importParcels, notificationOutbox, orderTracks, paymentReceipts, shipments, wholesaleRequests } from "@/db/schema";
 
 export async function adminAttention(db: Db) {
-  const [receipts, ready, purchases, notices] = await Promise.all([
+  const [receipts, ready, purchases, notices, wholesalePending] = await Promise.all([
     db.select({ id: paymentReceipts.inquiryId, n: sql<number>`(sum(count(*)) over ())::int` })
       .from(paymentReceipts).innerJoin(orderTracks, eq(orderTracks.inquiryId, paymentReceipts.inquiryId))
       .where(eq(paymentReceipts.status, "pendiente_revision")).groupBy(paymentReceipts.inquiryId)
@@ -20,6 +20,7 @@ export async function adminAttention(db: Db) {
       .orderBy(desc(sql`bool_or(${shipments.status} = 'recibido_argentina')`), costPurchaseItems.purchaseId).limit(1),
     db.select({ id: notificationOutbox.id, n: sql<number>`(count(*) over ())::int` }).from(notificationOutbox)
       .where(eq(notificationOutbox.status, "fallido")).orderBy(desc(notificationOutbox.createdAt), desc(notificationOutbox.id)).limit(1),
+    db.$count(wholesaleRequests, eq(wholesaleRequests.status, "pendiente")),
   ]);
-  return { receipt: receipts[0], ready: ready[0], purchase: purchases[0], failed: notices[0] };
+  return { receipt: receipts[0], ready: ready[0], purchase: purchases[0], failed: notices[0], wholesalePending };
 }
