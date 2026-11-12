@@ -3,6 +3,7 @@ import { z } from "zod";
 import { sales } from "@/db/schema";
 
 export type AccountingPeriod = { from?: string; to?: string };
+export type AccountingChannel = "todos" | "minorista" | "mayorista";
 
 export function currentAccountingMonth(now = new Date()) {
   const month = new Intl.DateTimeFormat("sv-SE", { timeZone: "America/Argentina/Buenos_Aires" }).format(now).slice(0, 7);

@@ -4,7 +4,9 @@ import { type Db } from "@/db/client";
 import { openTestDb } from "./helpers/pg";
 import { appliedCosts, costExpenseShares, costPurchaseItems, saleLines } from "@/db/schema";
 import { addCommission, allocateProportional, applyLineCost, averageCosts, confirmPurchase, createPurchase, itemBaseCostMinor, listPurchases, profitReport } from "@/features/costos/service";
-import { registerSale, SaleError } from "@/features/sales/service";
+import { linkSaleToInquiry, registerSale, SaleError } from "@/features/sales/service";
+import { createManualWholesaleOrder } from "@/features/pedidos/mayorista-manual";
+import { confirmPayment } from "@/features/pedidos/pagos";
 import { suggestedFromCost } from "@/features/mayorista/precios";
 import { listProductCosts, saveProductCost } from "@/features/costos/product-costs";
 import type { EffectiveRate } from "@/features/fx/convert";
@@ -102,6 +104,23 @@ describe("compras: borrador, confirmación y costo final por unidad", () => {
 describe("costo histórico por venta y ganancia", () => {
   const vender = (productId: string, qty: number, price: number, over: Record<string, unknown> = {}) =>
     registerSale(db, { items: [{ productId, quantity: qty, unitPriceMinor: price * 100 }], paymentMethod: "efectivo", idempotencyKey: key(), ...over }, actor, { fx: FX, now: T });
+
+  it("separa canales en el mes y cuenta una sola vez el mayorista vinculado a una venta", async () => {
+    const { sale: retail } = await vender("storm-sobre", 1, 5_000);
+    const order = { contactName: "Mayorista de prueba", rateMinor: 150_000, lines: [{ productId: "storm-caja", quantity: 1 }], note: null };
+    const { reference } = await createManualWholesaleOrder(db, { ...order, amountUsdMinor: 20_000, idempotencyKey: key() }, actor, T);
+    await createManualWholesaleOrder(db, { ...order, amountUsdMinor: null, idempotencyKey: key() }, actor, T);
+    const month = { from: "2026-11-01", to: "2026-11-30" };
+    expect((await profitReport(db, month, "mayorista")).rows).toMatchObject([{ ref: reference, revenueMinor: 30_000_000, collectedMinor: null }]);
+    await confirmPayment(db, reference, { kind: "sena", method: "transferencia", amountMinor: 6_000_000, paidAt: T, idempotencyKey: key() }, actor, T);
+    expect((await profitReport(db, month, "mayorista")).totals).toMatchObject({ billedMinor: 30_000_000, collectedMinor: 6_000_000, outstandingMinor: 24_000_000 });
+    const { sale: linked } = await vender("storm-caja", 1, 300_000);
+    await linkSaleToInquiry(db, linked.id, reference, actor, T);
+    expect((await profitReport(db, month, "mayorista")).rows).toMatchObject([{ ref: linked.id, wholesale: { reference }, collectedMinor: 6_000_000 }]);
+    expect((await profitReport(db, month, "minorista")).rows).toMatchObject([{ ref: retail.id }]);
+    expect((await profitReport(db, month)).totals.billedMinor).toBe(30_500_000);
+    expect((await profitReport(db, { from: "2026-12-01", to: "2026-12-31" }, "mayorista")).rows).toEqual([]);
+  });
 
   it("usa la referencia en USD como respaldo, congela el importe y mantiene prioridad para las compras confirmadas", async () => {
     const input = { productId: "storm-sobre", currency: "USD", amountMinor: 321, expectedVersion: 0 };

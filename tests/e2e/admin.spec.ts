@@ -236,9 +236,11 @@ test.describe("el dueño administra precios, stock, fotos y cotización", () => 
     await expect(owner.getByTestId("guardar-todo")).toContainText("1 cambio");
     let dialogo = "";
     owner.once("dialog", (d) => { dialogo = d.message(); void d.dismiss(); });
-    await owner.getByRole("link", { name: "Cotización", exact: true }).click();
+    const configuration = owner.getByRole("navigation", { name: "Panel del dueño" }).getByRole("link", { name: "Configuración", exact: true });
+    await expect(configuration).toHaveAttribute("href", "/admin/cotizacion");
+    await configuration.click();
     expect(dialogo).toContain("cambios sin guardar");
-    await expect(owner).toHaveURL(/\/admin\?q=storm-sobre/);
+    await expect(owner).toHaveURL(/\/admin\/productos\?q=storm-sobre$/);
     // validaciones
     await rapido(owner, "storm-sobre", { usd: "abc" });
     await expect(r.getByTestId("mensaje")).toContainText("Precio en dólares no válido");
@@ -622,7 +624,7 @@ test.describe("el dueño administra precios, stock, fotos y cotización", () => 
     await go(owner, "/admin?estado=low");
     await expect(row(owner, "storm-caja").getByTestId("stock-bajo")).toBeVisible();
     for (const r of await owner.getByTestId("admin-lista").locator("li").all()) expect(Number(await r.getByTestId("input-stock").inputValue())).toBeLessThanOrEqual(4);
-    await expect(owner.getByRole("link", { name: /Stock bajo \(\d+\)/ })).toHaveAttribute("aria-current", "page");
+    await expect(owner.getByRole("link", { name: /^Stock bajo/ }).filter({ has: owner.getByTestId("cuenta-low") })).toHaveAttribute("aria-current", "page");
     await expect(owner.getByTestId("cuenta-low")).not.toHaveText("0");
     // la tienda pública no muestra nada de esto
     const visitor = await owner.context().browser()!.newContext({ baseURL: ADMIN });

@@ -6,7 +6,7 @@ import { listProductCosts } from "@/features/costos/product-costs";
 import { formatUSD } from "@/features/fx/convert";
 import proposal from "@/content/real/propuesta-mayorista.json";
 import { AdminForm } from "@/components/admin-form";
-import { currentAccountingMonth, parseAccountingPeriod } from "@/features/contabilidad/period";
+import { currentAccountingMonth, parseAccountingPeriod, type AccountingChannel } from "@/features/contabilidad/period";
 import { accountingOverview } from "@/features/contabilidad/service";
 import { formatARS } from "@/lib/format";
 import { AdminSaleForm, type SaleProduct } from "@/components/admin-sale-form";
@@ -21,10 +21,17 @@ import { requireAdmin } from "@/server/admin";
 
 export const dynamic = "force-dynamic";
 
-export default async function Ventas({ searchParams }: { searchParams: Promise<{ mes?: string | string[]; desde?: string | string[]; hasta?: string | string[] }> }) {
+const channels: { value: AccountingChannel; label: string }[] = [
+  { value: "todos", label: "Todos" },
+  { value: "minorista", label: "Minorista" },
+  { value: "mayorista", label: "Mayorista" },
+];
+
+export default async function Ventas({ searchParams }: { searchParams: Promise<{ mes?: string | string[]; desde?: string | string[]; hasta?: string | string[]; canal?: string | string[] }> }) {
   await requireAdmin("/admin/ventas");
   const db = getDb();
-  const { mes, desde, hasta } = await searchParams;
+  const { mes, desde, hasta, canal } = await searchParams;
+  const channel = channels.find(({ value }) => value === canal)?.value ?? "todos";
   const { month: currentMonth } = currentAccountingMonth();
   const selectedMonth = mes ?? (desde || hasta ? undefined : currentMonth);
   const monthStart = typeof selectedMonth === "string" ? `${selectedMonth}-01` : undefined;
@@ -47,10 +54,13 @@ export default async function Ventas({ searchParams }: { searchParams: Promise<{
   if (typeof selectedMonth === "string" && monthEnd && !months.includes(selectedMonth)) months.push(selectedMonth);
   const filtered = Boolean(period.from || period.to);
   const ids = catalog.products.map((product) => product.id);
-  const [fx, low, sales, overview, costs, report, manualCosts] = await Promise.all([currentRate(db), getLowStock(db), listSales(db, 30, period), accountingOverview(db, period), averageCosts(db, ids), profitReport(db, period), listProductCosts(db, ids)]);
+  const [fx, low, sales, overview, costs, report, manualCosts] = await Promise.all([currentRate(db), getLowStock(db), listSales(db, 30, period), accountingOverview(db, period), averageCosts(db, ids), profitReport(db, period, channel), listProductCosts(db, ids)]);
   const billing = new Map<string, number>();
   for (const row of report.rows) billing.set(row.day, (billing.get(row.day) ?? 0) + row.revenueMinor);
   const reportQuery = new URLSearchParams({ ...(period.from ? { desde: period.from } : {}), ...(period.to ? { hasta: period.to } : {}), ...(!filtered ? { todo: "1" } : {}) });
+  const periodQuery = !filtered ? new URLSearchParams({ mes: "todo" })
+    : typeof selectedMonth === "string" ? new URLSearchParams({ mes: selectedMonth }) : reportQuery;
+  const channelQuery = channel === "todos" ? "" : `&canal=${channel}`;
   const products: SaleProduct[] = (await adminProducts(db, catalog.products, fx))
     .filter((a) => !catalog.products.find((x) => x.id === a.product.id)?.retired)
     .map((a) => ({ id: a.product.id, sku: a.product.sku, title: a.product.title, language: a.product.language, stock: a.product.stockQuantity, priceMinor: a.product.priceMinor, low: isLowStock(a.product.stockQuantity, Boolean(a.product.orderOnly), low.threshold), orderOnly: Boolean(a.product.orderOnly), packSize: a.product.packSize ?? null }));
@@ -69,6 +79,7 @@ export default async function Ventas({ searchParams }: { searchParams: Promise<{
       </nav>
       <div className="mt-6 flex flex-wrap items-end gap-x-6 gap-y-4">
         <form action="/admin/ventas" className="flex flex-wrap items-end gap-3" aria-label="Filtrar contabilidad por mes">
+          {channel !== "todos" && <input type="hidden" name="canal" value={channel} />}
           <label className="grid gap-1 text-sm font-semibold">Mes
             <select name="mes" key={months.includes(String(selectedMonth)) ? String(selectedMonth) : currentMonth} defaultValue={months.includes(String(selectedMonth)) ? String(selectedMonth) : currentMonth} className="min-h-11 rounded-md border border-ink/40 bg-white px-3">
               {months.map((month) => <option key={month} value={month}>{monthLabel.format(new Date(`${month}-01T00:00:00Z`))}</option>)}
@@ -77,6 +88,7 @@ export default async function Ventas({ searchParams }: { searchParams: Promise<{
           <button type="submit" className="min-h-11 rounded-lg bg-ink px-5 text-sm font-semibold text-paper">Ver mes</button>
         </form>
         <form action="/admin/ventas" key={`${period.from ?? ""}/${period.to ?? ""}`} className="flex flex-wrap items-end gap-3" aria-label="Filtrar contabilidad por fecha">
+          {channel !== "todos" && <input type="hidden" name="canal" value={channel} />}
           <label className="grid gap-1 text-sm font-semibold">Desde
             <input type="date" name="desde" defaultValue={period.from ?? ""} className="min-h-11 rounded-md border border-ink/40 bg-white px-3" />
           </label>
@@ -85,13 +97,22 @@ export default async function Ventas({ searchParams }: { searchParams: Promise<{
           </label>
           <button type="submit" className="min-h-11 rounded-lg bg-ink px-5 text-sm font-semibold text-paper">Ver período</button>
         </form>
-        {(filtered || error) && <Link href="/admin/ventas?mes=todo" className="inline-flex min-h-11 items-center px-2 text-sm underline">Ver todo</Link>}
+        {(filtered || error) && <Link href={`/admin/ventas?mes=todo${channelQuery}`} className="inline-flex min-h-11 items-center px-2 text-sm underline">Ver todo</Link>}
       </div>
       {error && <p role="alert" className="mt-2 text-sm text-vermilion">{error} Se muestra el historial completo.</p>}
       <h2 className="mt-6 text-lg font-semibold">{filtered ? "Resumen del período" : "Resumen histórico"}</h2>
+      <nav aria-label="Canal de facturación" className="mt-2 flex flex-wrap gap-2">
+        {channels.map(({ value, label }) => {
+          const query = new URLSearchParams(periodQuery);
+          if (value !== "todos") query.set("canal", value);
+          return <Link key={value} href={`/admin/ventas?${query}`} prefetch={false} aria-current={channel === value ? "page" : undefined}
+            className={`inline-flex min-h-11 items-center rounded-md border px-4 text-sm font-semibold ${channel === value ? "border-emerald bg-emerald text-paper" : "border-ink/30 bg-white hover:border-emerald"}`}>{label}</Link>;
+        })}
+      </nav>
       <section className="mt-3 rounded-lg border border-ink/15 bg-white p-4">
         <AdminAccountingSummary report={report} />
-        <p className="mt-3 text-sm">Gastos registrados: <b>{formatARS(overview.spent)}</b> · <Link href={`/admin/costos?${reportQuery}`} className="font-semibold underline">Ver ganancia y comisiones del período</Link></p>
+        <p className="mt-3 text-xs text-ink/75">Los pedidos mayoristas se suman al guardar el total acordado. La seña y el saldo se muestran en «Cobrado» cuando confirmás los pagos.</p>
+        <p className="mt-2 text-sm">Gastos generales registrados: <b>{formatARS(overview.spent)}</b> · <Link href={`/admin/costos?${reportQuery}`} className="font-semibold underline">Ver ganancia y comisiones de todos los canales</Link></p>
       </section>
       {overview.pending > 0 && <p className="mt-2 text-sm text-ink/75">{overview.pending} ventas con tarjeta tienen el importe recibido pendiente.</p>}
 
@@ -100,6 +121,26 @@ export default async function Ventas({ searchParams }: { searchParams: Promise<{
         <AccountingChart title="Visitas por día" rows={overview.visits} from={period.from} to={period.to} empty="Todavía no hay visitas medidas en estas fechas." />
       </div>
       <p className="mt-2 text-xs text-ink/70">Visitas estimadas: se cuenta una vez por navegador por día, desde que se habilita la medición.</p>
+      {channel === "mayorista" && (
+        <section className="mt-6 rounded-lg border border-ink/15 bg-white p-4" aria-labelledby="facturacion-mayorista">
+          <h2 id="facturacion-mayorista" className="font-semibold">Pedidos mayoristas del período</h2>
+          {report.rows.length === 0 ? <p className="mt-2 text-sm text-ink/75">No hay pedidos mayoristas con importe acordado en estas fechas.</p> : (
+            <ul className="mt-2 divide-y divide-ink/10">
+              {report.rows.map((row) => (
+                <li key={row.ref} className="flex flex-wrap justify-between gap-x-4 gap-y-1 py-2 text-sm">
+                  <div className="min-w-0 break-words">
+                    <Link href={row.wholesale ? `/admin/pedidos/${row.wholesale.reference}` : `/admin/ventas/${row.ref}`} className="font-semibold underline">
+                      {row.wholesale?.reference ?? row.ref}
+                    </Link>
+                    <p className="text-ink/75">{row.label} · {row.day.split("-").reverse().join("/")}</p>
+                  </div>
+                  <p className="text-ink/75"><b className="text-ink">{formatARS(row.revenueMinor)}</b> · Cobrado {formatARS(row.collectedMinor ?? 0)}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
       <details className="mt-6 rounded-lg border border-ink/15 bg-white p-4">
         <summary className="cursor-pointer font-semibold">Costo por producto</summary>
         <p className="mt-2 text-sm text-ink/70">Se muestra el promedio de compras confirmadas, el costo de referencia cargado en el panel o la estimación de proveedor y logística, en ese orden.</p>

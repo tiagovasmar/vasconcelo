@@ -547,6 +547,17 @@ test("mayorista: solicitud, tramos, pedido, seña y envío internacional", async
   await expect(pago.getByRole("status")).toHaveText("Ingreso confirmado.");
   await expect(ownerPage.getByTestId("mayorista-pagado")).toContainText("120.000");
   await expect(ownerPage.getByTestId("mayorista-saldo")).toContainText("480.000");
+  await go(ownerPage, "/admin/ventas");
+  const canales = ownerPage.getByRole("navigation", { name: "Canal de facturación" });
+  await canales.getByRole("link", { name: "Mayorista", exact: true }).click();
+  await expect(canales.getByRole("link", { name: "Mayorista", exact: true })).toHaveAttribute("aria-current", "page");
+  const facturacion = ownerPage.getByRole("region", { name: "Pedidos mayoristas del período" });
+  const pedido = facturacion.getByRole("listitem").filter({ hasText: ref });
+  await expect(pedido).toContainText("600.000");
+  await expect(pedido).toContainText("120.000");
+  await canales.getByRole("link", { name: "Minorista", exact: true }).click();
+  await expect(canales.getByRole("link", { name: "Minorista", exact: true })).toHaveAttribute("aria-current", "page");
+  await expect(facturacion).toHaveCount(0);
   const purchased = await admin(ref, { action: "stage", stage: "comprado_proveedor", occurredAt: Date.now() });
   expect(purchased.ok(), await purchased.text()).toBe(true);
 
