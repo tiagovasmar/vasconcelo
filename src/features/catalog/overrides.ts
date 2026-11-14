@@ -140,7 +140,8 @@ export type AdminProduct = {
 
 /** Todos los productos del catálogo base con sus valores vigentes, incluidos los ocultos. */
 export async function adminProducts(db: Db, base: Product[], fx: EffectiveRate | null): Promise<AdminProduct[]> {
-  const [rows, galleries] = await Promise.all([loadOverrides(db), loadGalleries(db)]);
+  const rows = await loadOverrides(db);
+  const galleries = await loadGalleries(db);
   return base.map((p) => {
     const o = rows.get(p.id);
     const g = galleries.get(p.id);

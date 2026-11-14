@@ -30,7 +30,8 @@ export default async function Admin({ searchParams }: { searchParams: Promise<Re
   const coleccion = typeof sp.coleccion === "string" ? sp.coleccion.slice(0, 80) : "";
 
   const db = getDb();
-  const [fx, low] = await Promise.all([currentRate(db), getLowStock(db)]);
+  const fx = await currentRate(db);
+  const low = await getLowStock(db);
   const expOf = (ids: string[]) => ids.map((id) => catalog.expansions.find((e) => e.id === id)).filter((e) => e !== undefined);
   const all = (await adminProducts(db, catalog.products, fx)).map((a): AdminRow & { search: string; lang: string; game: CatalogGame; kindId: string; expIds: string[] } => {
     const p = a.product;
