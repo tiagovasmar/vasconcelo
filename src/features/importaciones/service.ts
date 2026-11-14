@@ -396,29 +396,32 @@ export async function payPurchase(db: Db, body: unknown, actor: Actor) {
 
 export async function purchaseRelations(db: Db, purchaseId: string, itemIds: number[]) {
   const allocations = await db.select().from(importAllocations).where(inArray(importAllocations.itemId, itemIds)).orderBy(importAllocations.id);
-  const [parcels, documents, payments, availablePayments] = await Promise.all([
-    db.select({ parcel: importParcels, shipment: shipments }).from(importParcels)
-      .innerJoin(shipments, eq(importParcels.shipmentId, shipments.id))
-      .where(inArray(importParcels.allocationId, allocations.map((a) => a.id))),
-    db.select().from(importDocuments).where(eq(importDocuments.purchaseId, purchaseId)),
-    db.select({ expense: accountingExpenses }).from(importDisbursements).innerJoin(accountingExpenses, eq(importDisbursements.expenseId, accountingExpenses.id)).where(eq(importDisbursements.purchaseId, purchaseId)),
-    db.select().from(accountingExpenses).leftJoin(importDisbursements, eq(accountingExpenses.id, importDisbursements.expenseId)).where(isNull(importDisbursements.expenseId)).orderBy(sql`${accountingExpenses.spentAt} desc`).limit(100),
-  ]);
+  const parcels = await db.select({ parcel: importParcels, shipment: shipments }).from(importParcels)
+    .innerJoin(shipments, eq(importParcels.shipmentId, shipments.id))
+    .where(inArray(importParcels.allocationId, allocations.map((a) => a.id)));
+  const documents = await db.select().from(importDocuments).where(eq(importDocuments.purchaseId, purchaseId));
+  const payments = await db.select({ expense: accountingExpenses }).from(importDisbursements)
+    .innerJoin(accountingExpenses, eq(importDisbursements.expenseId, accountingExpenses.id)).where(eq(importDisbursements.purchaseId, purchaseId));
+  const availablePayments = await db.select().from(accountingExpenses)
+    .leftJoin(importDisbursements, eq(accountingExpenses.id, importDisbursements.expenseId))
+    .where(isNull(importDisbursements.expenseId)).orderBy(sql`${accountingExpenses.spentAt} desc`).limit(100);
   const history = await db.select().from(importReceipts).where(inArray(importReceipts.parcelId, parcels.map(({ parcel }) => parcel.id))).orderBy(sql`${importReceipts.createdAt} desc`);
   const reservations = await db.select({ r: importReservations, track: orderTracks }).from(importReservations)
     .innerJoin(orderTracks, eq(importReservations.inquiryId, orderTracks.inquiryId)).where(inArray(importReservations.sourceParcelId, parcels.map(({ parcel }) => parcel.id)));
-  const holds = await Promise.all(reservations.map(async ({ r, track }) => ({ ...r, track, state: await holdState(db, r.inquiryId), totals: await paymentTotals(db, r.inquiryId) })));
+  const holds = [];
+  for (const { r, track } of reservations) {
+    holds.push({ ...r, track, state: await holdState(db, r.inquiryId), totals: await paymentTotals(db, r.inquiryId) });
+  }
   return { allocations, parcels, documents, payments, holds, availablePayments: availablePayments.map((p) => p.accounting_expenses), history };
 }
 
 export async function linkableLines(db: Db, productIds: string[]) {
-  const [orders, sold] = await Promise.all([
-    db.select({ id: inquiryLines.id, productId: inquiryLines.productId, ref: inquiryLines.inquiryId, quantity: inquiryLines.quantity, name: inquiries.contactName, fulfillment: inquiryLines.fulfillment })
-      .from(inquiryLines).innerJoin(orderTracks, eq(inquiryLines.inquiryId, orderTracks.inquiryId)).innerJoin(inquiries, eq(inquiryLines.inquiryId, inquiries.id))
-      .where(and(inArray(inquiryLines.productId, productIds), isNull(orderTracks.cancelledAt))),
-    db.select({ id: saleLines.id, productId: saleLines.productId, ref: saleLines.saleId, quantity: saleLines.quantity }).from(saleLines).innerJoin(sales, eq(saleLines.saleId, sales.id))
-      .where(and(inArray(saleLines.productId, productIds), eq(sales.status, "registrada"))),
-  ]);
+  const orders = await db.select({ id: inquiryLines.id, productId: inquiryLines.productId, ref: inquiryLines.inquiryId, quantity: inquiryLines.quantity, name: inquiries.contactName, fulfillment: inquiryLines.fulfillment })
+    .from(inquiryLines).innerJoin(orderTracks, eq(inquiryLines.inquiryId, orderTracks.inquiryId)).innerJoin(inquiries, eq(inquiryLines.inquiryId, inquiries.id))
+    .where(and(inArray(inquiryLines.productId, productIds), isNull(orderTracks.cancelledAt)));
+  const sold = await db.select({ id: saleLines.id, productId: saleLines.productId, ref: saleLines.saleId, quantity: saleLines.quantity })
+    .from(saleLines).innerJoin(sales, eq(saleLines.saleId, sales.id))
+    .where(and(inArray(saleLines.productId, productIds), eq(sales.status, "registrada")));
   return { orders, sold };
 }
 

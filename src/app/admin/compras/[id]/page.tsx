@@ -34,11 +34,10 @@ export default async function PurchaseDetail({ params }: { params: Promise<{ id:
   if (!p) notFound();
   const products = purchaseProducts();
   const title = (id: string) => products.find((p) => p.value === id)?.label ?? id;
-  const [{ allocations, parcels, documents, payments, availablePayments, holds, history }, lines, shipments] = await Promise.all([
-    purchaseRelations(db, p.id, p.items.map((i) => i.id)),
-    linkableLines(db, p.items.map((i) => i.productId)),
-    listShipments(db),
-  ]);
+  const { allocations, parcels, documents, payments, availablePayments, holds, history } =
+    await purchaseRelations(db, p.id, p.items.map((i) => i.id));
+  const lines = await linkableLines(db, p.items.map((i) => i.productId));
+  const shipments = await listShipments(db);
   const holdHours = preorderHours();
   const draft = p.status === "borrador";
   const base = p.items.map((i) => itemBaseCostMinor(p, i.unitPriceOriginalMinor, i.quantity));
