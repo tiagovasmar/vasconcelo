@@ -25,7 +25,11 @@ export default async function PurchasesPage({ searchParams }: { searchParams: Pr
   const awaitingReceipt = get("recepcion") === "pendiente";
   const labels = new Map(purchaseProducts().map((p) => [p.value, p.label]));
   const db = getDb();
-  const [records, progress, suppliers] = await Promise.all([listPurchases(db), importProgress(db), listTaobaoSuppliers(db)]);
+  // El pool de producción usa una conexión por instancia. Leé en orden para evitar
+  // que las consultas de esta página se encolen juntas y se cancelen por tiempo.
+  const records = await listPurchases(db);
+  const progress = await importProgress(db);
+  const suppliers = await listTaobaoSuppliers(db);
   const supplierNames = [...new Set(suppliers.filter((supplier) => !supplier.archived).map((supplier) => supplier.name))];
   const stages: Record<string, string> = { registrada: "Compra registrada", comprada: "Comprada al proveedor", ...SHIPMENT_LABEL, finalizada: "Recepción revisada y finalizada" };
   const purchases = records.map((p) => {
