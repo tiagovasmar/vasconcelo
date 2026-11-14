@@ -54,19 +54,16 @@ describe("seis cajas japonesas nuevas (14/10/2026)", () => {
     expect(exps).toHaveLength(6);
     for (const e of exps) {
       expect(e).toMatchObject({ language: "ja", region: "JP" });
-      if (e.id === "glory-of-team-rocket") expect(e).toMatchObject({ cardListStatus: "unavailable", cards: [] });
-      else {
-        expect(e.cards.length, e.id).toBeGreaterThan(0);
-        expect(e.cardListStatus).not.toBe("unavailable");
-      }
+      expect(e.cards.length, e.id).toBeGreaterThan(0);
+      expect(e.cardListStatus).not.toBe("unavailable");
       expect(base.filter((p) => p.expansionIds.includes(e.id)).map((p) => p.kind), e.id).toEqual(["box"]); // ni sobre individual ni sobres de 20 cartas
     }
     expect(base.filter((p) => p.kind === "booster" && p.language === "ja")).toHaveLength(8);
     expect(validateCatalog(realCatalog, (src) => fs.existsSync(path.join(process.cwd(), "public", src))).filter((i) => i.level === "error")).toEqual([]);
   });
 
-  it("las cinco galerías usan la edición japonesa correcta y todas sus imágenes existen", async () => {
-    const codes: Record<string, string> = { "terastal-festival-ex": "SV8a", "ninja-spinner": "M4", "nihil-zero": "M3", "mega-symphonia": "M1S", "pokemon-card-151": "SV2a" };
+  it("las seis galerías usan la edición japonesa correcta y todas sus imágenes existen", async () => {
+    const codes: Record<string, string> = { "terastal-festival-ex": "SV8a", "ninja-spinner": "M4", "nihil-zero": "M3", "glory-of-team-rocket": "SV10", "mega-symphonia": "M1S", "pokemon-card-151": "SV2a" };
     for (const [id, code] of Object.entries(codes)) {
       const json = JSON.parse(fs.readFileSync(`src/content/colecciones/cartas/${id}.json`, "utf8"));
       const e = realCatalog.expansions.find((x) => x.id === id)!;

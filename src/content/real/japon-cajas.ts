@@ -34,7 +34,7 @@ function galeria(c: Entrada): Pick<Expansion, "cards" | "cardListStatus" | "card
  * Pokémon Card 151). Se arman desde `origen/japon-cajas.json` (lo verificado, con su fuente) y `imagenes-japon-cajas.json` (fotos oficiales del sobre
  * optimizadas por `scripts/colecciones/importar-japon-cajas.mjs`).
  *
- * Reglas: una colección y una ficha de CAJA por entrada (sin sobres individuales); cinco listas importadas del buscador oficial japonés;
+ * Reglas: una colección y una ficha de CAJA por entrada (sin sobres individuales); seis listas importadas del buscador oficial japonés;
  * sin tasas ni rarezas garantizadas (solo lo que dice el envase del sobre, con su fuente); precio en USD y stock los carga el dueño en /admin
  * (el precio de lista de este lote entra por `npm run precios:cargar`) y el stock queda desconocido hasta que aporte una cantidad propia.
  * Cinco fichas tienen fotos oficiales de caja cerrada y exhibición abierta de Pokémon Center. 151 sigue usando el sobre.
