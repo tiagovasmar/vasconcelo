@@ -9,7 +9,7 @@ import * as schema from "./schema";
  * Conexión a PostgreSQL (Supabase). Todo el acceso a datos es ASÍNCRONO.
  *
  * Funciones serverless (Netlify): cada instancia abre pocas conexiones y las suelta enseguida. Por eso:
- *  - `DATABASE_URL` de este proyecto es la cadena del pooler de Supabase en modo SESIÓN (puerto 5432); NO se usa el modo transacción (6543). No se cambió;
+ *  - El tráfico de la aplicación usa el modo transacción del pooler compartido de Supabase (6543), para que las instancias no retengan una sesión de PostgreSQL entre pedidos.
  *  - `prepare: false` se conserva: es compatible con los dos modos del pooler y evita depender de sentencias preparadas en una conexión compartida;
  *  - `max` = 1 por defecto (`DATABASE_POOL_MAX`; es lo que recomienda Supabase en serverless) para no agotar los límites de conexiones entre muchas instancias. Por eso, dentro de una transacción SIEMPRE se usa `tx`, nunca `db` (con una sola conexión se bloquearía).
  *  - Plazos y recuperación ante una base caída o muda: ver `resilient.ts` (conexión 8 s, consulta 10 s, sin reintentos).
@@ -71,6 +71,13 @@ export async function runMigrations(url: string): Promise<void> {
 export const databaseUrl = (): string => {
   const url = process.env.DATABASE_URL?.trim();
   if (!url) throw new Error("Falta DATABASE_URL (cadena de conexión de PostgreSQL / pooler de Supabase). Ver docs/DESPLIEGUE-NETLIFY-SUPABASE.md.");
+  // Las instalaciones existentes pueden tener la URL del pooler de sesión en la configuración.
+  // Solo cambiamos el puerto del pooler compartido de Supabase, conservando el destino y credenciales.
+  const pooler = new URL(url);
+  if (/\.pooler\.supabase\.com$/i.test(pooler.hostname) && (!pooler.port || pooler.port === "5432")) {
+    pooler.port = "6543";
+    return pooler.href;
+  }
   return url;
 };
 
