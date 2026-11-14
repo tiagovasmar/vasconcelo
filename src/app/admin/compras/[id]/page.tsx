@@ -10,6 +10,7 @@ import { expenseShares, itemBaseCostMinor, listPurchases } from "@/features/cost
 import { linkableLines, purchaseRelations } from "@/features/importaciones/service";
 import { listShipments } from "@/features/pedidos/envios";
 import { SHIPMENT_LABEL, type ShipmentStatus } from "@/features/pedidos/etapas";
+import { formatUSD } from "@/features/fx/convert";
 import { formatARS } from "@/lib/format";
 import { requireAdmin } from "@/server/admin";
 import { purchaseProducts } from "../products";
@@ -21,7 +22,7 @@ const date = (ms: number) => new Intl.DateTimeFormat("sv-SE", { timeZone: "Ameri
 const money = (minor: number | null) => minor === null ? "Pendiente" : formatARS(minor);
 const amount = (minor: number | null) => minor === null ? "" : String(minor / 100).replace(".", ",");
 const names = { reventa: "Reventa libre", encargo: "Encargo", vendido: "Ya vendido", personal: "Uso personal" };
-const expenseName = (kind: string) => ({ envio: "Envío", impuestos: "Aduana", otros: "Otros" })[kind] ?? kind;
+const expenseName = (kind: string) => ({ envio: "Envío", impuestos: "Aduana", otros: "Otros", comisiones_compra: "Comisiones de compra" })[kind] ?? kind;
 const allocationName = (kind: string) => ({ unidades: "Por unidades", valor: "Por valor", manual: "Manual" })[kind] ?? kind;
 const options = (values: Record<string, string>) => Object.entries(values).map(([value, label]) => ({ value, label }));
 
@@ -43,7 +44,8 @@ export default async function PurchaseDetail({ params }: { params: Promise<{ id:
   const base = p.items.map((i) => itemBaseCostMinor(p, i.unitPriceOriginalMinor, i.quantity));
   const merchandise = base.reduce((n, x) => n + x, 0);
   const shares = p.expenses.map((e) => e.shares.length ? p.items.map((i) => e.shares.find((s) => s.itemId === i.id)?.shareMinor ?? 0) : expenseShares(p.items, base, e));
-  const total = merchandise + p.expenses.reduce((n, e) => n + (e.amountMinor ?? 0), 0);
+  const total = draft ? merchandise + p.expenses.reduce((n, e) => n + (e.amountMinor ?? 0), 0)
+    : p.items.reduce((n, item) => n + (item.totalCostMinor ?? 0), 0);
   const totalUnits = p.items.reduce((n, i) => n + i.quantity, 0);
   const units = (destination?: string) => allocations.filter((a) => !destination || a.destination === destination).reduce((n, a) => n + a.quantity, 0);
   const accepted = parcels.reduce((n, { parcel }) => n + parcel.accepted, 0);
@@ -64,12 +66,13 @@ export default async function PurchaseDetail({ params }: { params: Promise<{ id:
         <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {[
             ["Mercadería", money(merchandise)],
-            ...["envio", "impuestos", "otros"].map((k) => {
+            ...["envio", "impuestos", "otros", ...(p.paidUsdMinor !== null ? ["comisiones_compra"] : [])].map((k) => {
               const rows = p.expenses.filter((e) => e.kind === k);
               const known = rows.filter((e) => e.amountMinor !== null);
-              return [expenseName(k), known.length ? money(known.reduce((n, e) => n + e.amountMinor!, 0)) + (rows.some((e) => e.certainty !== "definitivo") ? " · parcial/estimado" : "") : k === "otros" && !rows.length ? "Sin registrar" : "Pendiente"];
+              return [expenseName(k), known.length ? money(known.reduce((n, e) => n + e.amountMinor!, 0)) + (rows.some((e) => e.certainty !== "definitivo") ? " · parcial/estimado" : "") : k === "comisiones_compra" ? money(0) : k === "otros" && !rows.length ? "Sin registrar" : "Pendiente"];
             }),
             [draft ? "Total conocido · provisional" : "Total definitivo", money(total)], ["Egresos vinculados", money(paid)],
+            ...(p.paidUsdMinor !== null ? [["Pagado al agente o plataforma", formatUSD(p.paidUsdMinor)]] : []),
             ["Reventa / comprometidas", `${units("reventa")} / ${units("encargo") + units("vendido")}`], ["Aceptadas / compradas", `${accepted} / ${totalUnits}`],
           ].map(([label, value]) => <div key={label} className="min-w-0 rounded-lg bg-paper-2 p-2.5">
             <dt className="text-xs text-ink/75">{label}</dt><dd className="break-words text-sm font-semibold">{value}</dd>
@@ -79,12 +82,13 @@ export default async function PurchaseDetail({ params }: { params: Promise<{ id:
       </section>
 
       {draft && <details className={section}>
-        <summary className="cursor-pointer text-lg font-semibold">{p.managedImport ? "Editar compra y gastos" : "Continuar borrador de Costos como importación"}</summary>
+        <summary className="cursor-pointer text-lg font-semibold">{p.managedImport ? "Editar compra y quitar productos" : "Continuar borrador de Costos como importación"}</summary>
         <PurchaseForm managed draft={p} products={products} />
       </details>}
 
       <section className={section}>
         <h2 className="text-lg font-semibold">Costos y reparto</h2>
+        {parcels.some(({ shipment }) => shipment.freightMinor !== null || shipment.customsMinor !== null) && <p className="text-sm text-ink/75">Los importes de envío y aduana del despacho se reparten por unidad al cerrar los costos. <Link href="/admin/envios" className="underline">Ver Despachos</Link></p>}
         {p.expenses.map((e, k) => <details className={tile} key={e.id}>
           <summary className="cursor-pointer text-sm font-semibold">{expenseName(e.kind)}{e.description && ` · ${e.description}`} · {money(e.amountMinor)} · {e.certainty} · {allocationName(e.allocation)}</summary>
           {e.amountMinor !== null && <ul className="space-y-1 text-sm">{p.items.map((i, j) => <li key={i.id}>{title(i.productId)} · {money(shares[k][j])}</li>)}</ul>}
@@ -162,7 +166,7 @@ export default async function PurchaseDetail({ params }: { params: Promise<{ id:
           return <article className={tile} key={parcel.id} id={`recepcion-${parcel.id}`}>
             <h3 className="font-semibold"><Link href={`/admin/envios#${shipment.id}`} className="underline">{shipment.label}</Link> · {title(item.productId)}</h3>
             <p className="text-sm">{names[a.destination as keyof typeof names]} · {parcel.quantity} u. · {SHIPMENT_LABEL[shipment.status as ShipmentStatus]}</p>
-            <p className="break-words text-sm">{[[shipment.sentAt, "Salida"], [shipment.originReceivedAt, "Depósito de origen"], [shipment.transitAt, "Tránsito"], [shipment.arrivedAt, "Argentina"]].map(([d, label]) => d ? `${label} ${date(Number(d))}` : "").filter(Boolean).join(" · ")}</p>
+            <p className="break-words text-sm">{[[shipment.sentAt, "Salida del proveedor"], [shipment.originReceivedAt, "Depósito de origen"], [shipment.transitAt, "Despacho internacional"], [shipment.customsPaidAt, "Pago de impuestos"], [shipment.arrivedAt, "Argentina"]].map(([d, label]) => d ? `${label} ${date(Number(d))}` : "").filter(Boolean).join(" · ")}</p>
             {(shipment.carrier || shipment.trackingNumber) && <p className="break-words text-sm">{shipment.carrier} {shipment.trackingNumber}</p>}
             {shipment.internalNote && <p className="break-words text-sm">{shipment.internalNote}</p>}
             <p className="text-sm">{parcel.accepted} buenas · {parcel.missing} faltantes · {parcel.damaged} dañadas · {pending} pendientes</p>

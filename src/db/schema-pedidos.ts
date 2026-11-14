@@ -214,6 +214,10 @@ export const shipments = pgTable("shipments", {
   originReceivedAt: ms("origin_received_at"),
   transitAt: ms("transit_at"),
   arrivedAt: ms("arrived_at"),
+  customsPaidAt: ms("customs_paid_at"),
+  availableAt: ms("available_at"),
+  freightMinor: ms("freight_minor"),
+  customsMinor: ms("customs_minor"),
   createdAt: ms("created_at").notNull(),
   createdByEmail: text("created_by_email").notNull(),
   updatedAt: ms("updated_at").notNull(),
@@ -294,6 +298,9 @@ export const costPurchases = pgTable("cost_purchases", {
   /** Cotización usada: pesos por unidad de la moneda × 10.000 (null si la moneda es ARS). */
   rateToArs10k: ms("rate_to_ars_10k"),
   rateNote: text("rate_note"),
+  rmbPerUsd10k: ms("rmb_per_usd_10k"),
+  usdToArs10k: ms("usd_to_ars_10k"),
+  paidUsdMinor: ms("paid_usd_minor"),
   note: text("note"),
   /** borrador | confirmada */
   status: text("status").notNull().default("borrador"),
@@ -327,7 +334,7 @@ export const costExpenses = pgTable(
   {
     id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
     purchaseId: text("purchase_id").notNull().references(() => costPurchases.id, { onDelete: "cascade" }),
-    /** envio | impuestos | otros */
+    /** envio | impuestos | otros | comisiones_compra */
     kind: text("kind").notNull(),
     description: text("description"),
     amountMinor: ms("amount_minor"),
@@ -364,6 +371,7 @@ export const importParcels = pgTable("import_parcels", {
   shipmentId: text("shipment_id").notNull().references(() => shipments.id),
   quantity: integer("quantity").notNull(),
   accepted: integer("accepted").notNull().default(0),
+  releasedStock: integer("released_stock").notNull().default(0),
   missing: integer("missing").notNull().default(0),
   damaged: integer("damaged").notNull().default(0),
   revision: integer("revision").notNull().default(0),

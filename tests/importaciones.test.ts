@@ -4,10 +4,10 @@ import { catalog } from "@/content/catalog";
 import { appliedCosts, costPurchaseItems, importParcels, importReservations, orderTracks, saleLines, stockMovements, user } from "@/db/schema";
 import { loadOverrides } from "@/features/catalog/overrides";
 import { accountingOverview } from "@/features/contabilidad/service";
-import { averageCosts, confirmPurchase, createPurchase } from "@/features/costos/service";
+import { averageCosts, confirmPurchase, createPurchase, listPurchases } from "@/features/costos/service";
 import { preorderOffers, releaseReservation, requestPreorder } from "@/features/importaciones/preorders";
-import { incomingProducts, markOrdered, payPurchase, receiveParcel, saveDestination, setParcel, setPublication } from "@/features/importaciones/service";
-import { createShipment, updateShipmentStatus } from "@/features/pedidos/envios";
+import { addPurchasesToShipment, incomingProducts, markOrdered, payPurchase, receiveParcel, releaseDueImportStock, saveDestination, setParcel, setPublication, shippablePurchases } from "@/features/importaciones/service";
+import { createShipment, listShipments, scheduleShipmentStock, updateShipmentCosts, updateShipmentCustomsPayment, updateShipmentStatus } from "@/features/pedidos/envios";
 import { confirmPayment, uploadReceipt } from "@/features/pedidos/pagos";
 import { customerOrderView, lineProgress } from "@/features/pedidos/service";
 import { registerSale } from "@/features/sales/service";
@@ -68,6 +68,100 @@ const review = (parcelId: number, accepted: number, expectedRevision = 0, overri
 const receiptStore: ReceiptStore = { driver: "local", put: async () => {}, get: async () => null, remove: async () => {} };
 
 describe("Compras e importaciones", () => {
+  it("anuncia una compra sola y libera únicamente unidades revisadas a partir de la fecha elegida", async () => {
+    const start = await stock();
+    const { id } = await createPurchase(db, purchaseBody(3), actor, at, { managedImport: true });
+    expect((await incomingProducts(db)).get(productId)?.quantity).toBe(3);
+    const sh = await shipment();
+    await addPurchasesToShipment(db, { shipmentId: sh.id, purchaseIds: [id] });
+    const day = at + 48 * hour;
+    const releaseAt = day - 12 * hour;
+    await scheduleShipmentStock(db, sh.id, { availableAt: day });
+    await sh.step("en_transito", hour);
+    expect((await incomingProducts(db, productId, at)).get(productId)).toMatchObject({ quantity: 3, availableAt: releaseAt });
+    await sh.step("recibido_argentina", 2 * hour);
+    const [parcel] = await db.select().from(importParcels).where(eq(importParcels.shipmentId, sh.id));
+    await receiveParcel(db, review(parcel.id, 2, 0, { damaged: 1 }), actor, at + 2 * hour);
+    expect(await stock()).toBe(start);
+    await releaseDueImportStock(db, releaseAt - 1);
+    expect(await stock()).toBe(start);
+    expect((await incomingProducts(db, productId, at)).get(productId)?.quantity).toBe(2);
+    await Promise.all([releaseDueImportStock(db, releaseAt), releaseDueImportStock(db, releaseAt)]);
+    expect(await stock()).toBe(start + 2);
+    expect((await incomingProducts(db, productId, releaseAt)).has(productId)).toBe(false);
+  });
+
+  it("devuelve a la compra las unidades quitadas de un despacho en preparación", async () => {
+    const p = await purchase(2);
+    const sh = await shipment();
+    await addPurchasesToShipment(db, { shipmentId: sh.id, purchaseIds: [p.id] });
+    const [{ allocationId }] = await db.select().from(importParcels).where(eq(importParcels.shipmentId, sh.id));
+    await setParcel(db, { shipmentId: sh.id, allocationId, quantity: 0 });
+    expect((await listShipments(db))[0].importedUnits).toBe(0);
+    expect(await shippablePurchases(db)).toEqual([expect.objectContaining({ id: p.id, quantity: 2 })]);
+    expect((await listPurchases(db, p.id))[0].items[0].quantity).toBe(2);
+  });
+
+  it("reparte el envío y la aduana del despacho entre compras sin duplicar gastos anteriores", async () => {
+    const first = await purchase(2);
+    const second = await purchase(3);
+    const sh = await shipment();
+    await addPurchasesToShipment(db, { shipmentId: sh.id, purchaseIds: [first.id, second.id] });
+    await updateShipmentCosts(db, sh.id, { freightMinor: 6000, customsMinor: 4000 });
+    await expect(confirmPurchase(db, first.id, actor)).rejects.toThrow(/despacho/);
+    await sh.step("en_transito", hour);
+    await confirmPurchase(db, first.id, actor);
+    await confirmPurchase(db, second.id, actor);
+    const [a] = await listPurchases(db, first.id);
+    const [b] = await listPurchases(db, second.id);
+    expect(a.items[0].totalCostMinor).toBe(24000);
+    expect(b.items[0].totalCostMinor).toBe(36000);
+    await expect(updateShipmentCosts(db, sh.id, { freightMinor: 1, customsMinor: 2 })).rejects.toThrow(/costos cerrados/);
+  });
+
+  it("guarda y corrige el pago de aduana del envío sin cambiar su fecha de despacho", async () => {
+    const p = await purchase(2);
+    const sh = await shipment();
+    await addPurchasesToShipment(db, { shipmentId: sh.id, purchaseIds: [p.id] });
+    await sh.step("en_transito", hour);
+    await updateShipmentCustomsPayment(db, sh.id, { customsPaidAt: at + 2 * hour });
+    const [saved] = await listShipments(db);
+    expect(saved).toMatchObject({ status: "en_transito", transitAt: at + hour, customsPaidAt: at + 2 * hour });
+    await sh.step("recibido_argentina", 3 * hour);
+    await updateShipmentCustomsPayment(db, sh.id, { customsPaidAt: null });
+    const [updated] = await listShipments(db);
+    expect(updated).toMatchObject({ status: "recibido_argentina", transitAt: at + hour, customsPaidAt: null });
+  });
+
+  it("agrupa compras de fechas distintas y reparte la diferencia pagada en USD", async () => {
+    const olderDate = at - 24 * hour;
+    const firstBody = { ...purchaseBody(2), purchasedAt: olderDate,
+      currency: "RMB", rmbPerUsd10k: 62_500, usdToArs10k: 12_500_000, rateToArs10k: 2_000_000, paidUsdMinor: 3500 };
+    const first = await createPurchase(db, firstBody, actor, at, { managedImport: true });
+    const second = await purchase(3);
+    const personal = await saveDestination(db, { itemId: second.itemId, destination: "personal", quantity: 1 });
+    const sh = await shipment();
+    const other = await shipment();
+    await setParcel(db, { shipmentId: other.id, allocationId: personal.id, quantity: 1 });
+
+    const selected = { shipmentId: sh.id, purchaseIds: [first.id, second.id] };
+    expect(await addPurchasesToShipment(db, selected)).toEqual({ replayed: false, quantity: 4 });
+    expect(await addPurchasesToShipment(db, selected)).toEqual({ replayed: true, quantity: 0 });
+    expect(await shippablePurchases(db)).toEqual([]);
+    const summary = (await listShipments(db)).find((s) => s.id === sh.id)!;
+    expect(summary.purchases).toEqual([
+      expect.objectContaining({ purchaseId: first.id, date: olderDate, quantity: 2 }),
+      expect.objectContaining({ purchaseId: second.id, date: at, quantity: 2 }),
+    ]);
+    const [saved] = await listPurchases(db, first.id);
+    expect(saved.paidUsdMinor).toBe(3500);
+    expect(saved.expenses).toEqual(expect.arrayContaining([expect.objectContaining({ kind: "comisiones_compra", amountMinor: 375_000, allocation: "valor" })]));
+    await confirmPurchase(db, first.id, actor);
+    const [closed] = await listPurchases(db, first.id);
+    expect(closed.items[0].finalUnitCostMinor).toBe(2_189_500);
+    await expect(sh.step("enviado_proveedor", -hour)).rejects.toThrow(/anterior/);
+  });
+
   it("valida destinos concurrentes, conserva cotización y distingue gastos pendientes de cero", async () => {
     const { id, itemId, body } = await purchase();
     const outcomes = await Promise.allSettled([

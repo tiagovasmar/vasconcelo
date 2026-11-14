@@ -10,6 +10,7 @@ import { pageDataOncePerRequest } from "./page-data";
 import { isInStock } from "./commercial";
 import { isListedProduct } from "./visibility";
 import { applyOverrides, loadGalleries, loadOverrides } from "./overrides";
+import { releaseDueImportStock } from "@/features/importaciones/service";
 
 /**
  * Acceso a datos del catálogo. Los productos salen del catálogo por código con los valores comerciales administrados desde
@@ -24,6 +25,7 @@ async function loadAllProducts(fx: EffectiveRate | undefined, db: Db, perRequest
     const rate = await rateOncePerRequest();
     return applyOverrides(catalog.products, data.overrides, rate, data.galleries);
   }
+  await releaseDueImportStock(db);
   // Si la cotización venció, este pedido la renueva (con tiempo máximo corto); si falla, usa la guardada.
   const [rate, overrides, galleries] = await Promise.all([fx ? Promise.resolve(fx) : currentRate(db), loadOverrides(db), loadGalleries(db)]);
   return applyOverrides(catalog.products, overrides, rate, galleries);

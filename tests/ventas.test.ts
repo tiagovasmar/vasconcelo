@@ -6,7 +6,7 @@ import { productAudit, productOverrides, saleLines, sales, stockMovements } from
 import { loadOverrides, saveProductChange } from "@/features/catalog/overrides";
 import { createInquiry, hashToken } from "@/features/inquiries/service";
 import { accountingOverview, registerExpense } from "@/features/contabilidad/service";
-import { listMovements, listSales, moveStock, previewSale, registerSale, SaleError, voidSale } from "@/features/sales/service";
+import { completeScheduledSale, listMovements, listSales, moveStock, previewSale, registerSale, SaleError, voidSale } from "@/features/sales/service";
 import type { EffectiveRate } from "@/features/fx/convert";
 import { openTestDb, type TestDb } from "./helpers/pg";
 
@@ -33,6 +33,32 @@ const counts = async () => ({ sales: (await db.select().from(sales)).length, lin
 beforeEach(async () => { db = await openTestDb(); });
 
 describe("registrar una venta", () => {
+  it("reserva stock al agendar, factura al cobrar y devuelve stock al cancelar otra entrega", async () => {
+    const start = (await stockOf("storm-sobre"))!;
+    const items = [{ productId: "storm-sobre", quantity: 1, price: 9000 }];
+    const schedule = sale(items, { paymentMethod: "pendiente", scheduledFor: "2026-11-16", customerContact: "Ana" });
+    const { sale: reserved } = await reg(schedule);
+    expect((await reg(schedule)).replayed).toBe(true);
+    expect(reserved).toMatchObject({ status: "agendada", scheduledFor: "2026-11-16", customerContact: "Ana" });
+    expect(await stockOf("storm-sobre")).toBe(start - 1);
+    expect(await listSales(db)).toEqual([]);
+    expect((await listSales(db, 50, undefined, true)).map((s) => s.id)).toEqual([reserved.id]);
+    expect((await accountingOverview(db)).gross).toBe(0);
+    const soldAt = Date.parse("2026-11-16T15:00:00Z");
+    const payment = { paymentMethod: "transferencia", soldAt };
+    expect(await completeScheduledSale(db, reserved.id, payment, soldAt)).toEqual({ replayed: false });
+    expect(await completeScheduledSale(db, reserved.id, payment, soldAt)).toEqual({ replayed: true });
+    expect(await stockOf("storm-sobre")).toBe(start - 1);
+    expect((await listSales(db))[0]).toMatchObject({ soldOn: "2026-11-16", status: "registrada" });
+    expect((await accountingOverview(db)).gross).toBe(peso(9000));
+
+    const { sale: cancelled } = await reg({ ...schedule, idempotencyKey: key() });
+    await voidSale(db, cancelled.id, "El cliente canceló", actor);
+    await expect(completeScheduledSale(db, cancelled.id, payment, soldAt)).rejects.toThrow(/cerró/);
+    expect(await stockOf("storm-sobre")).toBe(start - 1);
+    expect((await accountingOverview(db)).gross).toBe(peso(9000));
+  });
+
   it("descuenta el stock una sola vez y deja venta, líneas, movimiento e historial de cambios", async () => {
     const antes = (await stockOf("storm-sobre"))!;
     const { sale: s, replayed } = await reg(sale([{ productId: "storm-sobre", quantity: 3, price: 9000 }], { note: "En persona" }));

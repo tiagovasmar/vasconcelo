@@ -1,4 +1,3 @@
-import { arrivalEstimate } from "@/content/incoming-arrivals";
 import Link from "next/link";
 import { GameNavigation } from "@/components/game-navigation";
 import { store } from "@/content/store";
@@ -15,7 +14,7 @@ import { hasAsset } from "@/components/slot";
 import { kindSlug, type Expansion, type Product } from "@/content/schema";
 import { LanguageBadge } from "@/components/language-badge";
 import { storefrontOnce } from "@/features/admin/storefront";
-import { publicUpcoming } from "@/features/importaciones/public-upcoming";
+import { publicUpcoming, upcomingArrivalLabel } from "@/features/importaciones/public-upcoming";
 
 /** Colecciones japonesas del inicio (las ocho originales, en el orden del catálogo). */
 const COLECCIONES_JA_INICIO = ["black-bolt", "white-flare", "heat-wave-arena", "inferno-x", "mega-dream-ex", "30th-celebration", "storm-emeralda", "abyss-eye"];
@@ -143,7 +142,7 @@ export default async function Home() {
                 <div className="flex flex-1 flex-col p-3 sm:p-4">
                   <span className="self-start rounded-full bg-emerald px-2.5 py-1 text-xs font-semibold text-white">{incoming.get(product.id)?.traveling ? "En camino" : "Próximamente"}</span>
                   <h3 className="mt-3 break-words text-sm font-semibold sm:text-base">{product.title}</h3>
-                  {incoming.get(product.id)?.fromPurchase && <p className="mt-2 text-sm text-ink/75">{arrivalEstimate(product.id)}</p>}
+                  {incoming.get(product.id)?.fromPurchase && <p className="mt-2 text-sm text-ink/75">{upcomingArrivalLabel(product.id, incoming.get(product.id)?.availableAt)}</p>}
                   <span className="mt-4 text-sm font-semibold underline">Ver producto ↗</span>
                 </div>
               </Link>

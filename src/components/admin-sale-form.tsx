@@ -30,6 +30,8 @@ export function AdminSaleForm({ products, inquiry }: { products: SaleProduct[]; 
   const [lines, setLines] = useState<Line[]>(() => (inquiry?.lines ?? []).map((l) => ({ productId: l.productId, quantity: String(l.quantity), price: String(Math.round(l.unitPriceMinor / 100)), discount: String(Math.round((l.discountMinor ?? 0) / 100)), origin: { discount: l.discountMinor ?? 0, quantity: l.quantity } })));
   const [payment, setPayment] = useState<string>(inquiry?.payment ?? "");
   const [soldOn, setSoldOn] = useState(todayYmd);
+  const [scheduled, setScheduled] = useState(false);
+  const [contact, setContact] = useState("");
   const [received, setReceived] = useState("");
   const [installments, setInstallments] = useState("");
   const options = inquiry ? paymentMethods : [
@@ -38,7 +40,7 @@ export function AdminSaleForm({ products, inquiry }: { products: SaleProduct[]; 
     { id: "tarjeta", label: "Tarjeta · un pago" },
     { id: "tarjeta-cuotas", label: "Tarjeta · cuotas" },
   ];
-  const externalCard = !inquiry && payment.startsWith("tarjeta");
+  const externalCard = !inquiry && !scheduled && payment.startsWith("tarjeta");
   const receivedMinor = externalCard ? parseMoney(received) : null;
   const [note, setNote] = useState("");
   const [q, setQ] = useState("");
@@ -60,8 +62,8 @@ export function AdminSaleForm({ products, inquiry }: { products: SaleProduct[]; 
   const parsed = lines.map((l) => ({ ...l, qty: /^\d{1,3}$/.test(l.quantity.trim()) ? Number(l.quantity.trim()) : null, pesos: pesos(l.price), off: pesos(l.discount === "" ? "0" : l.discount) }));
   const total = parsed.reduce((n, l) => n + (l.qty && l.pesos && l.off !== null ? l.qty * l.pesos * 100 - l.off * 100 : 0), 0);
   const discountOk = (l: (typeof parsed)[number]) => l.off !== null && (!l.qty || !l.pesos || l.off <= l.qty * l.pesos);
-  const formOk = parsed.length > 0 && parsed.every((l) => l.qty && l.qty >= 1 && l.pesos && l.pesos >= 1 && discountOk(l)) && Boolean(payment);
-  const body = () => ({ items: parsed.map((l) => ({ productId: l.productId, quantity: l.qty, unitPriceMinor: (l.pesos ?? 0) * 100, discountMinor: (l.off ?? 0) * 100 })), paymentMethod: payment, ...(!inquiry ? { soldOn } : {}), ...(externalCard && receivedMinor !== null ? { receivedMinor } : {}), ...(payment === "tarjeta-cuotas" ? { installments: Number(installments) } : {}), note: note.trim() || undefined, ...(inquiry ? { inquiryId: inquiry.id } : {}), idempotencyKey: key.current });
+  const formOk = parsed.length > 0 && parsed.every((l) => l.qty && l.qty >= 1 && l.pesos && l.pesos >= 1 && discountOk(l)) && (scheduled || Boolean(payment));
+  const body = () => ({ items: parsed.map((l) => ({ productId: l.productId, quantity: l.qty, unitPriceMinor: (l.pesos ?? 0) * 100, discountMinor: (l.off ?? 0) * 100 })), paymentMethod: scheduled ? "pendiente" : payment, ...(scheduled ? { scheduledFor: soldOn, customerContact: contact.trim() || undefined } : !inquiry ? { soldOn } : {}), ...(externalCard && receivedMinor !== null ? { receivedMinor } : {}), ...(!scheduled && payment === "tarjeta-cuotas" ? { installments: Number(installments) } : {}), note: note.trim() || undefined, ...(inquiry ? { inquiryId: inquiry.id } : {}), idempotencyKey: key.current });
 
   // Cualquier cambio de contenido es una venta distinta: clave de operación nueva (así no se confunde con un reintento de la anterior).
   const change = (fn: () => void) => { fn(); setError(""); setPreview(null); setStep("armar"); key.current = newKey(); };
@@ -77,7 +79,7 @@ export function AdminSaleForm({ products, inquiry }: { products: SaleProduct[]; 
     if (!formOk) { setError(parsed.length === 0 ? "Elegí al menos un producto." : !payment ? "Elegí el método de pago." : "Completá cantidad y precio de cada producto (números enteros)."); return; }
     if (!inquiry && !soldOn) { setError("Elegí la fecha de la venta."); return; }
     if (externalCard && (receivedMinor === null || receivedMinor > total)) { setError("Ingresá un importe neto recibido válido, hasta el total de la venta."); return; }
-    if (payment === "tarjeta-cuotas" && (!/^\d+$/.test(installments) || Number(installments) < 2 || Number(installments) > 48)) { setError("Ingresá entre 2 y 48 cuotas."); return; }
+    if (!scheduled && payment === "tarjeta-cuotas" && (!/^\d+$/.test(installments) || Number(installments) < 2 || Number(installments) > 48)) { setError("Ingresá entre 2 y 48 cuotas."); return; }
     setBusy(true); setError("");
     try {
       const { res, data } = await call("/api/admin/ventas/previsualizar");
@@ -103,14 +105,14 @@ export function AdminSaleForm({ products, inquiry }: { products: SaleProduct[]; 
   }
 
   function reset() {
-    setLines([]); setPayment(""); setSoldOn(todayYmd()); setReceived(""); setInstallments(""); setNote(""); setQ(""); setPreview(null); setDone(null); setError(""); setStep("armar"); key.current = newKey();
+    setLines([]); setPayment(""); setSoldOn(todayYmd()); setScheduled(false); setContact(""); setReceived(""); setInstallments(""); setNote(""); setQ(""); setPreview(null); setDone(null); setError(""); setStep("armar"); key.current = newKey();
   }
 
   if (step === "hecho" && done) {
     return (
       <div className="rounded-xl border border-emerald/40 bg-emerald/10 p-5" role="status" data-testid="venta-registrada">
-        <p className="text-lg font-semibold">{done.replayed ? "Esa venta ya estaba registrada" : "Venta registrada"}: {done.id}</p>
-        <p className="mt-1 text-sm">Total {formatARS(done.total)}. El stock ya se descontó{done.replayed ? " (una sola vez)" : ""} y quedó en el historial de movimientos.{inquiry ? " La consulta quedó como «Convertida en venta»." : ""}</p>
+        <p className="text-lg font-semibold">{scheduled ? "Entrega agendada" : done.replayed ? "Esa venta ya estaba registrada" : "Venta registrada"}: {done.id}</p>
+        <p className="mt-1 text-sm">Total {formatARS(done.total)}. El stock ya se descontó{done.replayed ? " (una sola vez)" : ""} y quedó en el historial de movimientos.{scheduled ? " Confirmá el cobro en Entregas agendadas cuando concretes la venta." : ""}{inquiry ? " La consulta quedó como «Convertida en venta»." : ""}</p>
         {inquiry ? (
           <p className="mt-3"><Link href={`/admin/consultas/${inquiry.id}`} className="inline-flex min-h-11 items-center rounded-lg bg-ink px-5 text-sm font-semibold text-paper hover:bg-emerald" data-testid="volver-consulta">Volver a la consulta {inquiry.id}</Link></p>
         ) : (
@@ -124,6 +126,10 @@ export function AdminSaleForm({ products, inquiry }: { products: SaleProduct[]; 
     <div className="space-y-5" data-testid="form-venta">
       {step === "armar" && (
         <>
+          {!inquiry && <label className="flex items-center gap-2 text-sm font-semibold">
+            <input type="checkbox" className="h-5 w-5" checked={scheduled} onChange={(event) => change(() => setScheduled(event.target.checked))} />
+            Agendar entrega y reservar stock
+          </label>}
           <div>
             <label htmlFor="venta-buscar" className={labelCls}>Agregar producto (nombre, colección o SKU)</label>
             <input id="venta-buscar" type="search" value={q} onChange={(e) => setQ(e.target.value)} autoComplete="off" placeholder="Ej.: Storm, 30th, ZH-…" className={`${inputCls} mt-1`} />
@@ -188,33 +194,37 @@ export function AdminSaleForm({ products, inquiry }: { products: SaleProduct[]; 
           )}
 
           <div className="grid gap-4 sm:max-w-xl sm:grid-cols-2">
-            <div>
+            {!scheduled && <div>
               <label htmlFor="venta-pago" className={labelCls}>Método de pago</label>
               <select id="venta-pago" value={payment} onChange={(e) => change(() => setPayment(e.target.value))} className={`${inputCls} mt-1`} data-testid="venta-pago">
                 <option value="">Elegí un método</option>
                 {options.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
               </select>
-            </div>
+            </div>}
+            {scheduled && <div>
+              <label htmlFor="venta-contacto" className={labelCls}>Cliente o contacto</label>
+              <input id="venta-contacto" maxLength={160} value={contact} onChange={(e) => change(() => setContact(e.target.value))} placeholder="Nombre, teléfono o usuario" className={`${inputCls} mt-1`} />
+            </div>}
             {!inquiry && <div>
-              <label htmlFor="venta-fecha" className={labelCls}>Fecha de venta</label>
+              <label htmlFor="venta-fecha" className={labelCls}>{scheduled ? "Fecha acordada de entrega" : "Fecha de venta"}</label>
               <input id="venta-fecha" type="date" value={soldOn} onChange={(e) => change(() => setSoldOn(e.target.value))} className={`${inputCls} mt-1`} />
             </div>}
             {externalCard && <div>
               <label htmlFor="venta-recibido" className={labelCls}>Monto neto recibido ($)</label>
               <input id="venta-recibido" inputMode="decimal" value={received} onChange={(e) => change(() => setReceived(e.target.value))} className={`${inputCls} mt-1`} />
             </div>}
-            {payment === "tarjeta-cuotas" && <div>
+            {!scheduled && payment === "tarjeta-cuotas" && <div>
               <label htmlFor="venta-cuotas" className={labelCls}>Cantidad de cuotas</label>
               <input id="venta-cuotas" inputMode="numeric" value={installments} onChange={(e) => change(() => setInstallments(e.target.value))} className={`${inputCls} mt-1`} />
             </div>}
             <div className="sm:col-span-2">
               <label htmlFor="venta-nota" className={labelCls}>Observación (opcional)</label>
-              <input id="venta-nota" maxLength={300} value={note} onChange={(e) => change(() => setNote(e.target.value))} autoComplete="off" placeholder="Ej.: venta en persona, cliente de Haedo" className={`${inputCls} mt-1`} data-testid="venta-nota" />
+              <input id="venta-nota" maxLength={300} value={note} onChange={(e) => change(() => setNote(e.target.value))} autoComplete="off" placeholder={scheduled ? "Ej.: 18 h en la estación de Ramos Mejía" : "Ej.: venta en persona, cliente de Haedo"} className={`${inputCls} mt-1`} data-testid="venta-nota" />
             </div>
           </div>
           <p className="text-lg font-semibold" data-testid="venta-total-armado">Total: {formatARS(total)}</p>
-          <p className="text-xs text-ink/65">No se aplican descuentos solos: el total es la suma de lo que escribas. Una consulta por WhatsApp o un carrito armado nunca descuentan stock; solo una venta confirmada acá.</p>
-          <button type="button" onClick={review} disabled={busy} className="min-h-12 rounded-lg bg-emerald px-6 text-base font-semibold text-paper hover:bg-emerald-2 disabled:opacity-50" data-testid="revisar-venta">{busy ? "Preparando…" : "Revisar venta"}</button>
+          <p className="text-xs text-ink/65">{scheduled ? "Al agendar, las unidades se descuentan del stock disponible. Confirmá el cobro cuando entregues." : "El total se calcula con los precios y descuentos que cargues. El stock se descuenta al confirmar la venta."}</p>
+          <button type="button" onClick={review} disabled={busy} className="min-h-12 rounded-lg bg-emerald px-6 text-base font-semibold text-paper hover:bg-emerald-2 disabled:opacity-50" data-testid="revisar-venta">{busy ? "Preparando…" : scheduled ? "Revisar entrega" : "Revisar venta"}</button>
         </>
       )}
 
@@ -239,15 +249,16 @@ export function AdminSaleForm({ products, inquiry }: { products: SaleProduct[]; 
             </table>
           </div>
           <dl className="mt-3 grid gap-1 text-sm sm:max-w-md">
-            <div className="flex justify-between"><dt className="text-ink/70">Método de pago</dt><dd className="font-semibold">{options.find((m) => m.id === payment)?.label}</dd></div>
-            {!inquiry && <p>Fecha de venta: {soldOn.split("-").reverse().join("/")}</p>}
+            {!scheduled && <div className="flex justify-between"><dt className="text-ink/70">Método de pago</dt><dd className="font-semibold">{options.find((m) => m.id === payment)?.label}</dd></div>}
+            {!inquiry && <p>{scheduled ? "Entrega acordada" : "Fecha de venta"} · {soldOn.split("-").reverse().join("/")}</p>}
+            {scheduled && contact.trim() && <p>Cliente o contacto · {contact.trim()}</p>}
             {externalCard && receivedMinor !== null && <p>Neto recibido: <b>{formatARS(receivedMinor)}</b>{payment === "tarjeta-cuotas" && ` · ${installments} cuotas`}</p>}
             {note.trim() && <div className="flex justify-between gap-3"><dt className="text-ink/70">Observación</dt><dd className="text-right font-semibold">{note.trim()}</dd></div>}
             <div className="flex items-end justify-between border-t border-ink/15 pt-2"><dt className="font-bold">Total</dt><dd className="text-2xl font-extrabold" data-testid="venta-total-resumen">{formatARS(preview.totalMinor)}</dd></div>
           </dl>
           {!preview.ok && <p role="alert" className="mt-3 text-sm font-semibold text-vermilion">Hay productos que no se pueden vender tal como está armada la venta. Volvé a editar.</p>}
           <div className="mt-4 flex flex-wrap gap-3">
-            <button type="button" onClick={confirm} disabled={busy || !preview.ok} className="min-h-12 rounded-lg bg-emerald px-6 text-base font-semibold text-paper hover:bg-emerald-2 disabled:cursor-not-allowed disabled:opacity-50" data-testid="confirmar-venta">{busy ? "Registrando…" : "Confirmar venta"}</button>
+            <button type="button" onClick={confirm} disabled={busy || !preview.ok} className="min-h-12 rounded-lg bg-emerald px-6 text-base font-semibold text-paper hover:bg-emerald-2 disabled:cursor-not-allowed disabled:opacity-50" data-testid="confirmar-venta">{busy ? "Registrando…" : scheduled ? "Agendar y reservar stock" : "Confirmar venta"}</button>
             <button type="button" onClick={() => { setStep("armar"); setPreview(null); }} disabled={busy} className="min-h-12 rounded-lg border border-ink/40 px-5 text-sm font-semibold hover:border-emerald disabled:opacity-50" data-testid="volver-editar">Volver a editar</button>
           </div>
         </div>

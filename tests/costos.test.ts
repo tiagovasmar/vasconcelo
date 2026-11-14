@@ -9,6 +9,7 @@ import { createManualWholesaleOrder } from "@/features/pedidos/mayorista-manual"
 import { confirmPayment } from "@/features/pedidos/pagos";
 import { suggestedFromCost } from "@/features/mayorista/precios";
 import { listProductCosts, saveProductCost } from "@/features/costos/product-costs";
+import { listProductLogistics, saveProductLogistics } from "@/features/costos/product-logistics";
 import type { EffectiveRate } from "@/features/fx/convert";
 
 /**
@@ -186,6 +187,22 @@ describe("referencia mayorista: costo × 1,5", () => {
     expect(suggestedFromCost(333_333)).toBe(500_000); // 499.999,5 → mitad hacia arriba
     expect(suggestedFromCost(null)).toBeNull();
     expect(suggestedFromCost(0)).toBeNull();
+  });
+});
+
+describe("referencias de envío y aduana", () => {
+  it("guarda por tipo, permite cero y distingue un valor borrado", async () => {
+    const box = { kind: "box", expectedVersion: 0, shippingMinor: 1571, customsMinor: 0 };
+    await saveProductLogistics(db, box, actor.email);
+    await saveProductLogistics(db, { ...box, kind: "booster", shippingMinor: 100, customsMinor: null }, actor.email);
+    const saved = await listProductLogistics(db);
+    const version = saved.get("box")!.version;
+    expect(saved.get("box")).toMatchObject({ shippingMinor: 1571, customsMinor: 0 });
+    expect(saved.get("booster")).toMatchObject({ shippingMinor: 100, customsMinor: null });
+    expect(await code(saveProductLogistics(db, { ...box, shippingMinor: 999 }, actor.email))).toBe("stale");
+    await saveProductLogistics(db, { ...box, expectedVersion: version, shippingMinor: null, customsMinor: null }, actor.email);
+    expect((await listProductLogistics(db)).get("box")).toMatchObject({ shippingMinor: null, customsMinor: null });
+    expect((await listProductCosts(db, ["storm-caja"])).size).toBe(0);
   });
 });
 

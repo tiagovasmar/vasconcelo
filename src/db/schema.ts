@@ -307,13 +307,15 @@ export const sales = pgTable(
     paymentMethod: text("payment_method").notNull(),
     note: text("note"),
     soldOn: text("sold_on"),
+    scheduledFor: text("scheduled_for"),
+    customerContact: text("customer_contact"),
     receivedMinor: ms("received_minor"),
     installments: integer("installments"),
     /** Total cobrado (suma de las líneas), en centavos de ARS. */
     totalMinor: ms("total_minor").notNull(),
     /** Cotización vigente al registrar (solo informativa; el precio cobrado es el de cada línea). */
     fxRate10k: ms("fx_rate_10k"),
-    /** registrada | anulada */
+    /** agendada | registrada | anulada */
     status: text("status").notNull().default("registrada"),
     voidedAt: ms("voided_at"),
     voidedByEmail: text("voided_by_email"),

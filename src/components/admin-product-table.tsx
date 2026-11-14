@@ -210,6 +210,30 @@ export function AdminProductTable({ rows, rate10k, lowThreshold = 0 }: { rows: A
     router.refresh();
   }
 
+  async function hideProduct(row: AdminRow) {
+    if (busy[row.id] || !window.confirm(`¿Quitar «${row.title}» de la tienda? Podés volver a publicarlo desde su ficha.`)) return;
+    setBusy((current) => ({ ...current, [row.id]: true }));
+    try {
+      const res = await fetch(`/api/admin/products/${encodeURIComponent(row.id)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ visible: false, expectedVersion: versions[row.id] ?? row.version }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setMsgs((current) => ({ ...current, [row.id]: { ok: false, text: data?.error?.message ?? "No se pudo quitar el producto." } }));
+        return;
+      }
+      setVersions((current) => ({ ...current, [row.id]: data.version }));
+      setMsgs((current) => ({ ...current, [row.id]: { ok: true, text: "Producto quitado de la tienda." } }));
+      router.refresh();
+    } catch {
+      setMsgs((current) => ({ ...current, [row.id]: { ok: false, text: "Se cortó la conexión. Revisá el estado del producto y volvé a intentar." } }));
+    } finally {
+      setBusy((current) => ({ ...current, [row.id]: false }));
+    }
+  }
+
   return (
     <div>
       <div className="sticky top-0 z-20 -mx-1 mb-3 flex flex-wrap items-center gap-3 rounded-lg bg-paper/95 px-1 py-2 backdrop-blur" data-testid="admin-barra">
@@ -312,6 +336,10 @@ export function AdminProductTable({ rows, rate10k, lowThreshold = 0 }: { rows: A
                   <button type="submit" disabled={!dirty || busy[r.id] || locked} className="min-h-11 rounded-lg bg-emerald px-3 text-sm font-semibold text-paper hover:bg-emerald-2 disabled:cursor-not-allowed disabled:opacity-40" data-testid="guardar-fila">{busy[r.id] ? "…" : "Guardar"}</button>
                   <Link href={`/admin/productos/${encodeURIComponent(r.id)}`} className="text-center text-sm font-medium underline underline-offset-4" data-testid="editar-ficha">Editar ficha y fotos</Link>
                   {!locked && <Link href={`/admin/precios-mayoristas?q=${encodeURIComponent(r.id)}`} prefetch={false} className="text-center text-sm font-medium underline underline-offset-4">Precio mayorista</Link>}
+                  {!locked && r.state !== "hidden" && r.state !== "draft" && (
+                    <button type="button" onClick={() => hideProduct(r)} disabled={busy[r.id]} aria-label={`Quitar ${r.title} de la tienda`}
+                      className="min-h-11 text-sm font-medium text-vermilion underline underline-offset-4 disabled:opacity-50">Quitar de la tienda</button>
+                  )}
                 </div>
               </form>
               {(msg || (r.usdMinor !== null && r.arsMinor === null)) && (

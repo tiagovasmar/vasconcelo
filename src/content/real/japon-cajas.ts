@@ -10,11 +10,12 @@ import ninja from "../colecciones/cartas/ninja-spinner.json";
 import nihil from "../colecciones/cartas/nihil-zero.json";
 import symphonia from "../colecciones/cartas/mega-symphonia.json";
 import card151 from "../colecciones/cartas/pokemon-card-151.json";
+import teamRocket from "../colecciones/cartas/glory-of-team-rocket.json";
 
 type ListaOficial = Parameters<typeof buildCards>[2] & { searchGroup: number };
 const listas: Record<string, ListaOficial> = {
   "terastal-festival-ex": terastal, "ninja-spinner": ninja, "nihil-zero": nihil,
-  "mega-symphonia": symphonia, "pokemon-card-151": card151,
+  "mega-symphonia": symphonia, "pokemon-card-151": card151, "glory-of-team-rocket": teamRocket,
 };
 function galeria(c: Entrada): Pick<Expansion, "cards" | "cardListStatus" | "cardListNote" | "officialCardCount"> {
   const lista = listas[c.id];

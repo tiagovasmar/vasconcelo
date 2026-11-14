@@ -54,7 +54,7 @@ export default async function Ventas({ searchParams }: { searchParams: Promise<{
   if (typeof selectedMonth === "string" && monthEnd && !months.includes(selectedMonth)) months.push(selectedMonth);
   const filtered = Boolean(period.from || period.to);
   const ids = catalog.products.map((product) => product.id);
-  const [fx, low, sales, overview, costs, report, manualCosts] = await Promise.all([currentRate(db), getLowStock(db), listSales(db, 30, period), accountingOverview(db, period), averageCosts(db, ids), profitReport(db, period, channel), listProductCosts(db, ids)]);
+  const [fx, low, sales, overview, costs, report, manualCosts, scheduled] = await Promise.all([currentRate(db), getLowStock(db), listSales(db, 30, period), accountingOverview(db, period), averageCosts(db, ids), profitReport(db, period, channel), listProductCosts(db, ids), listSales(db, 500, undefined, true)]);
   const billing = new Map<string, number>();
   for (const row of report.rows) billing.set(row.day, (billing.get(row.day) ?? 0) + row.revenueMinor);
   const reportQuery = new URLSearchParams({ ...(period.from ? { desde: period.from } : {}), ...(period.to ? { hasta: period.to } : {}), ...(!filtered ? { todo: "1" } : {}) });
@@ -70,11 +70,12 @@ export default async function Ventas({ searchParams }: { searchParams: Promise<{
       <p className="eyebrow text-emerald">Panel del dueño</p>
       <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Contabilidad</h1>
       <p className="mt-2 max-w-3xl text-sm text-ink/75">
-        Registrá acá las ventas que ya cerraste, también las hechas fuera de la web. Al confirmar se guarda la venta y se descuenta el stock <b>una sola vez</b>. Una consulta por WhatsApp o un carrito armado no descuentan nada hasta que las registres.
+        Registrá ventas externas o agendá una entrega para retirar las unidades del stock disponible. Las entregas agendadas pasan a facturación cuando confirmás el cobro.
       </p>
       <nav aria-label="Ventas y stock" className="mt-4 flex flex-wrap gap-2 text-sm">
         <Link href="/admin/ventas" aria-current="page" className="rounded-full border border-emerald bg-emerald px-4 py-1.5 text-paper">Registrar y ver ventas</Link>
         <Link href="/admin/ventas/movimientos" className="rounded-full border border-ink/30 bg-white px-4 py-1.5 hover:border-emerald">Movimientos de stock</Link>
+        <Link href="#entregas" className="rounded-full border border-ink/30 bg-white px-4 py-1.5 hover:border-emerald">Entregas agendadas{scheduled.length > 0 && ` (${scheduled.length})`}</Link>
         <Link href="#gastos" className="rounded-full border border-ink/30 bg-white px-4 py-1.5 hover:border-emerald">Gastos</Link>
       </nav>
       <div className="mt-6 flex flex-wrap items-end gap-x-6 gap-y-4">
@@ -167,6 +168,10 @@ export default async function Ventas({ searchParams }: { searchParams: Promise<{
           <div className="mt-3">{filtered && sales.length === 0 ? <p className="text-sm text-ink/70">No hay ventas en este período.</p> : <AdminSalesList sales={sales} />}</div>
         </section>
       </div>
+      <section id="entregas" className="mt-10 border-t border-ink/20 pt-6" aria-labelledby="entregas-title">
+        <h2 id="entregas-title" className="mb-3 text-lg font-semibold">Entregas agendadas</h2>
+        {scheduled.length ? <AdminSalesList sales={scheduled} /> : <p className="text-sm text-ink/70">No hay entregas pendientes.</p>}
+      </section>
       <section id="gastos" className="mt-10 grid gap-8 border-t border-ink/20 pt-6 lg:grid-cols-[1.1fr_1fr]" aria-labelledby="gastos-title">
         <div>
           <h2 id="gastos-title" className="mb-3 text-lg font-semibold">Registrar un gasto</h2>

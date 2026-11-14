@@ -71,6 +71,34 @@
       "when": 1794104336531,
       "tag": "0009_mayorista_costos_usd",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1794684671462,
+      "tag": "0010_compras_y_entregas",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1794686545080,
+      "tag": "0011_fecha_pago_aduana_envio",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1794687061872,
+      "tag": "0012_costos_despacho",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1794688695883,
+      "tag": "0013_disponibilidad_despacho",
+      "breakpoints": true
     }
   ]
 }

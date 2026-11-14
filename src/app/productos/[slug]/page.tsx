@@ -1,12 +1,16 @@
-import { arrivalEstimate } from "@/content/incoming-arrivals";
+import { PAY_ON_DELIVERY_NOTICE, PICKUP_NOTICE } from "@/content/checkout-options";
 import { PreorderForm } from "@/components/preorder-form";
 import { preorderOffers } from "@/features/importaciones/preorders";
-import { publicUpcoming } from "@/features/importaciones/public-upcoming";
+import { publicUpcoming, upcomingArrivalLabel } from "@/features/importaciones/public-upcoming";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { catalogHref, gameLabel } from "@/content/games";
 import { notFound } from "next/navigation";
 import { CardGallery, type CardGroup } from "@/components/card-gallery";
+import { Pokemon151Comparison } from "@/components/pokemon-151-comparison";
+import { chinese151Cards, pokemon151Versions } from "@/content/real/pokemon-151-versions";
+import { chinesePhotoEditions, productCardReference } from "@/content/real/card-references";
+import chineseCardPhotos from "@/content/colecciones/cartas/seleccion-china.json";
 import { ProductGallery } from "@/components/product-gallery";
 import { ProductTags } from "@/components/product-tags";
 import { AddToCartPanel } from "@/components/cart-widgets";
@@ -79,8 +83,11 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
 
   const slides = product.images.map((img, i) => ({ alt: img.alt, source: img.source ?? "manufacturer", view: img.view, node: <ProductImage product={product} index={i} sizes="(min-width:1024px) 560px, 90vw" priority={i === 0} lightPhotos />, thumb: <ProductImage product={product} index={i} sizes="(min-width:640px) 140px, 64px" lowPriority lightPhotos /> }));
 
-  const groups: CardGroup[] = expansions.map((e) => {
-    const src = e.language === "zh" ? undefined : sourcesFor(e.sourceIds, catalog.sources).find((s) => s.url.includes("pokemon-card.com")) ?? sourcesFor(e.sourceIds, catalog.sources)[0];
+  const hasPrice = (product.priceMinor ?? 0) > 0 || (product.priceUsdMinor ?? 0) > 0;
+  const groups: CardGroup[] = (hasPrice ? expansions.filter((e) => e.cards.length > 0) : []).map((e) => {
+    const candidates = sourcesFor(e.sourceIds, catalog.sources);
+    const src = candidates.find((s) => s.id.startsWith("cartas-") || s.id === "zh-30th-cartas-oficial")
+      ?? (e.language === "ja" ? candidates.find((s) => s.url.includes("pokemon-card.com")) : undefined);
     return {
       expansionId: e.id, name: e.name, slug: e.slug, status: e.cardListStatus, isDemo: e.isDemo,
       officialUrl: src?.url, officialPublisher: src?.publisher, note: e.cardListNote,
@@ -100,14 +107,22 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
         return { src: img && hasAsset(img.src) ? img.src : null, alt: img?.alt ?? p.title };
       })
     : null;
-  const hasCards = groups.length > 0; // los kits y cajas especiales no pertenecen a una colección: no hay galería que mostrar
+  const chineseCards = hasPrice ? chinese151Cards[product.id] : undefined;
+  const chineseEdition = hasPrice ? expansions.find((e) => Object.hasOwn(chinesePhotoEditions, e.id)) : undefined;
+  const photoEdition = chineseEdition && chinesePhotoEditions[chineseEdition.id];
+  const chineseGalleryId = chineseCards?.gallery ?? chineseEdition?.id;
+  const chineseGallery = chineseGalleryId ? chineseCardPhotos[chineseGalleryId as keyof typeof chineseCardPhotos] : undefined;
+  const cardReference = hasPrice && !groups.length && !chineseGallery ? productCardReference(product) : undefined;
+  const compare151 = hasPrice && pokemon151Versions.some((version) => version.productId === product.id);
+  const hasCards = groups.length > 0 || Boolean(chineseCards || chineseGallery || cardReference);
   const anchors = [
     ["descripcion", "Descripción"],
-    ["contenido", conRarezas(product) ? `Qué garantiza ${product.kind === "kit" ? "el kit" : theWord[product.kind].replace("del ", "el ").replace("de la ", "la ")}` : `Contenido ${theWord[product.kind]}`],
-    ...(hasCards ? [["cartas", "Cartas ilustrativas"]] : []),
+    ...(hasPrice ? [["contenido", conRarezas(product) ? `Qué garantiza ${product.kind === "kit" ? "el kit" : theWord[product.kind].replace("del ", "el ").replace("de la ", "la ")}` : `Contenido ${theWord[product.kind]}`]] : []),
+    ...(compare151 ? [["comparar-151", "Comparar versiones"]] : []),
+    ...(hasCards ? [["cartas", chineseGallery ? "Cartas posibles" : "Cartas ilustrativas"]] : []),
     ["probabilidades", "Probabilidades"],
   ];
-  const navAnchors = accessory ? [["descripcion", "Descripción"], ["incluye", "Qué incluye"]] : anchors;
+  const navAnchors = accessory ? [["descripcion", "Descripción"], ...(hasPrice ? [["incluye", "Qué incluye"]] : [])] : anchors;
 
   return (
     <>
@@ -138,7 +153,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
 
           <div className="lg:col-start-2 lg:row-start-2">
             <Price product={product} size="page" />
-            {accessory ? (
+            {accessory ? hasPrice && (
               <p className="mt-1 text-sm font-semibold text-ink/80" data-testid="pack-info">Precio por pack de {product.packSize} unidades. Cada compra incluye {product.packSize} unidades. Precio fijo en pesos.</p>
             ) : <FxNote className="mt-1" />}
             <PricePerBooster product={product} className="mt-1" />
@@ -146,15 +161,19 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
             {(state === "available" || !offers.length) && <AddToCartPanel productId={product.id} title={product.title} imageSrc={product.images[0] && hasAsset(product.images[0].src) ? product.images[0].src : null} priceMinor={product.priceMinor ?? 0} max={maxFor(product)} state={state} stockKnown={isInStock(product)} orderOnly={Boolean(product.orderOnly)} packSize={product.packSize ?? null} addons={addons} />}
             {(incoming || offers.length > 0) && <aside className="my-4 rounded-xl border border-emerald/30 bg-emerald/10 p-4 text-sm">
               <p><strong>{incoming ? (incoming.traveling || offers.length ? "En camino" : "Próximamente") : "Preventa"}</strong>. El próximo ingreso todavía no está disponible para entrega inmediata.</p>
-              {(incoming?.fromPurchase || offers.length > 0) && <p className="mt-2 font-semibold">{arrivalEstimate(product.id)}</p>}
+              {(incoming?.fromPurchase || offers.length > 0) && <p className="mt-2 font-semibold">{upcomingArrivalLabel(product.id, incoming?.availableAt)}</p>}
               {offers.map((offer) => <PreorderForm key={offer.parcelId} {...offer} productPath={`/productos/${product.slug}`} />)}
               {incoming && <Link href="/proximamente" className="mt-2 inline-block font-semibold underline">Ver próximamente</Link>}
             </aside>}
             {product.stockQuantity === 0 && !product.retired && <RestockNotify productId={product.id} title={product.title} />}
             <FavoriteButton productId={product.id} title={product.title} withLabel className="mt-2 min-h-11 sm:mt-3 border border-ink/40 bg-white px-4 text-sm font-semibold hover:bg-gold" />
-            <p className="mt-3 text-sm text-ink/80 sm:mt-4" data-testid="entrega"><b>Entrega:</b> Andreani · moto en CABA y AMBA · retiro en Av. Rivadavia 14600. Costo, horario y dirección exacta de retiro por WhatsApp.</p>
+            <section className="mt-3 space-y-1 rounded-lg border border-ink/15 bg-white p-3 text-sm text-ink/80 sm:mt-4" data-testid="entrega" aria-label="Entrega y retiro">
+              <p><b>Retiro coordinado en Ramos Mejía.</b> {PICKUP_NOTICE}</p>
+              <p><b>Envíos.</b> Andreani o moto en CABA y AMBA. Consultá el costo por WhatsApp.</p>
+              <p>{PAY_ON_DELIVERY_NOTICE}</p>
+            </section>
 
-            {!accessory && <GarantiasResumen product={product} guarantees={guarantees} rates={rates} sources={sources} />}
+            {!accessory && hasPrice && <GarantiasResumen product={product} guarantees={guarantees} rates={rates} sources={sources} />}
             {product.language === "zh" && <p className="mt-3 text-xs text-ink/70">Edición en chino simplificado: no equivale a las ediciones japonesas ni a las internacionales.</p>}
             {isDemo && <p className="mt-3 text-xs text-ink/55">Ficha de demostración: precios, stock y algunos datos son de ejemplo.</p>}
           </div>
@@ -177,15 +196,40 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
             <p className="mt-3 text-sm text-ink/80" data-testid="aleatoriedad">{product.game === "dragon-ball" && product.kind === "kit" ? "El mazo es prearmado. La carta del sobre de bonificación es aleatoria." : aleatoriedad(product)}</p>
           </section>
 
-          {hasCards && (
+          {compare151 && <Pokemon151Comparison current={product} products={await listAllProducts()} />}
+
+          {chineseGallery && <section id="cartas" aria-labelledby="h-cartas" className="scroll-mt-16">
+            <h2 id="h-cartas" className="display text-3xl normal-case sm:text-4xl">Cartas que pueden salir</h2>
+            <p className="mt-3 max-w-2xl text-sm text-ink/80">{photoEdition?.pack ?? "Cada sobre Slim trae 5 cartas al azar, incluida 1 brillante."} {chineseCards?.finishes}</p>
+            <CardGallery groups={[{
+              expansionId: chineseGalleryId!, slug: product.slug, name: product.title, status: "partial", isDemo: false,
+              officialUrl: chineseCards?.source ?? photoEdition?.officialUrl, officialPublisher: "Pokémon China",
+              cards: chineseGallery.map((card) => ({ id: card.src, name: card.name, number: card.number, src: card.src,
+                alt: `${card.name} · ${card.number} · chino simplificado`, available: hasAsset(card.src), isDemo: false })),
+            }]} />
+            <a href={chineseCards?.checklist ?? `https://pikaqian.com/sets/${photoEdition?.code}`} target="_blank" rel="noreferrer" className="mt-2 inline-flex min-h-11 items-center text-sm font-semibold underline">Ver lista de la edición ↗</a>
+          </section>}
+
+          {groups.length > 0 && (
             <section id="cartas" aria-labelledby="h-cartas" className="scroll-mt-16">
               <h2 id="h-cartas" className="display text-3xl normal-case sm:text-4xl">Cartas ilustrativas de la expansión</h2>
               <p className="mt-3 max-w-2xl text-sm text-ink/70"><b>Son cartas ilustrativas de la expansión, no contenido garantizado</b>: el contenido de cada sobre es aleatorio y las cartas no se venden sueltas en esta tienda.{expansions.length > 1 ? " Este pack mezcla expansiones: las cartas se muestran agrupadas por cada una." : ""}</p>
               <div className="mt-6"><CardGallery groups={groups} /></div>
+              {expansions.some((e) => e.id === "zh-30-zhounian") && <a href="https://pikaqian.com/sets/30thc" target="_blank" rel="noreferrer" className="mt-2 inline-flex min-h-11 items-center text-sm font-semibold underline">Ver lista de 30th Celebration en chino ↗</a>}
             </section>
           )}
 
-          {accessory && <AccesorioIncluye product={product} />}
+          {cardReference && !chineseGallery && <section id="cartas" aria-labelledby="h-cartas" className="scroll-mt-16">
+            <h2 id="h-cartas" className="display text-3xl normal-case sm:text-4xl">{product.kind === "kit" ? "Cartas del mazo" : "Cartas de la edición"}</h2>
+            {cardReference.cards && <>
+              <p className="mt-3 text-sm text-ink/75">Selección parcial de cartas destacadas. Las cartas de los sobres salen al azar.</p>
+              <ul className="mt-3 flex flex-wrap gap-2 text-sm">{cardReference.cards.map((card) => <li key={card} className="rounded-lg border border-ink/20 bg-white p-3 font-semibold">{card}</li>)}</ul>
+            </>}
+            <a href={cardReference.url} target="_blank" rel="noreferrer" className="mt-2 inline-flex min-h-11 items-center text-sm font-semibold underline">Ver en {cardReference.publisher} ↗</a>
+            {cardReference.catalogUrl && <a href={cardReference.catalogUrl} target="_blank" rel="noreferrer" className="ml-4 inline-flex min-h-11 items-center text-sm font-semibold underline">Ver lista e imágenes de la colección en PikaQian ↗</a>}
+          </section>}
+
+          {accessory && hasPrice && <AccesorioIncluye product={product} />}
 
           {!accessory && (<section id="probabilidades" aria-labelledby="h-prob" className="scroll-mt-16 max-w-4xl">
             <h2 id="h-prob" className="display text-3xl normal-case sm:text-4xl">Probabilidades</h2>

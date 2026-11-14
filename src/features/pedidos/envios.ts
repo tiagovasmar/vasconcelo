@@ -2,7 +2,7 @@ import { importShipmentItems } from "@/features/importaciones/tracking";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { Db } from "@/db/client";
-import { lockKey } from "@/db/lock";
+import { lockKey, type Tx } from "@/db/lock";
 import { costPurchases, costPurchaseItems, importAllocations, importParcels, inquiries, inquiryLines, lineDeliveries, orderEvents, orderTracks, shipmentItems, shipments } from "@/db/schema";
 import type { Actor } from "@/features/catalog/overrides";
 import { noticeForOrder } from "@/features/avisos/outbox";
@@ -36,7 +36,7 @@ const shipmentIdFor = (key: string) => `EN-${sha(key).slice(0, 10).toUpperCase()
 
 export const NewShipmentSchema = z.object({ label: z.string().trim().min(2, "Poné un nombre al envío.").max(80), supplier: TEXT(80), internalNote: TEXT(500), carrier: TEXT(80), trackingNumber: TEXT(100), idempotencyKey: KEY });
 
-export async function createShipment(db: Db, body: unknown, actor: Actor, now = Date.now()): Promise<{ id: string; replayed: boolean }> {
+export async function createShipment(db: Db | Tx, body: unknown, actor: Actor, now = Date.now()): Promise<{ id: string; replayed: boolean }> {
   const input = parseOr400(NewShipmentSchema, body);
   return db.transaction(async (tx) => {
     await lockKey(tx, `shipment-new:${input.idempotencyKey}`);
@@ -54,6 +54,54 @@ export async function updateShipmentMetadata(db: Db, shipmentId: string, body: u
     await lockKey(tx, `shipment:${shipmentId}`);
     const [row] = await tx.update(shipments).set({ ...fields, updatedAt: now }).where(eq(shipments.id, shipmentId)).returning({ id: shipments.id });
     if (!row) return fail(404, "not_found", "El envío no existe.");
+    return { changed: true };
+  });
+}
+
+export async function updateShipmentCustomsPayment(db: Db, shipmentId: string, body: unknown, now = Date.now()) {
+  const { customsPaidAt } = parseOr400(z.object({ customsPaidAt: DATE.nullable() }), body);
+  return db.transaction(async (tx) => {
+    await lockKey(tx, `shipment:${shipmentId}`);
+    const [row] = await tx.update(shipments).set({ customsPaidAt, updatedAt: now }).where(eq(shipments.id, shipmentId)).returning({ id: shipments.id });
+    if (!row) return fail(404, "not_found", "El envío no existe.");
+    return { changed: true };
+  });
+}
+
+export async function scheduleShipmentStock(db: Db, shipmentId: string, body: unknown, now = Date.now()) {
+  const { availableAt } = parseOr400(z.object({ availableAt: DATE.nullable() }), body);
+  return db.transaction(async (tx) => {
+    await lockKey(tx, `shipment:${shipmentId}`);
+    const [sh] = await tx.select().from(shipments).where(eq(shipments.id, shipmentId));
+    if (!sh) return fail(404, "not_found", "El despacho no existe.");
+    const startOfDay = availableAt === null ? null : availableAt - 12 * 60 * 60 * 1000;
+    if (sh.availableAt === startOfDay) return { changed: false };
+    const [released] = await tx.select({ id: importParcels.id }).from(importParcels)
+      .innerJoin(importAllocations, eq(importAllocations.id, importParcels.allocationId))
+      .where(and(eq(importParcels.shipmentId, shipmentId), eq(importAllocations.destination, "reventa"), sql`${importParcels.releasedStock} > 0`)).limit(1);
+    if (released) return fail(409, "order_rule", "Este despacho ya incorporó unidades al stock.");
+    await tx.update(shipments).set({ availableAt: startOfDay, updatedAt: now }).where(eq(shipments.id, shipmentId));
+    return { changed: true };
+  });
+}
+
+export async function updateShipmentCosts(db: Db, shipmentId: string, body: unknown, now = Date.now()) {
+  const amount = z.number().int().min(0).max(100_000_000_000).nullable();
+  const costs = parseOr400(z.object({ freightMinor: amount, customsMinor: amount }), body);
+  return db.transaction(async (tx) => {
+    await lockKey(tx, `shipment:${shipmentId}`);
+    const purchases = await tx.selectDistinct({ id: costPurchaseItems.purchaseId }).from(importParcels)
+      .innerJoin(importAllocations, eq(importAllocations.id, importParcels.allocationId))
+      .innerJoin(costPurchaseItems, eq(costPurchaseItems.id, importAllocations.itemId))
+      .where(eq(importParcels.shipmentId, shipmentId)).orderBy(costPurchaseItems.purchaseId);
+    for (const { id } of purchases) await lockKey(tx, `cost-purchase:${id}`);
+    if (purchases.length) {
+      const [closed] = await tx.select({ id: costPurchases.id }).from(costPurchases)
+        .where(and(inArray(costPurchases.id, purchases.map((p) => p.id)), eq(costPurchases.status, "confirmada"))).limit(1);
+      if (closed) return fail(409, "order_rule", "El despacho tiene compras con costos cerrados.");
+    }
+    const [row] = await tx.update(shipments).set({ ...costs, updatedAt: now }).where(eq(shipments.id, shipmentId)).returning({ id: shipments.id });
+    if (!row) return fail(404, "not_found", "El despacho no existe.");
     return { changed: true };
   });
 }
@@ -213,12 +261,29 @@ export async function listShipments(db: Db) {
   if (!rows.length) return [];
   const items = await db.select({ si: shipmentItems, line: inquiryLines }).from(shipmentItems).innerJoin(inquiryLines, eq(inquiryLines.id, shipmentItems.lineId)).where(inArray(shipmentItems.shipmentId, rows.map((r) => r.id)));
   const imported = await txShipmentSummary(db, rows.map((r) => r.id));
-  return rows.map((s) => ({ ...s, importedUnits: imported.find((i) => i.shipmentId === s.id)?.quantity ?? 0, items: items.filter((i) => i.si.shipmentId === s.id).map((i) => ({ lineId: i.line.id, inquiryId: i.line.inquiryId, title: i.line.title, sku: i.line.sku, quantity: i.si.quantity })) }));
+  return rows.map((s) => {
+    const purchases = imported.filter((i) => i.shipmentId === s.id);
+    return { ...s, purchases, importedUnits: purchases.reduce((sum, p) => sum + p.quantity, 0),
+      items: items.filter((i) => i.si.shipmentId === s.id).map((i) => ({ lineId: i.line.id, inquiryId: i.line.inquiryId, title: i.line.title, sku: i.line.sku, quantity: i.si.quantity })) };
+  });
+}
+
+/** Cantidades de cada compra en su despacho, incluidas las excepciones al destino de reventa. */
+export async function shipmentPurchaseContents(db: Db) {
+  return db.select({
+    shipmentId: importParcels.shipmentId, purchaseId: costPurchaseItems.purchaseId, itemId: costPurchaseItems.id, allocationId: importAllocations.id,
+    quantity: importParcels.quantity, destination: importAllocations.destination, missing: importParcels.missing, damaged: importParcels.damaged,
+  }).from(importParcels).innerJoin(importAllocations, eq(importParcels.allocationId, importAllocations.id))
+    .innerJoin(costPurchaseItems, eq(importAllocations.itemId, costPurchaseItems.id));
 }
 
 async function txShipmentSummary(db: Db, ids: string[]) {
-  return db.select({ shipmentId: importParcels.shipmentId, quantity: sql<number>`sum(${importParcels.quantity})::int` })
-    .from(importParcels).where(inArray(importParcels.shipmentId, ids)).groupBy(importParcels.shipmentId);
+  return db.select({ shipmentId: importParcels.shipmentId, purchaseId: costPurchases.id, supplier: costPurchases.supplier, reference: costPurchases.reference,
+    date: sql<number>`coalesce(${costPurchases.orderedAt}, ${costPurchases.purchasedAt})`.mapWith(Number), quantity: sql<number>`sum(${importParcels.quantity})::int` })
+    .from(importParcels).innerJoin(importAllocations, eq(importParcels.allocationId, importAllocations.id))
+    .innerJoin(costPurchaseItems, eq(importAllocations.itemId, costPurchaseItems.id)).innerJoin(costPurchases, eq(costPurchaseItems.purchaseId, costPurchases.id))
+    .where(inArray(importParcels.shipmentId, ids)).groupBy(importParcels.shipmentId, costPurchases.id)
+    .orderBy(costPurchases.purchasedAt, costPurchases.id);
 }
 
 /** Artículos de encargos y mayoristas que pueden sumarse a un envío (pedido comprado al proveedor, con unidades sin enviar). */

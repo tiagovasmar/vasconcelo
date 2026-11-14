@@ -33,8 +33,9 @@ export const newKey = (): string => (globalThis.crypto?.randomUUID?.() ?? `${Dat
 export const dateToMs = (ymd: string): number | null => (/^\d{4}-\d{2}-\d{2}$/.test(ymd) && Number.isFinite(Date.parse(`${ymd}T12:00:00-03:00`)) ? Date.parse(`${ymd}T12:00:00-03:00`) : null);
 export const todayYmd = (): string => new Intl.DateTimeFormat("sv-SE", { timeZone: "America/Argentina/Buenos_Aires" }).format(new Date());
 
-export function AdminForm({ endpoint, method = "POST", fixed = {}, fields, submit, ok = "Guardado.", compact = false, confirmText, idempotent = true, resetAfterSave = true, testId }: {
+export function AdminForm({ endpoint, method = "POST", fixed = {}, fields, submit, ok = "Guardado.", compact = false, confirmText, idempotent = true, resetAfterSave = true, testId, preview }: {
   endpoint: string; method?: "POST" | "PATCH" | "PUT"; fixed?: Record<string, unknown>; fields: FormField[]; submit: string; ok?: string; compact?: boolean; confirmText?: string; idempotent?: boolean; resetAfterSave?: boolean; testId?: string;
+  preview?: (values: Readonly<Record<string, string | boolean>>, update: (patch: Record<string, string>) => void) => React.ReactNode;
 }) {
   const router = useRouter();
   const formId = useId();
@@ -104,6 +105,7 @@ export function AdminForm({ endpoint, method = "POST", fixed = {}, fields, submi
           </div>
         );
       })}
+      {preview?.(values, (patch) => setValues((current) => ({ ...current, ...patch })))}
       <div className={compact ? "" : "sm:col-span-2"}>
         <button type="submit" disabled={busy} className="min-h-11 rounded-lg bg-ink px-5 text-sm font-semibold text-paper hover:bg-emerald disabled:cursor-not-allowed disabled:opacity-50">{busy ? "Guardando…" : submit}</button>
         {msg && <p role={msg.ok ? "status" : "alert"} className={`mt-2 text-sm font-semibold ${msg.ok ? "text-emerald" : "text-vermilion"}`}>{msg.text}</p>}

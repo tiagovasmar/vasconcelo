@@ -234,16 +234,18 @@ export async function resetProduct(db: Db, base: Product[], productId: string, e
  * fila del panel (o la crea con los valores del código), sube la versión y deja el cambio en el historial de cambios. NO valida reglas de negocio:
  * quien lo llama decide si la cantidad es permitida. Devuelve el stock anterior (null = estaba pendiente).
  */
-export async function writeStock(tx: Tx, p: Product, row: OverrideRow | undefined, after: number, actor: Actor, auditLabel: string, now: number): Promise<{ before: number | null; version: number }> {
+export async function writeStock(tx: Tx, p: Product, row: OverrideRow | undefined, after: number, actor: Actor, auditLabel: string, now: number, enableStock = false): Promise<{ before: number | null; version: number }> {
   if (!Number.isInteger(after) || after < 0) throw new AdminError(400, "invalid_input", "El stock no puede ser negativo.");
   const before = row ? row.stockQuantity : defaultStock(p);
+  const wasOrderOnly = row?.orderOnly ?? p.orderOnly;
   const stamp = Math.max(now, (row?.updatedAt ?? 0) + 1);
-  if (row) await tx.update(productOverrides).set({ stockQuantity: after, updatedAt: stamp, updatedByEmail: actor.email }).where(eq(productOverrides.productId, p.id));
+  if (row) await tx.update(productOverrides).set({ stockQuantity: after, ...(enableStock ? { orderOnly: false } : {}), updatedAt: stamp, updatedByEmail: actor.email }).where(eq(productOverrides.productId, p.id));
   else {
     const v = baseValues(p);
-    await tx.insert(productOverrides).values({ productId: p.id, priceUsdMinor: v.priceUsdMinor, stockQuantity: after, maxPerOrder: v.maxPerOrder, visible: v.visible, orderOnly: v.orderOnly, title: null, description: null, updatedAt: stamp, updatedByEmail: actor.email });
+    await tx.insert(productOverrides).values({ productId: p.id, priceUsdMinor: v.priceUsdMinor, stockQuantity: after, maxPerOrder: v.maxPerOrder, visible: v.visible, orderOnly: !enableStock && v.orderOnly, title: null, description: null, updatedAt: stamp, updatedByEmail: actor.email });
   }
   await tx.insert(productAudit).values({ productId: p.id, sku: p.sku, field: "stock_quantity", oldValue: JSON.stringify(before), newValue: JSON.stringify(after), userId: actor.id, userEmail: auditLabel, createdAt: stamp });
+  if (enableStock && wasOrderOnly) await tx.insert(productAudit).values({ productId: p.id, sku: p.sku, field: "order_only", oldValue: "true", newValue: "false", userId: actor.id, userEmail: auditLabel, createdAt: stamp });
   return { before, version: stamp };
 }
 

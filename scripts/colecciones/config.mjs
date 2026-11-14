@@ -6,6 +6,7 @@ export const COLECCIONES = [
   { id: "black-bolt", pg: 942, nombreEnBuscador: "ブラックボルト" },
   { id: "white-flare", pg: 943, nombreEnBuscador: "ホワイトフレア" },
   { id: "heat-wave-arena", pg: 940, nombreEnBuscador: "熱風のアリーナ" },
+  { id: "glory-of-team-rocket", pg: 941, nombreEnBuscador: "ロケット団の栄光" },
   { id: "inferno-x", pg: 949, nombreEnBuscador: "インフェルノX" },
   { id: "mega-dream-ex", pg: 950, nombreEnBuscador: "MEGAドリームex" },
   { id: "30th-celebration", pg: 961, nombreEnBuscador: "30th CELEBRATION" },

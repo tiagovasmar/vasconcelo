@@ -7,6 +7,7 @@ import { adminSettings, fxSettings, productGalleries, productOverrides } from "@
 import { LOW_STOCK_KEY } from "@/features/admin/settings";
 import type { GalleryRow, OverrideRow } from "./overrides";
 import type { FxRow } from "@/features/fx/service";
+import { releaseDueImportStock } from "@/features/importaciones/service";
 
 /**
  * Lo que casi toda página pública necesita para armar el catálogo, leído con UNA sola consulta (antes eran cuatro, una detrás de otra): valores del panel por producto,
@@ -33,6 +34,7 @@ function fromJson<T>(table: PgTable, json: Record<string, unknown>): T {
 }
 
 export async function loadPageData(db: Db): Promise<PageData> {
+  await releaseDueImportStock(db);
   const rows = (await db.execute(sql`
     select
       (select coalesce(json_agg(t), '[]'::json) from product_overrides t) as overrides,

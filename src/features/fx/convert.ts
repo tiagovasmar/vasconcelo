@@ -56,6 +56,14 @@ export function usdToArsMinor(usdMinor: number, rate10k: number): number | null 
   return result <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(result) : null;
 }
 
+/** Convierte un importe de referencia en pesos a USD, al centavo más cercano. */
+export function arsMinorToUsdMinor(amountMinor: number, rate10k: number | null): number | null {
+  if (!Number.isSafeInteger(amountMinor) || amountMinor < 0 || !rate10k || !Number.isSafeInteger(rate10k) || rate10k < 0) return null;
+  const numerator = BigInt(amountMinor) * BigInt(RATE_SCALE);
+  const result = (2n * numerator + BigInt(rate10k)) / (2n * BigInt(rate10k));
+  return result <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(result) : null;
+}
+
 const usdFormat = new Intl.NumberFormat("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 /** «USD 10,00». */
 export const formatUSD = (usdMinor: number): string => `USD ${usdFormat.format(usdMinor / 100)}`;

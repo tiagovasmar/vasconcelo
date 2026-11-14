@@ -1,0 +1,1 @@
+ALTER TABLE "shipments" ADD COLUMN "customs_paid_at" bigint;

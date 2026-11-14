@@ -3,6 +3,7 @@ import { holdState, paymentEvidence } from "./hold-state";
 import { paymentTotals } from "@/features/pedidos/service";
 import { senaFor } from "@/features/pedidos/etapas";
 import { and, eq, inArray, isNull, ne, or, sql } from "drizzle-orm";
+import { catalog } from "@/content/catalog";
 import { z } from "zod";
 import type { Db } from "@/db/client";
 import { lockKey, type Tx } from "@/db/lock";
@@ -176,6 +177,94 @@ export async function markOrdered(db: Db, body: unknown) {
   });
 }
 
+async function purchaseShipmentRows(db: Db | Tx, purchaseIds?: string[]) {
+  return db.select({
+    purchaseId: costPurchases.id, supplier: costPurchases.supplier, reference: costPurchases.reference, purchasedAt: costPurchases.purchasedAt,
+    orderedAt: costPurchases.orderedAt, status: costPurchases.status, itemId: costPurchaseItems.id, productId: costPurchaseItems.productId,
+    quantity: costPurchaseItems.quantity, allocation: importAllocations,
+    shipped: sql<number>`(select coalesce(sum(p.quantity), 0)::int from import_parcels p where p.allocation_id = ${importAllocations.id})`,
+  }).from(costPurchases).innerJoin(costPurchaseItems, eq(costPurchases.id, costPurchaseItems.purchaseId))
+    .leftJoin(importAllocations, eq(costPurchaseItems.id, importAllocations.itemId))
+    .where(and(eq(costPurchases.managedImport, true), purchaseIds ? inArray(costPurchases.id, purchaseIds) : undefined))
+    .orderBy(costPurchases.id, costPurchaseItems.id, importAllocations.id);
+}
+
+function planPurchaseShipment(rows: Awaited<ReturnType<typeof purchaseShipmentRows>>) {
+  const items = new Map<number, { row: (typeof rows)[number]; assigned: number; remaining: number }>();
+  for (const row of rows) {
+    const item = items.get(row.itemId) ?? { row, assigned: 0, remaining: 0 };
+    item.assigned += row.allocation?.quantity ?? 0;
+    item.remaining += (row.allocation?.quantity ?? 0) - row.shipped;
+    items.set(row.itemId, item);
+  }
+  return [...items.values()].map(({ row, assigned, remaining }) => ({
+    row, unassigned: row.status === "borrador" ? row.quantity - assigned : 0, remaining,
+  }));
+}
+
+export async function shippablePurchases(db: Db) {
+  const purchases = new Map<string, { id: string; supplier: string; reference: string | null; date: number; quantity: number }>();
+  for (const { row, unassigned, remaining } of planPurchaseShipment(await purchaseShipmentRows(db))) {
+    if (!unassigned && !remaining) continue;
+    const purchase = purchases.get(row.purchaseId) ?? { id: row.purchaseId, supplier: row.supplier, reference: row.reference, date: row.orderedAt ?? row.purchasedAt, quantity: 0 };
+    purchase.quantity += unassigned + remaining;
+    purchases.set(purchase.id, purchase);
+  }
+  return [...purchases.values()].sort((a, b) => b.date - a.date);
+}
+
+export async function addPurchasesToShipment(db: Db | Tx, body: unknown) {
+  const v = parse(z.object({ shipmentId: ref, purchaseIds: z.array(ref).min(1, "Elegí al menos una compra.").max(100) }), body);
+  return db.transaction(async (tx) => {
+    await lockKey(tx, `shipment:${v.shipmentId}`);
+    const [shipment] = await tx.select().from(shipments).where(eq(shipments.id, v.shipmentId));
+    if (!shipment) return missing("El envío no existe.");
+    if (shipment.status !== "preparando") return conflict("El envío ya salió.");
+    const ids = [...new Set(v.purchaseIds)].sort();
+    for (const purchaseId of ids) await lockKey(tx, `cost-purchase:${purchaseId}`);
+    const rows = await purchaseShipmentRows(tx, ids);
+    if (new Set(rows.map((row) => row.purchaseId)).size !== ids.length) return missing("Alguna de las compras seleccionadas ya no está disponible.");
+
+    const pending = rows.filter((row) => row.allocation && row.allocation.quantity > row.shipped);
+    const orderLineIds = pending.flatMap(({ allocation }) => allocation?.orderLineId ? [allocation.orderLineId] : []);
+    if (orderLineIds.length) {
+      const orderLines = await tx.select().from(inquiryLines).where(inArray(inquiryLines.id, orderLineIds));
+      for (const inquiryId of [...new Set(orderLines.map((line) => line.inquiryId))].sort()) await trackLock(tx, inquiryId);
+      for (const row of pending) {
+        if (!row.allocation?.orderLineId) continue;
+        const { track, line } = await lockOrderLine(tx, row.allocation.orderLineId, row.productId);
+        if (line.fulfillment !== "stock" && rank(track.kind as TrackKind, track.stage) < rank(track.kind as TrackKind, "comprado_proveedor")) {
+          return conflict("Marcá los encargos como comprados al proveedor en Pedidos antes de incluirlos en el envío.");
+        }
+      }
+    }
+
+    const quantities = new Map(pending.map((row) => [row.allocation!.id, row.allocation!.quantity - row.shipped]));
+    const plan = planPurchaseShipment(rows);
+    const active = [...new Set(plan.filter((item) => item.unassigned || item.remaining).map((item) => item.row.purchaseId))];
+    for (const purchaseId of active) {
+      const row = rows.find((row) => row.purchaseId === purchaseId)!;
+      if (!row.orderedAt) await tx.update(costPurchases).set({ orderedAt: row.purchasedAt }).where(eq(costPurchases.id, purchaseId));
+    }
+    for (const { row, unassigned } of plan) {
+      if (!unassigned) continue;
+      const free = rows.find((r) => r.itemId === row.itemId && r.allocation?.destination === "reventa" && r.allocation.visibility === "proximamente")?.allocation;
+      if (free) {
+        await tx.update(importAllocations).set({ quantity: free.quantity + unassigned }).where(eq(importAllocations.id, free.id));
+        quantities.set(free.id, (quantities.get(free.id) ?? 0) + unassigned);
+      } else {
+        const [created] = await tx.insert(importAllocations).values({ itemId: row.itemId, destination: "reventa", quantity: unassigned, visibility: "proximamente" }).returning({ id: importAllocations.id });
+        quantities.set(created.id, unassigned);
+      }
+    }
+    if (quantities.size) {
+      await tx.insert(importParcels).values([...quantities].map(([allocationId, quantity]) => ({ shipmentId: shipment.id, allocationId, quantity })))
+        .onConflictDoUpdate({ target: [importParcels.shipmentId, importParcels.allocationId], set: { quantity: sql`${importParcels.quantity} + excluded.quantity` } });
+    }
+    return { replayed: quantities.size === 0, quantity: [...quantities.values()].reduce((sum, n) => sum + n, 0) };
+  });
+}
+
 export async function setParcel(db: Db, body: unknown) {
   const v = parse(z.object({ allocationId: id, shipmentId: ref, quantity: qty }), body);
   return db.transaction(async (tx) => {
@@ -205,6 +294,30 @@ const Receipt = z.object({
   parcelId: id, expectedRevision: qty, accepted: qty, damaged: qty, missing: qty,
   occurredAt: date, idempotencyKey: key, reason: z.string().trim().min(3).max(160),
 });
+
+export async function releaseDueImportStock(db: Db, now = Date.now()) {
+  const due = await db.select({ parcel: importParcels.id, shipmentId: shipments.id, productId: costPurchaseItems.productId })
+    .from(importParcels).innerJoin(shipments, eq(shipments.id, importParcels.shipmentId))
+    .innerJoin(importAllocations, eq(importAllocations.id, importParcels.allocationId))
+    .innerJoin(costPurchaseItems, eq(costPurchaseItems.id, importAllocations.itemId))
+    .where(and(eq(importAllocations.destination, "reventa"), eq(shipments.status, "recibido_argentina"),
+      or(isNull(shipments.availableAt), sql`${shipments.availableAt} <= ${now}`),
+      sql`${importParcels.accepted} > ${importParcels.releasedStock}`)).orderBy(importParcels.id);
+  for (const entry of due) {
+    if (!catalog.products.some((p) => p.id === entry.productId && !p.retired)) continue;
+    await db.transaction(async (tx) => {
+      await lockKey(tx, `shipment:${entry.shipmentId}`);
+      const [sh] = await tx.select().from(shipments).where(eq(shipments.id, entry.shipmentId));
+      const [parcel] = await tx.select().from(importParcels).where(eq(importParcels.id, entry.parcel));
+      if (!sh || (sh.availableAt !== null && sh.availableAt > now) || !parcel || parcel.accepted <= parcel.releasedStock) return;
+      await moveStockInTransaction(tx, {
+        productId: entry.productId, kind: "entrada", quantity: parcel.accepted - parcel.releasedStock,
+        reason: `Disponibilidad programada · ${sh.id}`, idempotencyKey: sha(`import-release:${parcel.id}:${parcel.revision}`),
+      }, { id: "import-stock", email: "stock-automatico@vasconcelo.shop" }, now, undefined, true);
+      await tx.update(importParcels).set({ releasedStock: parcel.accepted }).where(eq(importParcels.id, parcel.id));
+    });
+  }
+}
 
 export async function receiveParcel(db: Db, body: unknown, actor: Actor, now = Date.now()) {
   const v = parse(Receipt, body);
@@ -242,12 +355,14 @@ export async function receiveParcel(db: Db, body: unknown, actor: Actor, now = D
         return conflict("La corrección contradice una llegada o entrega confirmada al cliente. Registrá una incidencia en su pedido.");
       }
     }
-    if (a.destination === "reventa" && delta) {
+    const releasedStock = a.destination !== "reventa" ? 0 : sh.availableAt !== null && sh.availableAt > now ? 0 : v.accepted;
+    const stockDelta = releasedStock - parcel.releasedStock;
+    if (stockDelta) {
       const common = { productId: item.productId, reason: `Recepción ${p.id} / ${sh.id}: ${v.reason}`, idempotencyKey: sha(`import:${v.idempotencyKey}`) };
-      await moveStockInTransaction(tx, delta > 0 ? { ...common, kind: "entrada", quantity: delta } : { ...common, kind: "ajuste", newQuantity: 0 }, actor, now, delta < 0 ? delta : undefined);
+      await moveStockInTransaction(tx, stockDelta > 0 ? { ...common, kind: "entrada", quantity: stockDelta } : { ...common, kind: "ajuste", newQuantity: 0 }, actor, now, stockDelta < 0 ? stockDelta : undefined, sh.availableAt !== null);
     }
     const revision = parcel.revision + 1;
-    await tx.update(importParcels).set({ accepted: v.accepted, damaged: v.damaged, missing: v.missing, revision }).where(eq(importParcels.id, parcel.id));
+    await tx.update(importParcels).set({ accepted: v.accepted, releasedStock, damaged: v.damaged, missing: v.missing, revision }).where(eq(importParcels.id, parcel.id));
     await tx.insert(importReceipts).values({ operationKey: v.idempotencyKey, parcelId: parcel.id, accepted: v.accepted, damaged: v.damaged, missing: v.missing, revision, reason: v.reason, occurredAt: v.occurredAt, createdAt: now, actorEmail: actor.email });
     if (trackOrder && delta > 0) {
       const inquiryId = trackOrder.line.inquiryId;
@@ -328,7 +443,7 @@ export async function importProgress(db: Db) {
 
 /** Proyección pública deliberadamente limitada a producto y cantidad entrante. */
 export async function incomingProducts(db: Db, productId?: string, now = Date.now()) {
-  const reconciled = sql`coalesce((select sum(p.accepted + p.missing + p.damaged) from import_parcels p where p.allocation_id = ${importAllocations.id}), 0)`;
+  const reconciled = sql`coalesce((select sum(p.released_stock + p.missing + p.damaged) from import_parcels p where p.allocation_id = ${importAllocations.id}), 0)`;
   const expired = sql`coalesce((select sum(${importReservations.quantity}) from ${importReservations}
     inner join import_parcels p on p.id = ${importReservations.sourceParcelId}
     inner join shipments s on s.id = p.shipment_id
@@ -338,16 +453,23 @@ export async function incomingProducts(db: Db, productId?: string, now = Date.no
   const traveling = sql<number>`(coalesce((select sum(p.quantity) from import_parcels p join shipments s on s.id = p.shipment_id
     where p.allocation_id = ${importAllocations.id} and s.status in ('enviado_proveedor', 'recibido_origen', 'en_transito')), 0) + ${expired})::int`;
   const remaining = sql<number>`(${importAllocations.quantity} - ${reconciled} + ${expired})::int`;
-  const rows = await db.select({ productId: costPurchaseItems.productId, quantity: remaining, traveling })
+  const availableAt = sql<number | null>`(select min(s.available_at) from import_parcels p join shipments s on s.id = p.shipment_id
+    where p.allocation_id = ${importAllocations.id} and p.quantity > p.released_stock + p.missing + p.damaged and s.available_at > ${now})`.mapWith(Number);
+  const rows = await db.select({ productId: costPurchaseItems.productId, quantity: remaining, traveling, availableAt })
     .from(importAllocations).innerJoin(costPurchaseItems, eq(importAllocations.itemId, costPurchaseItems.id))
     .innerJoin(costPurchases, eq(costPurchaseItems.purchaseId, costPurchases.id))
     .where(and(eq(importAllocations.destination, "reventa"), or(eq(importAllocations.visibility, "proximamente"), eq(importAllocations.visibility, "preventa")),
       sql`${costPurchases.orderedAt} is not null`, productId ? eq(costPurchaseItems.productId, productId) : undefined));
-  const result = new Map<string, { quantity: number; traveling: number }>();
-  for (const r of rows) {
+  const unassigned = await db.select({ productId: costPurchaseItems.productId,
+    quantity: sql<number>`(${costPurchaseItems.quantity} - coalesce((select sum(a.quantity) from import_allocations a where a.item_id = ${costPurchaseItems.id}), 0))::int` })
+    .from(costPurchaseItems).innerJoin(costPurchases, eq(costPurchaseItems.purchaseId, costPurchases.id))
+    .where(and(eq(costPurchases.managedImport, true), eq(costPurchases.status, "borrador"), productId ? eq(costPurchaseItems.productId, productId) : undefined));
+  const result = new Map<string, { quantity: number; traveling: number; availableAt: number | null }>();
+  for (const r of [...rows, ...unassigned.map((row) => ({ ...row, traveling: 0, availableAt: null }))]) {
     if (r.quantity <= 0) continue;
-    const prev = result.get(r.productId) ?? { quantity: 0, traveling: 0 };
-    result.set(r.productId, { quantity: prev.quantity + r.quantity, traveling: prev.traveling + r.traveling });
+    const prev = result.get(r.productId);
+    result.set(r.productId, { quantity: (prev?.quantity ?? 0) + r.quantity, traveling: (prev?.traveling ?? 0) + r.traveling,
+      availableAt: prev?.availableAt && r.availableAt ? Math.min(prev.availableAt, r.availableAt) : prev?.availableAt ?? r.availableAt });
   }
   return result;
 }

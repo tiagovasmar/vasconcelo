@@ -4,12 +4,13 @@ import { z } from "zod";
 import type { Db } from "@/db/client";
 import { lockKey, type Tx } from "@/db/lock";
 import {
-  appliedCosts, costExpenses, costExpenseShares, costPurchaseItems, costPurchases, importAllocations, importReservations, inquiries, inquiryLines, inquirySales, orderPayments, orderRefunds, orderTracks, saleCommissions, saleLines, sales, wholesaleOrderCosts,
+  appliedCosts, costExpenses, costExpenseShares, costPurchaseItems, costPurchases, importAllocations, importParcels, importReservations, inquiries, inquiryLines, inquirySales, orderPayments, orderRefunds, orderTracks, saleCommissions, saleLines, sales, shipments, wholesaleOrderCosts,
 } from "@/db/schema";
 import { catalog } from "@/content/catalog";
 import type { Actor } from "@/features/catalog/overrides";
 import { SaleError, type SaleErrorCode } from "@/features/sales/errors";
 import { RATE_SCALE } from "@/features/fx/convert";
+import { MAX_QUOTE_RATE, MIN_QUOTE_RATE } from "@/lib/taobao-quote";
 import { accountingDateFilter, accountingDay, saleAccountingDay, type AccountingChannel, type AccountingPeriod } from "@/features/contabilidad/period";
 import { wholesaleResult } from "@/features/pedidos/mayorista-costos";
 import { listProductCosts } from "./product-costs";
@@ -63,6 +64,9 @@ export const PurchaseSchema = z.object({
   /** Pesos por unidad de la moneda × 10.000 (obligatorio si no es ARS). */
   rateToArs10k: z.number().int().min(1).max(1_000_000 * RATE_SCALE).nullish().transform((v) => v ?? null),
   rateNote: z.string().trim().max(200).nullish().transform((v) => (v ? v : null)),
+  rmbPerUsd10k: z.number().int().min(MIN_QUOTE_RATE).max(MAX_QUOTE_RATE).nullish(),
+  usdToArs10k: z.number().int().min(1).max(1_000_000 * RATE_SCALE).nullish(),
+  paidUsdMinor: z.number().int().positive().max(1_000_000_000_00).nullish(),
   note: z.string().trim().max(500).nullish().transform((v) => (v ? v : null)),
   items: z.array(z.object({ productId: z.string().min(1).max(80), quantity: z.number().int().min(1, "La cantidad mínima es 1.").max(1_000_000), unitPriceOriginalMinor: PRICE_ORIG })).min(1, "Agregá al menos un producto.").max(100),
   expenses: z.array(z.object({
@@ -85,9 +89,25 @@ export async function createPurchase(db: Db, body: unknown, actor: Actor, now = 
   const v = parseOr400(PurchaseSchema, body);
   if (v.items.some((i) => !catalog.products.some((p) => p.id === i.productId))) return fail(400, "invalid_input", "Hay productos que no existen en el catálogo.");
   const base = v.items.map((i) => itemBaseCostMinor(v, i.unitPriceOriginalMinor, i.quantity));
-  const total = base.reduce((a, b) => a + b, 0) + v.expenses.reduce((a, e) => a + (e.amountMinor ?? 0), 0);
+  const exchange = { rmbPerUsd10k: v.currency === "RMB" ? v.rmbPerUsd10k ?? null : null,
+    usdToArs10k: v.currency === "USD" ? v.rateToArs10k : v.usdToArs10k ?? null };
+  const paidUsdMinor = options.managedImport ? v.paidUsdMinor ?? null : null;
+  const expenses: Array<Omit<(typeof v.expenses)[number], "kind"> & { kind: string }> = [...v.expenses];
+  if (paidUsdMinor !== null) {
+    const { rmbPerUsd10k, usdToArs10k } = exchange;
+    if (!usdToArs10k || (v.currency === "RMB" && !rmbPerUsd10k)) {
+      return fail(400, "invalid_input", "Completá las cotizaciones para calcular la diferencia en USD.");
+    }
+    const original = v.items.reduce((sum, i) => sum + BigInt(i.unitPriceOriginalMinor) * BigInt(i.quantity), 0n);
+    const productRate = v.currency === "RMB" ? rmbPerUsd10k! : usdToArs10k;
+    const productUsd = v.currency === "USD" ? Number(original) : divRound(original * BigInt(RATE_SCALE), BigInt(productRate));
+    if (paidUsdMinor < productUsd) return fail(400, "invalid_input", "El total pagado es menor que la mercadería en USD. Revisá los precios y la cotización aplicada.");
+    const commission = divRound(BigInt(paidUsdMinor - productUsd) * BigInt(usdToArs10k), BigInt(RATE_SCALE));
+    if (commission > 0) expenses.push({ kind: "comisiones_compra", description: "Diferencia entre mercadería y total pagado", amountMinor: commission, allocation: "valor", certainty: "definitivo", manual: null });
+  }
+  const total = base.reduce((a, b) => a + b, 0) + expenses.reduce((a, e) => a + (e.amountMinor ?? 0), 0);
   if (!Number.isSafeInteger(total)) return fail(400, "invalid_input", "El costo convertido supera el importe admitido.");
-  for (const e of v.expenses) {
+  for (const e of expenses) {
     if ((e.amountMinor === null) !== (e.certainty === "pendiente")) return fail(400, "invalid_input", "Dejá sin importe los gastos pendientes y cargá un importe para los demás.");
     if (e.allocation === "valor" && e.amountMinor && !base.some((x) => x > 0)) return fail(400, "invalid_input", "La mercadería convertida no tiene valor para repartir ese gasto.");
     if (e.allocation === "manual" && e.amountMinor !== null) {
@@ -97,7 +117,7 @@ export async function createPurchase(db: Db, body: unknown, actor: Actor, now = 
     }
   }
   const id = options.editId ?? purchaseId(v.idempotencyKey);
-  const fields = { supplier: v.supplier, reference: v.reference, purchasedAt: v.purchasedAt, currency: v.currency, rateToArs10k: v.currency === "ARS" ? null : v.rateToArs10k, rateNote: v.rateNote, note: v.note };
+  const fields = { supplier: v.supplier, reference: v.reference, purchasedAt: v.purchasedAt, currency: v.currency, rateToArs10k: v.currency === "ARS" ? null : v.rateToArs10k, rateNote: v.rateNote, note: v.note, ...exchange, paidUsdMinor };
   return db.transaction(async (tx) => {
     await lockKey(tx, `cost-purchase:${id}`);
     const [again] = await tx.select().from(costPurchases).where(eq(costPurchases.id, id));
@@ -121,7 +141,7 @@ export async function createPurchase(db: Db, body: unknown, actor: Actor, now = 
       await tx.insert(costPurchases).values({ id, ...fields, managedImport: options.managedImport ?? false, createdAt: now, createdByEmail: actor.email });
       await tx.insert(costPurchaseItems).values(v.items.map((i) => ({ purchaseId: id, ...i })));
     }
-    if (v.expenses.length) await tx.insert(costExpenses).values(v.expenses.map((e) => ({
+    if (expenses.length) await tx.insert(costExpenses).values(expenses.map((e) => ({
       purchaseId: id, kind: e.kind, description: e.description, amountMinor: e.amountMinor, certainty: e.certainty,
       allocation: e.allocation, manualJson: e.allocation === "manual" ? JSON.stringify(e.manual ?? {}) : null,
     })));
@@ -146,6 +166,33 @@ export function expenseShares(items: { quantity: number }[], base: number[], exp
   return allocateProportional(expense.amountMinor, expense.allocation === "unidades" ? items.map((i) => i.quantity) : base);
 }
 
+async function dispatchedCosts(tx: Tx, itemIds: number[]) {
+  const itemIdsInPurchase = new Set(itemIds);
+  const own = await tx.selectDistinct({ shipment: importParcels.shipmentId }).from(importParcels)
+    .innerJoin(importAllocations, eq(importAllocations.id, importParcels.allocationId)).where(inArray(importAllocations.itemId, itemIds));
+  if (!own.length) return null;
+  const rows = await tx.select({ shipment: shipments, itemId: importAllocations.itemId, quantity: importParcels.quantity })
+    .from(importParcels).innerJoin(importAllocations, eq(importAllocations.id, importParcels.allocationId))
+    .innerJoin(shipments, eq(shipments.id, importParcels.shipmentId))
+    .where(inArray(importParcels.shipmentId, own.map((row) => row.shipment))).orderBy(importParcels.id);
+  if (!rows.some(({ shipment }) => shipment.freightMinor !== null || shipment.customsMinor !== null)) return null;
+  const byItem = new Map<number, { quantity: number; amount: number }>();
+  for (const { shipment: shipmentId } of own) {
+    const parcels = rows.filter((row) => row.shipment.id === shipmentId);
+    const shipment = parcels[0].shipment;
+    if (shipment.status === "preparando" || shipment.freightMinor === null || shipment.customsMinor === null) {
+      return fail(409, "order_rule", "Registrá el despacho y sus importes definitivos de envío y aduana antes de cerrar la compra.");
+    }
+    const shares = allocateProportional(shipment.freightMinor + shipment.customsMinor, parcels.map((row) => row.quantity));
+    parcels.forEach(({ itemId, quantity }, index) => {
+      if (!itemIdsInPurchase.has(itemId)) return;
+      const current = byItem.get(itemId) ?? { quantity: 0, amount: 0 };
+      byItem.set(itemId, { quantity: current.quantity + quantity, amount: current.amount + shares[index] });
+    });
+  }
+  return byItem;
+}
+
 /** Confirma la compra: calcula y congela el reparto de gastos, el costo total y el costo final por unidad. Idempotente (confirmar dos veces no recalcula). */
 export async function confirmPurchase(db: Db, id: string, actor: Actor, now = Date.now()): Promise<{ changed: boolean }> {
   void actor;
@@ -155,13 +202,16 @@ export async function confirmPurchase(db: Db, id: string, actor: Actor, now = Da
     if (!p) return fail(404, "not_found", "La compra no existe.");
     if (p.status === "confirmada") return { changed: false };
     const items = await tx.select().from(costPurchaseItems).where(eq(costPurchaseItems.purchaseId, id)).orderBy(costPurchaseItems.id);
-    const exps = await tx.select().from(costExpenses).where(eq(costExpenses.purchaseId, id)).orderBy(costExpenses.id);
+    const allExpenses = await tx.select().from(costExpenses).where(eq(costExpenses.purchaseId, id)).orderBy(costExpenses.id);
+    const dispatched = p.managedImport ? await dispatchedCosts(tx, items.map((i) => i.id)) : null;
+    if (dispatched && items.some((item) => dispatched.get(item.id)?.quantity !== item.quantity)) return fail(409, "order_rule", "Asigná todas las unidades a despachos antes de cerrar los costos.");
+    const exps = dispatched ? allExpenses.filter((expense) => expense.kind !== "envio" && expense.kind !== "impuestos") : allExpenses;
     const base = items.map((i) => itemBaseCostMinor(p, i.unitPriceOriginalMinor, i.quantity));
     if (exps.some((e) => e.certainty !== "definitivo")) return fail(409, "order_rule", "Completá los gastos pendientes y estimados antes de cerrar los costos.");
-    if (p.managedImport && ["envio", "impuestos"].some((kind) => !exps.some((e) => e.kind === kind))) return fail(409, "order_rule", "Registrá envío y aduana como definitivos, aunque el importe real sea cero.");
+    if (p.managedImport && !dispatched && ["envio", "impuestos"].some((kind) => !exps.some((e) => e.kind === kind))) return fail(409, "order_rule", "Cargá envío y aduana en Despachos, aunque el importe sea cero.");
     const destinations = p.managedImport ? await tx.select().from(importAllocations).where(inArray(importAllocations.itemId, items.map((i) => i.id))) : [];
     if (p.managedImport && items.some((i) => destinations.filter((d) => d.itemId === i.id).reduce((n, d) => n + d.quantity, 0) !== i.quantity)) return fail(409, "order_rule", "Asigná todos los destinos antes de cerrar los costos.");
-    const allocated = items.map(() => 0);
+    const allocated = items.map((item) => dispatched?.get(item.id)?.amount ?? 0);
     for (const e of exps) {
       const shares = expenseShares(items, base, e);
       if (shares.reduce((a, b) => a + b, 0) !== e.amountMinor) return fail(409, "order_rule", "El reparto de un gasto no suma su importe.");

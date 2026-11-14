@@ -5,6 +5,8 @@ import { purchaseProducts } from "./products";
 import { getDb } from "@/db/client";
 import { listTaobaoSuppliers } from "@/features/admin/taobao-suppliers";
 import { listPurchases } from "@/features/costos/service";
+import { quoteAmount } from "@/lib/taobao-quote";
+import { formatARS } from "@/lib/format";
 import { requireAdmin } from "@/server/admin";
 import { PurchaseForm } from "@/components/purchase-form";
 
@@ -43,7 +45,8 @@ export default async function PurchasesPage({ searchParams }: { searchParams: Pr
       <header>
         <p className="eyebrow text-emerald">Panel del dueño · privado</p>
         <h1 className="mt-2 text-3xl font-semibold">Compras e importaciones</h1>
-        <p className="mt-2 text-sm text-ink/75">Registrá compras, asigná unidades, seguí envíos y revisá la recepción. El cierre de costos se hace cuando tengas los importes definitivos.</p>
+        <p className="mt-2 text-sm text-ink/75">Guardá cada pedido al proveedor con su fecha y sus productos. Cuando la mercadería salga del almacén, agrupá las compras en Despachos.</p>
+        <Link href="/admin/envios" className="mt-2 inline-flex min-h-11 items-center text-sm font-semibold underline">Ir a Despachos</Link>
       </header>
       <details open={get("nueva") === "1" || undefined} className="rounded-xl border border-ink/20 bg-white p-4">
         <summary className="cursor-pointer font-semibold">+ Registrar compra</summary>
@@ -68,13 +71,21 @@ export default async function PurchasesPage({ searchParams }: { searchParams: Pr
         </form>
         {purchases.length === 0 && <p className="text-sm text-ink/70">No hay compras para estos filtros.</p>}
         <ul className="divide-y divide-ink/15">
-          {purchases.map((p) => <li key={p.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+          {purchases.map((p) => {
+            const subtotal = p.items.reduce((sum, i) => sum + i.unitPriceOriginalMinor * i.quantity, 0);
+            return <li key={p.id} className="flex flex-wrap items-start justify-between gap-3 py-3">
             <div className="min-w-0 break-words">
               <Link href={`/admin/compras/${p.id}`} className="font-semibold underline underline-offset-4">{p.supplier}{p.reference && ` · ${p.reference}`}</Link>
-              <p className="mt-1 text-xs text-ink/70">{p.id} · {dateOf(p.purchasedAt)} · {p.total} unidades · {p.currency}</p>
+              <p className="mt-1 text-xs text-ink/70">{p.id} · {dateOf(p.purchasedAt)} · {p.total} unidades</p>
+              <p className="mt-1 text-sm">Subtotal de productos <b>{p.currency === "ARS" ? formatARS(subtotal) : quoteAmount(subtotal, p.currency === "USD" ? "USD" : "RMB")}</b></p>
+              <details className="mt-1 text-sm">
+                <summary className="cursor-pointer underline">Ver productos ({p.items.length})</summary>
+                <ul className="mt-1 space-y-1">{p.items.map((item) => <li key={item.id}>{item.quantity} × {labels.get(item.productId) ?? item.productId}</li>)}</ul>
+              </details>
             </div>
             <span className="rounded-full bg-paper-2 px-3 py-1 text-xs">{stages[p.stage]} · {p.status === "confirmada" ? "Costos cerrados" : "Costos abiertos"}</span>
-          </li>)}
+          </li>;
+          })}
         </ul>
       </section>
     </div>

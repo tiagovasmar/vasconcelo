@@ -1,10 +1,9 @@
-import { arrivalEstimate } from "@/content/incoming-arrivals";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ProductImage } from "@/components/product-image";
 import { storefrontOnce } from "@/features/admin/storefront";
 import { listProducts } from "@/features/catalog/data";
-import { publicUpcoming } from "@/features/importaciones/public-upcoming";
+import { publicUpcoming, upcomingArrivalLabel } from "@/features/importaciones/public-upcoming";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Próximamente" };
@@ -25,7 +24,7 @@ export default async function UpcomingPage() {
           <div className="p-4">
             <p className="text-xs font-bold uppercase tracking-wide text-emerald">{quantities.get(p.id)?.traveling ? "En camino" : "Próximamente"}</p>
             <h2 className="mt-1 break-words text-base font-semibold">{p.title}</h2>
-            {quantities.get(p.id)?.fromPurchase && <p className="mt-1 text-sm">{arrivalEstimate(p.id)}</p>}
+            {quantities.get(p.id)?.fromPurchase && <p className="mt-1 text-sm">{upcomingArrivalLabel(p.id, quantities.get(p.id)?.availableAt)}</p>}
           </div>
         </Link>
       </li>)}
