@@ -17,6 +17,8 @@ import * as schema from "./schema";
  */
 export type Db = ReturnType<typeof createDb>;
 
+const supabaseSharedPool = /\.pooler\.supabase\.com$/i;
+
 const isLocalHost = (url: string) => {
   try {
     return ["localhost", "127.0.0.1", "[::1]", "::1"].includes(new URL(url).hostname);
@@ -38,8 +40,12 @@ export function createDb(url: string, opts: { max?: number; queryTimeoutMs?: num
   // Salvaguarda de desarrollo: con ENTORNO_LOCAL=1 (solo en .env.local de esta computadora) jamás se conecta a un servidor remoto, ni por error de configuración.
   if (process.env.ENTORNO_LOCAL === "1" && !isLocalHost(url)) throw new Error("ENTORNO_LOCAL=1: se rechazó una conexión a un servidor que no es local. Usá la base de desarrollo (npm run dev:db).");
   const ssl = process.env.DATABASE_SSL === "disable" || isLocalHost(url) ? false : ("require" as const);
+  const target = new URL(url);
   const options = {
     prepare: false,
+    // En un pool transaccional no se envían varias consultas a la vez por conexión.
+    // Con postgres.js, max_pipeline: 1 todavía admite una consulta adicional.
+    ...(supabaseSharedPool.test(target.hostname) && target.port === "6543" ? { max_pipeline: 0 } : {}),
     // El esquema no usa columnas de tipo arreglo ni tipos propios: no hace falta la consulta inicial de tipos (una ida y vuelta de más en cada conexión nueva, es decir, en cada arranque en frío).
     fetch_types: false,
     max: opts.max ?? (Number(process.env.DATABASE_POOL_MAX) || 1),
@@ -74,7 +80,7 @@ export const databaseUrl = (): string => {
   // Las instalaciones existentes pueden tener la URL del pooler de sesión en la configuración.
   // Solo cambiamos el puerto del pooler compartido de Supabase, conservando el destino y credenciales.
   const pooler = new URL(url);
-  if (/\.pooler\.supabase\.com$/i.test(pooler.hostname) && (!pooler.port || pooler.port === "5432")) {
+  if (supabaseSharedPool.test(pooler.hostname) && (!pooler.port || pooler.port === "5432")) {
     pooler.port = "6543";
     return pooler.href;
   }
