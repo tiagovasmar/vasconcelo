@@ -7,6 +7,8 @@ import { costPurchases, costPurchaseItems, importAllocations, importParcels, inq
 import type { Actor } from "@/features/catalog/overrides";
 import { noticeForOrder } from "@/features/avisos/outbox";
 import { SaleError, type SaleErrorCode } from "@/features/sales/errors";
+import { parseRateInput, toRate10k } from "@/features/fx/convert";
+import { getEffectiveRate } from "@/features/fx/service";
 import { formatARS } from "@/lib/format";
 import { advanceFromFacts, ensureTrack, lineProgress, newId, paymentTotals, sha, trackLock } from "./service";
 import { rank, SHIPMENT_LABEL, shipmentRank, SHIPMENT_STATUSES, senaFor, type ShipmentStatus, type Stage, type TrackKind } from "./etapas";
@@ -87,7 +89,23 @@ export async function scheduleShipmentStock(db: Db, shipmentId: string, body: un
 
 export async function updateShipmentCosts(db: Db, shipmentId: string, body: unknown, now = Date.now()) {
   const amount = z.number().int().min(0).max(100_000_000_000).nullable();
-  const costs = parseOr400(z.object({ freightMinor: amount, customsMinor: amount }), body);
+  const input = parseOr400(z.union([
+    z.object({ freightUsdMinor: amount, freightRateText: z.string().trim().max(30).nullish(), keepLegacyFreight: z.boolean().optional(), customsMinor: amount }),
+    z.object({ freightMinor: amount, customsMinor: amount }),
+  ]), body);
+  const freightUsdMinor = "freightUsdMinor" in input ? input.freightUsdMinor : null;
+  const rateText = "freightRateText" in input ? input.freightRateText : null;
+  const manualRate = rateText ? toRate10k(parseRateInput(rateText)) : null;
+  if (freightUsdMinor !== null && rateText && !manualRate) return fail(400, "invalid_input", "Revisá la cotización del envío.");
+  const freightRate10k = freightUsdMinor !== null
+    ? manualRate ?? (await getEffectiveRate(db, now)).rate10k
+    : null;
+  if (freightUsdMinor && !freightRate10k) return fail(400, "invalid_input", "Cargá la cotización en pesos por dólar para convertir el envío.");
+  const freightMinor = "freightMinor" in input ? input.freightMinor
+    : freightUsdMinor === null ? null : Number((BigInt(freightUsdMinor) * BigInt(freightRate10k ?? 0) + 5_000n) / 10_000n);
+  if (freightMinor !== null && !Number.isSafeInteger(freightMinor)) return fail(400, "invalid_input", "El importe de envío convertido es demasiado alto.");
+  const useLegacy = "keepLegacyFreight" in input && input.keepLegacyFreight && freightUsdMinor === null;
+  const costs = { ...(useLegacy ? {} : { freightMinor, freightUsdMinor, freightRate10k }), customsMinor: input.customsMinor };
   return db.transaction(async (tx) => {
     await lockKey(tx, `shipment:${shipmentId}`);
     const purchases = await tx.selectDistinct({ id: costPurchaseItems.purchaseId }).from(importParcels)
@@ -272,7 +290,7 @@ export async function listShipments(db: Db) {
 export async function shipmentPurchaseContents(db: Db) {
   return db.select({
     shipmentId: importParcels.shipmentId, purchaseId: costPurchaseItems.purchaseId, itemId: costPurchaseItems.id, allocationId: importAllocations.id,
-    quantity: importParcels.quantity, destination: importAllocations.destination, missing: importParcels.missing, damaged: importParcels.damaged,
+    quantity: importParcels.quantity, accepted: importParcels.accepted, destination: importAllocations.destination, missing: importParcels.missing, damaged: importParcels.damaged,
   }).from(importParcels).innerJoin(importAllocations, eq(importParcels.allocationId, importAllocations.id))
     .innerJoin(costPurchaseItems, eq(importAllocations.itemId, costPurchaseItems.id));
 }

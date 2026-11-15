@@ -16,7 +16,8 @@ import { registerExpense } from "@/features/contabilidad/service";
 import { advanceFromFacts, lineProgress, sha, trackLock } from "@/features/pedidos/service";
 import { rank, type TrackKind } from "@/features/pedidos/etapas";
 import { SaleError } from "@/features/sales/errors";
-import { moveStockInTransaction } from "@/features/sales/service";
+import { getEffectiveRate } from "@/features/fx/service";
+import { moveStockInTransaction, newSaleId } from "@/features/sales/service";
 
 const id = z.number().int().positive();
 const ref = z.string().trim().min(1).max(80);
@@ -69,7 +70,10 @@ export async function saveDestination(db: Db, body: unknown) {
     const existing = await tx.select().from(importAllocations).where(eq(importAllocations.itemId, item.id));
     const before = existing.find((a) => a.id === v.id);
     if (v.id && !before) return missing("La asignación no existe.");
-    if (before) await assertUnshipped(tx, before.id);
+    if (before) {
+      await assertEditableDestination(tx, before.saleLineId);
+      await assertUnshipped(tx, before.id);
+    }
     const matching = existing.find((a) => a.id !== v.id && a.destination === v.destination && a.orderLineId === (v.orderLineId ?? null) && a.saleLineId === (v.saleLineId ?? null));
     if (matching) {
       if (!before && matching.quantity === v.quantity) return { id: matching.id, replayed: true };
@@ -97,9 +101,9 @@ export async function saveDestination(db: Db, body: unknown) {
     }
     if (saleLineId) {
       await lockKey(tx, `import-sale-line:${saleLineId}`);
-      const [row] = await tx.select({ line: saleLines, status: sales.status }).from(saleLines).innerJoin(sales, eq(sales.id, saleLines.saleId))
+      const [row] = await tx.select({ line: saleLines, status: sales.status, imported: sales.stockFromImport }).from(saleLines).innerJoin(sales, eq(sales.id, saleLines.saleId))
         .where(eq(saleLines.id, saleLineId));
-      if (!row || row.status !== "registrada" || row.line.productId !== item.productId) return conflict("Elegí una venta vigente del mismo producto.");
+      if (!row || row.imported || row.status !== "registrada" || row.line.productId !== item.productId) return conflict("Elegí una venta vigente del mismo producto.");
       const [used] = await tx.select({ n: sql<number>`coalesce(sum(${importAllocations.quantity}),0)::int` }).from(importAllocations)
         .where(and(eq(importAllocations.saleLineId, saleLineId), v.id ? ne(importAllocations.id, v.id) : undefined));
       const [sameOrder] = await tx.select({ n: sql<number>`coalesce(sum(${importAllocations.quantity}),0)::int` }).from(inquirySales)
@@ -109,13 +113,69 @@ export async function saveDestination(db: Db, body: unknown) {
       if (used.n + sameOrder.n + v.quantity > row.line.quantity) return conflict("La venta ya tiene unidades asignadas.");
     }
     const fields = { itemId: item.id, destination: v.destination, quantity: v.quantity, orderLineId, saleLineId,
-      visibility: before?.destination === v.destination ? before.visibility : "privado",
+      visibility: before?.destination === v.destination ? before.visibility : v.destination === "reventa" ? "proximamente" : "privado",
       offerMinor: before?.destination === v.destination ? before.offerMinor : null };
     const [saved] = before
       ? await tx.update(importAllocations).set(fields).where(eq(importAllocations.id, before.id)).returning()
       : await tx.insert(importAllocations).values(fields).returning();
     return { id: saved.id };
   });
+}
+
+const CustomerSale = z.object({
+  purchaseId: ref,
+  customerContact: z.string().trim().min(2, "Ingresá el nombre o contacto del cliente.").max(150),
+  items: z.array(z.object({ itemId: id, quantity: qty.positive(), unitPriceMinor: z.number().int().positive().max(100_000_000_000) })).min(1).max(100),
+  idempotencyKey: key,
+});
+
+export async function createImportCustomerSale(db: Db, body: unknown, actor: Actor, now = Date.now()) {
+  const v = parse(CustomerSale, body);
+  const selected = [...v.items].sort((a, b) => a.itemId - b.itemId);
+  if (new Set(selected.map((line) => line.itemId)).size !== selected.length) return conflict("Cargá una sola línea por artículo de la compra.");
+  const totalMinor = selected.reduce((sum, line) => sum + line.quantity * line.unitPriceMinor, 0);
+  if (!Number.isSafeInteger(totalMinor) || totalMinor > 30_000_000_000_000) return conflict("Revisá el total de la venta.");
+  const contentHash = sha(JSON.stringify([v.purchaseId, v.customerContact, selected]));
+  const fx = await getEffectiveRate(db, now);
+  return db.transaction(async (tx) => {
+    await lockKey(tx, `sale:${v.idempotencyKey}`);
+    const [previous] = await tx.select({ id: sales.id, hash: sales.contentHash }).from(sales).where(eq(sales.idempotencyKey, v.idempotencyKey));
+    if (previous) {
+      if (previous.hash !== contentHash) return conflict("Ya existe otra venta con esta operación.");
+      return { id: previous.id, replayed: true };
+    }
+    const p = await purchase(tx, v.purchaseId);
+    if (!p.managedImport || p.status !== "borrador") return conflict("Registrá el destino en una compra de importación con costos abiertos.");
+    const items = await tx.select().from(costPurchaseItems).where(eq(costPurchaseItems.purchaseId, p.id));
+    const allocations = await tx.select().from(importAllocations).where(inArray(importAllocations.itemId, items.map((item) => item.id)));
+    const saleId = newSaleId();
+    await tx.insert(sales).values({
+      id: saleId, idempotencyKey: v.idempotencyKey, contentHash, totalMinor, customerContact: v.customerContact,
+      stockFromImport: true, paymentMethod: "pendiente", status: "agendada", fxRate10k: fx.rate10k,
+      createdAt: now, createdByUserId: actor.id, createdByEmail: actor.email,
+    });
+    for (const line of selected) {
+      const item = items.find((candidate) => candidate.id === line.itemId);
+      if (!item) return missing("Uno de los artículos no pertenece a esta compra.");
+      const product = catalog.products.find((candidate) => candidate.id === item.productId);
+      if (!product) return missing("Uno de los productos ya no figura en el catálogo.");
+      const taken = allocations.filter((a) => a.itemId === item.id).reduce((sum, a) => sum + a.quantity, 0);
+      if (line.quantity > item.quantity - taken) return conflict(`Hay ${item.quantity - taken} unidades de «${product.title}» libres para asignar.`);
+      const [saleLine] = await tx.insert(saleLines).values({
+        saleId, productId: product.id, sku: product.sku, title: product.title, language: product.language,
+        quantity: line.quantity, unitPriceMinor: line.unitPriceMinor, lineTotalMinor: line.quantity * line.unitPriceMinor, baseCurrency: "ARS",
+      }).returning({ id: saleLines.id });
+      await tx.insert(importAllocations).values({ itemId: item.id, destination: "vendido", saleLineId: saleLine.id, quantity: line.quantity });
+    }
+    return { id: saleId, replayed: false };
+  });
+}
+
+async function assertEditableDestination(tx: Tx, saleLineId: number | null) {
+  if (saleLineId === null) return;
+  const [row] = await tx.select({ imported: sales.stockFromImport }).from(sales)
+    .innerJoin(saleLines, eq(sales.id, saleLines.saleId)).where(eq(saleLines.id, saleLineId));
+  if (row?.imported) return conflict("Esta asignación pertenece a una venta de importación. Anulá la venta para liberar las unidades.");
 }
 
 async function isSoldOrder(tx: Tx, inquiryId: string, agreedMinor: number | null) {
@@ -144,6 +204,7 @@ export async function removeDestination(db: Db, body: unknown) {
   return db.transaction(async (tx) => {
     const { p, a } = await allocation(tx, v.allocationId);
     if (p.status !== "borrador") return conflict("El costo de esta compra ya se cerró.");
+    await assertEditableDestination(tx, a.saleLineId);
     await assertUnshipped(tx, a.id);
     await tx.delete(importAllocations).where(eq(importAllocations.id, a.id));
     return { changed: true };
@@ -319,7 +380,7 @@ export async function releaseDueImportStock(db: Db, now = Date.now()) {
   }
 }
 
-export async function receiveParcel(db: Db, body: unknown, actor: Actor, now = Date.now()) {
+export async function receiveParcel(db: Db | Tx, body: unknown, actor: Actor, now = Date.now()) {
   const v = parse(Receipt, body);
   return db.transaction(async (tx) => {
     await lockKey(tx, `import-receipt:${v.idempotencyKey}`);
@@ -359,7 +420,7 @@ export async function receiveParcel(db: Db, body: unknown, actor: Actor, now = D
     const stockDelta = releasedStock - parcel.releasedStock;
     if (stockDelta) {
       const common = { productId: item.productId, reason: `Recepción ${p.id} / ${sh.id}: ${v.reason}`, idempotencyKey: sha(`import:${v.idempotencyKey}`) };
-      await moveStockInTransaction(tx, stockDelta > 0 ? { ...common, kind: "entrada", quantity: stockDelta } : { ...common, kind: "ajuste", newQuantity: 0 }, actor, now, stockDelta < 0 ? stockDelta : undefined, sh.availableAt !== null);
+      await moveStockInTransaction(tx, stockDelta > 0 ? { ...common, kind: "entrada", quantity: stockDelta } : { ...common, kind: "ajuste", newQuantity: 0 }, actor, now, stockDelta < 0 ? stockDelta : undefined, true);
     }
     const revision = parcel.revision + 1;
     await tx.update(importParcels).set({ accepted: v.accepted, releasedStock, damaged: v.damaged, missing: v.missing, revision }).where(eq(importParcels.id, parcel.id));
@@ -375,6 +436,33 @@ export async function receiveParcel(db: Db, body: unknown, actor: Actor, now = D
       }
     }
     return { replayed: false };
+  });
+}
+
+export async function receiveShipment(db: Db, shipmentId: string, actor: Actor, now = Date.now()) {
+  return db.transaction(async (tx) => {
+    await lockKey(tx, `shipment:${shipmentId}`);
+    const [shipment] = await tx.select().from(shipments).where(eq(shipments.id, shipmentId));
+    if (!shipment || shipment.status !== "recibido_argentina") return conflict("Primero registrá la llegada del despacho a Argentina.");
+    const items = await tx.selectDistinct({ purchaseId: costPurchaseItems.purchaseId, productId: costPurchaseItems.productId, orderLineId: importAllocations.orderLineId }).from(importParcels)
+      .innerJoin(importAllocations, eq(importAllocations.id, importParcels.allocationId))
+      .innerJoin(costPurchaseItems, eq(costPurchaseItems.id, importAllocations.itemId)).where(eq(importParcels.shipmentId, shipmentId));
+    for (const purchaseId of [...new Set(items.map((item) => item.purchaseId))].sort()) await lockKey(tx, `cost-purchase:${purchaseId}`);
+    const orderIds = items.flatMap((item) => item.orderLineId === null ? [] : [item.orderLineId]);
+    const orders = await tx.selectDistinct({ id: inquiryLines.inquiryId }).from(inquiryLines).where(inArray(inquiryLines.id, orderIds)).orderBy(inquiryLines.inquiryId);
+    for (const order of orders) await trackLock(tx, order.id);
+    for (const productId of [...new Set(items.map((item) => item.productId))].sort()) await lockKey(tx, `override:${productId}`);
+    const rows = await tx.select().from(importParcels).where(eq(importParcels.shipmentId, shipmentId)).orderBy(importParcels.id);
+    // Un envío puede tener varios artículos o artículos repetidos de distintas compras.
+    const pending = rows.filter((row) => row.accepted + row.missing + row.damaged < row.quantity);
+    for (const row of pending) {
+      await receiveParcel(tx, {
+        parcelId: row.id, accepted: row.quantity - row.missing - row.damaged, missing: row.missing, damaged: row.damaged,
+        expectedRevision: row.revision, occurredAt: Math.max(now, shipment.arrivedAt ?? 0),
+        reason: "Recepción del despacho", idempotencyKey: sha(`shipment-receipt:${row.id}:${row.revision}`),
+      }, actor, now);
+    }
+    return { changed: pending.length > 0 };
   });
 }
 
@@ -419,9 +507,9 @@ export async function linkableLines(db: Db, productIds: string[]) {
   const orders = await db.select({ id: inquiryLines.id, productId: inquiryLines.productId, ref: inquiryLines.inquiryId, quantity: inquiryLines.quantity, name: inquiries.contactName, fulfillment: inquiryLines.fulfillment })
     .from(inquiryLines).innerJoin(orderTracks, eq(inquiryLines.inquiryId, orderTracks.inquiryId)).innerJoin(inquiries, eq(inquiryLines.inquiryId, inquiries.id))
     .where(and(inArray(inquiryLines.productId, productIds), isNull(orderTracks.cancelledAt)));
-  const sold = await db.select({ id: saleLines.id, productId: saleLines.productId, ref: saleLines.saleId, quantity: saleLines.quantity })
+  const sold = await db.select({ id: saleLines.id, productId: saleLines.productId, ref: saleLines.saleId, quantity: saleLines.quantity, imported: sales.stockFromImport, status: sales.status })
     .from(saleLines).innerJoin(sales, eq(saleLines.saleId, sales.id))
-    .where(and(inArray(saleLines.productId, productIds), eq(sales.status, "registrada")));
+    .where(and(inArray(saleLines.productId, productIds), or(eq(sales.status, "registrada"), and(eq(sales.status, "agendada"), eq(sales.stockFromImport, true)))));
   return { orders, sold };
 }
 
@@ -462,7 +550,7 @@ export async function incomingProducts(db: Db, productId?: string, now = Date.no
     .from(importAllocations).innerJoin(costPurchaseItems, eq(importAllocations.itemId, costPurchaseItems.id))
     .innerJoin(costPurchases, eq(costPurchaseItems.purchaseId, costPurchases.id))
     .where(and(eq(importAllocations.destination, "reventa"), or(eq(importAllocations.visibility, "proximamente"), eq(importAllocations.visibility, "preventa")),
-      sql`${costPurchases.orderedAt} is not null`, productId ? eq(costPurchaseItems.productId, productId) : undefined));
+      or(sql`${costPurchases.orderedAt} is not null`, eq(costPurchases.managedImport, true)), productId ? eq(costPurchaseItems.productId, productId) : undefined));
   const unassigned = await db.select({ productId: costPurchaseItems.productId,
     quantity: sql<number>`(${costPurchaseItems.quantity} - coalesce((select sum(a.quantity) from import_allocations a where a.item_id = ${costPurchaseItems.id}), 0))::int` })
     .from(costPurchaseItems).innerJoin(costPurchases, eq(costPurchaseItems.purchaseId, costPurchases.id))

@@ -14,7 +14,11 @@ export function ShipmentPurchasesForm({ shipmentId, purchases }: { shipmentId?: 
   const [selected, setSelected] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
   const purchaseIds = selected.filter((id) => purchases.some((p) => p.id === id));
+
+  const matching = purchases.filter((p) => `${p.supplier} ${p.reference ?? ""} ${p.id}`.toLowerCase().includes(search.trim().toLowerCase()));
+  const selectedUnits = purchases.filter((p) => purchaseIds.includes(p.id)).reduce((sum, p) => sum + p.quantity, 0);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -47,9 +51,13 @@ export function ShipmentPurchasesForm({ shipmentId, purchases }: { shipmentId?: 
         <input className="block min-h-11 w-full rounded-md border border-ink/40 bg-white px-3" required minLength={2} maxLength={80} value={label} onChange={(event) => setLabel(event.target.value)} />
       </label>}
       <p className="mt-2 text-xs text-ink/75">Se suman las unidades que todavía no están en un envío. Las que no tienen destino se asignan a reventa.</p>
+      {purchases.length > 4 && <label className="block text-sm">Buscar compras
+        <input className="block min-h-11 w-full rounded border border-ink/40 px-2" type="search" value={search} onChange={(e) => setSearch(e.target.value)} />
+      </label>}
+      {purchaseIds.length > 0 && <p className="text-sm" role="status">{purchaseIds.length} compras · {selectedUnits} unidades <button className="ml-2 underline" type="button" onClick={() => setSelected([])}>Limpiar selección</button></p>}
       <fieldset disabled={busy} className="max-h-64 divide-y divide-ink/10 overflow-y-auto">
         <legend className="sr-only">Compras disponibles</legend>
-        {purchases.map((p) => <label key={p.id} className="flex items-center gap-3 py-2 text-sm">
+        {matching.map((p) => <label key={p.id} className="flex items-center gap-3 py-2 text-sm">
           <input type="checkbox" className="h-5 w-5 shrink-0" checked={purchaseIds.includes(p.id)} onChange={(event) =>
             setSelected((old) => event.target.checked ? [...old, p.id] : old.filter((id) => id !== p.id))} />
           <span><b>{p.supplier}{p.reference && ` · ${p.reference}`}</b><br />{dateLabel.format(p.date)} · {p.quantity} u. · {p.id}</span>

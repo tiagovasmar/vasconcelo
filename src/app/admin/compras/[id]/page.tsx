@@ -3,6 +3,7 @@ import { senaFor } from "@/features/pedidos/etapas";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AdminButton, AdminForm, type FormField } from "@/components/admin-form";
+import { ImportCustomerSale } from "@/components/import-customer-sale";
 import { ImportDocumentForm } from "@/components/import-document-form";
 import { PurchaseForm } from "@/components/purchase-form";
 import { getDb } from "@/db/client";
@@ -40,6 +41,7 @@ export default async function PurchaseDetail({ params }: { params: Promise<{ id:
   const shipments = await listShipments(db);
   const holdHours = preorderHours();
   const draft = p.status === "borrador";
+  const assignable = p.items.map((item) => ({ id: item.id, title: title(item.productId), available: item.quantity - allocations.filter((a) => a.itemId === item.id).reduce((sum, a) => sum + a.quantity, 0) })).filter((item) => item.available > 0);
   const base = p.items.map((i) => itemBaseCostMinor(p, i.unitPriceOriginalMinor, i.quantity));
   const merchandise = base.reduce((n, x) => n + x, 0);
   const shares = p.expenses.map((e) => e.shares.length ? p.items.map((i) => e.shares.find((s) => s.itemId === i.id)?.shareMinor ?? 0) : expenseShares(p.items, base, e));
@@ -99,11 +101,12 @@ export default async function PurchaseDetail({ params }: { params: Promise<{ id:
       {p.managedImport && <section className={section}>
         <h2 className="text-lg font-semibold">Destinos y publicación</h2>
         <p className="text-sm text-ink/75">Asigná cada unidad. Las personales participan en el reparto de gastos y quedan fuera del costo comercial. {holdHours ? `Preventa activa: ${holdHours} h para cargar el comprobante en lotes que ya salieron.` : "La preventa queda en preparación hasta definir la vigencia de la retención y el tratamiento de transferencias tardías."}</p>
+        {draft && assignable.length > 0 && <ImportCustomerSale purchaseId={p.id} items={assignable} />}
         {p.items.map((i) => {
           const own = allocations.filter((a) => a.itemId === i.id);
           const remaining = i.quantity - own.reduce((n, a) => n + a.quantity, 0);
           const orderOptions = lines.orders.filter((l) => l.productId === i.productId).map((l) => ({ value: String(l.id), label: `${l.ref} · ${l.name ?? l.fulfillment} · ${l.quantity} u.` }));
-          const saleOptions = lines.sold.filter((l) => l.productId === i.productId).map((l) => ({ value: String(l.id), label: `${l.ref} · ${l.quantity} u.` }));
+          const saleOptions = lines.sold.filter((l) => l.productId === i.productId && !l.imported && l.status === "registrada").map((l) => ({ value: String(l.id), label: `${l.ref} · ${l.quantity} u.` }));
           const destinationFields: FormField[] = [
             { name: "destination", label: "Destino", type: "select", required: true, options: options(names) },
             { name: "quantity", label: "Unidades", type: "int", required: true },
@@ -112,14 +115,14 @@ export default async function PurchaseDetail({ params }: { params: Promise<{ id:
           ];
           return <article key={i.id} className={tile}>
             <h3 className="font-semibold">{title(i.productId)}</h3>
-            <p className="text-sm">{i.quantity} compradas · {remaining} sin destino</p>
+            <p className="text-sm">{i.quantity} compradas · {remaining} libres para reventa o asignación</p>
             {own.map((a) => {
               const assigned = parcels.filter(({ parcel }) => parcel.allocationId === a.id);
               const order = lines.orders.find((l) => l.id === a.orderLineId);
               const sale = lines.sold.find((l) => l.id === a.saleLineId);
               return <div key={a.id} className="space-y-2 rounded-lg bg-white p-3">
-                <p className="text-sm font-semibold">{a.quantity} × {names[a.destination as keyof typeof names]} {order && <Link href={`/admin/pedidos/${order.ref}`} className="underline">{order.ref}</Link>} {sale && <Link href="/admin/ventas" className="underline">{sale.ref}</Link>}</p>
-                {draft && !assigned.length && <details>
+                <p className="text-sm font-semibold">{a.quantity} × {names[a.destination as keyof typeof names]} {order && <Link href={`/admin/pedidos/${order.ref}`} className="underline">{order.ref}</Link>} {sale && <Link href={`/admin/ventas/${sale.ref}`} className="underline">{sale.ref}</Link>}</p>
+                {draft && !assigned.length && !sale?.imported && <details>
                   <summary className="cursor-pointer text-sm underline">Editar destino</summary>
                   <AdminForm endpoint={EP} fixed={{ action: "destination", itemId: i.id, id: a.id }} fields={destinationFields.map((f) => ({ ...f, defaultValue: String(a[f.name as "destination" | "quantity" | "orderLineId" | "saleLineId"] ?? "") }))} submit="Guardar destino" />
                   <div className="mt-2"><AdminButton endpoint={EP} body={{ action: "remove_destination", allocationId: a.id }} label="Quitar destino" /></div>

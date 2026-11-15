@@ -309,6 +309,7 @@ export const sales = pgTable(
     soldOn: text("sold_on"),
     scheduledFor: text("scheduled_for"),
     customerContact: text("customer_contact"),
+    stockFromImport: boolean("stock_from_import").notNull().default(false),
     receivedMinor: ms("received_minor"),
     installments: integer("installments"),
     /** Total cobrado (suma de las líneas), en centavos de ARS. */

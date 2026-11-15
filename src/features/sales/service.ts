@@ -4,7 +4,7 @@ import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { Db } from "@/db/client";
 import { lockKey } from "@/db/lock";
-import { inquiries, inquiryLines, inquirySales, productOverrides, saleLines, sales, stockMovements } from "@/db/schema";
+import { importAllocations, inquiries, inquiryLines, inquirySales, productOverrides, saleLines, sales, stockMovements } from "@/db/schema";
 import { discountKindOf } from "@/features/promos/combo";
 import { assertConvertible, attachSale, closeLinkOnVoid, lockInquiry } from "@/features/consultas/links";
 import { SaleError } from "./errors";
@@ -75,7 +75,7 @@ export type SalePreview = { lines: PreviewLine[]; totalMinor: number; ok: boolea
 export type SaleView = {
   id: string; status: string; paymentMethod: string; paymentLabel: string; note: string | null; totalMinor: number; createdAt: number; createdByEmail: string;
   soldOn: string | null; receivedMinor: number | null; installments: number | null;
-  scheduledFor?: string | null; customerContact?: string | null;
+  scheduledFor?: string | null; customerContact?: string | null; stockFromImport?: boolean;
   voidedAt: number | null; voidedByEmail: string | null; voidReason: string | null;
   /** Consulta de origen (y su persona), si la venta salió de una consulta o se vinculó a una. */
   inquiry?: { id: string; name: string | null; kind: string; active: boolean } | null;
@@ -165,7 +165,7 @@ function toView(s: typeof sales.$inferSelect, lines: Array<typeof saleLines.$inf
   return {
     id: s.id, status: s.status, paymentMethod: s.paymentMethod, paymentLabel: paymentLabelOf(s.paymentMethod), note: s.note, totalMinor: s.totalMinor, createdAt: s.createdAt, createdByEmail: s.createdByEmail,
     soldOn: s.soldOn, receivedMinor: s.receivedMinor, installments: s.installments,
-    scheduledFor: s.scheduledFor, customerContact: s.customerContact,
+    scheduledFor: s.scheduledFor, customerContact: s.customerContact, stockFromImport: s.stockFromImport,
     voidedAt: s.voidedAt, voidedByEmail: s.voidedByEmail, voidReason: s.voidReason,
     lines: lines.map((l) => ({ productId: l.productId, sku: l.sku, title: l.title, language: l.language as Language, quantity: l.quantity, unitPriceMinor: l.unitPriceMinor, catalogPriceMinor: l.catalogPriceMinor, catalogPriceUsdMinor: l.catalogPriceUsdMinor, lineTotalMinor: l.lineTotalMinor, discountMinor: l.discountMinor, discountKind: l.discountKind, baseCurrency: l.baseCurrency, packSize: l.packSize })),
   };
@@ -261,9 +261,16 @@ export async function completeScheduledSale(db: Db, saleId: string, body: unknow
     await lockKey(tx, `sale-void:${saleId}`);
     const [sale] = await tx.select().from(sales).where(eq(sales.id, saleId));
     if (!sale) throw new SaleError(404, "not_found", "La entrega no existe.");
-    if (sale.status === "registrada" && sale.scheduledFor && sale.soldOn === soldOn && sale.paymentMethod === paymentMethod &&
+    if (sale.status === "registrada" && (sale.scheduledFor || sale.stockFromImport) && sale.soldOn === soldOn && sale.paymentMethod === paymentMethod &&
         sale.receivedMinor === (receivedMinor ?? null) && sale.installments === (installments ?? null)) return { replayed: true };
     if (sale.status !== "agendada") throw new SaleError(409, "order_rule", "La entrega ya se cerró.");
+    if (sale.stockFromImport) {
+      const [pending] = await tx.select({ id: saleLines.id }).from(saleLines).where(and(eq(saleLines.saleId, sale.id), sql`
+        coalesce((select sum(p.accepted) from import_allocations a join import_parcels p on p.allocation_id = a.id
+          where a.sale_line_id = ${saleLines.id}), 0) < ${saleLines.quantity}
+      `)).limit(1);
+      if (pending) throw new SaleError(409, "order_rule", "Confirmá la recepción de todas las unidades de esta venta antes de cerrarla.");
+    }
     validatePayment(parsed.data, sale.totalMinor);
     await tx.update(sales).set({ status: "registrada", soldOn, paymentMethod, receivedMinor: receivedMinor ?? null, installments: installments ?? null }).where(eq(sales.id, sale.id));
     await snapshotSaleCosts(tx, sale.id, now, sale.fxRate10k);
@@ -314,9 +321,14 @@ async function voidOnce(db: Db, saleId: string, reason: string, actor: Actor, no
     if (!s) throw new SaleError(404, "not_found", "La venta no existe.");
     if (s.status === "anulada") throw new SaleError(409, "already_voided", "Esa venta ya está anulada.");
     const lines = await tx.select().from(saleLines).where(eq(saleLines.saleId, saleId)).orderBy(saleLines.productId);
-    for (const l of lines) await lockKey(tx, `override:${l.productId}`);
-    const rows = new Map((await tx.select().from(productOverrides).where(inArray(productOverrides.productId, lines.map((l) => l.productId)))).map((r) => [r.productId, r]));
-    for (const l of lines) {
+    if (s.stockFromImport) {
+      await tx.update(importAllocations).set({ destination: "reventa", saleLineId: null, visibility: "proximamente" })
+        .where(inArray(importAllocations.saleLineId, lines.map((line) => line.id)));
+    }
+    const stockLines = s.stockFromImport ? [] : lines;
+    for (const l of stockLines) await lockKey(tx, `override:${l.productId}`);
+    const rows = new Map((await tx.select().from(productOverrides).where(inArray(productOverrides.productId, stockLines.map((l) => l.productId)))).map((r) => [r.productId, r]));
+    for (const l of stockLines) {
       const p = catalog.products.find((x) => x.id === l.productId);
       if (!p) throw new SaleError(404, "not_found", `El producto ${l.sku} ya no está en el catálogo.`);
       const row = rows.get(p.id);
@@ -326,7 +338,7 @@ async function voidOnce(db: Db, saleId: string, reason: string, actor: Actor, no
       await tx.insert(stockMovements).values({ productId: p.id, sku: p.sku, title: l.title, kind: "anulacion", delta: l.quantity, stockBefore: stock, stockAfter: stock + l.quantity, reason: `Anulación de ${saleId}: ${reason}`, saleId, userId: actor.id, userEmail: actor.email, createdAt: w.version });
     }
     await tx.update(sales).set({ status: "anulada", voidedAt: now, voidedByEmail: actor.email, voidReason: reason }).where(eq(sales.id, saleId));
-    if (link) await closeLinkOnVoid(tx, link, { saleId, reason, stockReturned: lines.length > 0, actor, now });
+    if (link) await closeLinkOnVoid(tx, link, { saleId, reason, stockReturned: stockLines.length > 0, actor, now });
   });
 }
 

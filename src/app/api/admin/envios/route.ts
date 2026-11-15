@@ -1,4 +1,4 @@
-import { addPurchasesToShipment } from "@/features/importaciones/service";
+import { addPurchasesToShipment, receiveShipment } from "@/features/importaciones/service";
 import { getDb } from "@/db/client";
 import { flushQuietly } from "@/features/avisos/outbox";
 import { createShipment, removeShipmentItem, scheduleShipmentStock, setShipmentItem, updateShipmentCosts, updateShipmentCustomsPayment, updateShipmentMetadata, updateShipmentStatus } from "@/features/pedidos/envios";
@@ -18,6 +18,7 @@ export async function POST(req: Request) {
     const actor = { id: user.id, email: user.email };
     const out = await (async (): Promise<unknown> => {
       switch (b.action) {
+        case "receive_all": return receiveShipment(db, String(b.shipmentId ?? ""), actor);
         case "create": return createShipment(db, b, actor);
         case "create_dispatch": return db.transaction(async (tx) => {
           const dispatch = await createShipment(tx, b, actor);

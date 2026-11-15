@@ -6,6 +6,7 @@ import { getDb } from "@/db/client";
 import { when } from "@/features/consultas/ui";
 import { expenseShares, itemBaseCostMinor, listPurchases } from "@/features/costos/service";
 import { listAllProducts } from "@/features/catalog/data";
+import { formatUSD } from "@/features/fx/convert";
 import { formatARS } from "@/lib/format";
 import { listShipments, shippableLines, shipmentPurchaseContents } from "@/features/pedidos/envios";
 import { SHIPMENT_LABEL, SHIPMENT_STATUSES, shipmentRank, type ShipmentStatus } from "@/features/pedidos/etapas";
@@ -100,6 +101,12 @@ export default async function AdminEnvios() {
                 { name: "availableAt", label: "Disponible para comprar desde", type: "date", defaultValue: s.availableAt ? dateInput.format(s.availableAt) : "", help: "Se habilitan las unidades para reventa revisadas en buen estado. Sin fecha, se habilitan al confirmar la recepción." },
               ]} submit="Guardar disponibilidad" />
             </details>}
+            {s.status === "recibido_argentina" && rows.some((row) => row.accepted + row.missing + row.damaged < row.quantity) && <div className="mt-3">
+              <AdminButton endpoint={EP} body={{ action: "receive_all", shipmentId: s.id }}
+                label="Confirmar que llegó lo pendiente en buen estado"
+                ok="Recepción guardada."
+                confirmText="¿Confirmás que todas las unidades pendientes llegaron en buen estado? Si hubo faltantes, registralos en la compra primero." />
+            </div>}
             {canDispatch && <details className="mt-3 text-sm">
               <summary className="cursor-pointer font-semibold">Registrar despacho internacional</summary>
               <AdminForm endpoint={EP} fixed={{ action: "status", shipmentId: s.id, status: "en_transito" }} fields={[
@@ -149,7 +156,7 @@ export default async function AdminEnvios() {
               <dl className="grid gap-3 text-sm sm:grid-cols-3">
                 {[
                   ["Compras y comisiones", formatARS(Math.round(totals.purchase))],
-                  ["Envío", s.freightMinor !== null || freight > 0 ? formatARS(freight) : "Pendiente"],
+                  ["Envío", s.freightUsdMinor !== null ? `${formatUSD(s.freightUsdMinor)} · ${formatARS(freight)}` : s.freightMinor !== null || freight > 0 ? formatARS(freight) : "Pendiente"],
                   ["Aduana", s.customsMinor !== null || customs > 0 ? formatARS(customs) : "Pendiente"],
                   [costsPending ? "Costo conocido" : "Costo total", formatARS(totalCost)],
                   [totals.unpriced ? "Ventas parciales estimadas (−10%)" : "Ventas estimadas (−10%)", estimateAvailable ? formatARS(estimated) : "Pendiente"],
@@ -159,8 +166,9 @@ export default async function AdminEnvios() {
               <p className="text-xs text-ink/75">Proyección para {totals.units} unidades de reventa a precio minorista vigente. {totals.unpriced > 0 && `${totals.unpriced} unidades sin precio en pesos.`}</p>
               <details>
                 <summary className="cursor-pointer text-sm font-semibold">Cargar envío y aduana</summary>
-                <AdminForm key={`${s.freightMinor}/${s.customsMinor}`} endpoint={EP} fixed={{ action: "costs", shipmentId: s.id }} fields={[
-                  { name: "freightMinor", label: "Costo de envío (ARS)", type: "pesos", defaultValue: amount(s.freightMinor) },
+                <AdminForm key={`${s.freightUsdMinor}/${s.freightRate10k}/${s.customsMinor}`} endpoint={EP} fixed={{ action: "costs", shipmentId: s.id, keepLegacyFreight: s.freightUsdMinor === null && s.freightMinor !== null }} fields={[
+                  { name: "freightUsdMinor", label: "Costo de envío (USD)", type: "usd", defaultValue: amount(s.freightUsdMinor), help: s.freightUsdMinor === null && s.freightMinor !== null ? `Envío anterior guardado en pesos: ${formatARS(s.freightMinor)}.` : undefined },
+                  { name: "freightRateText", label: "Cotización del envío (ARS por USD)", defaultValue: s.freightRate10k === null ? "" : String(s.freightRate10k / 10_000), help: "Si la dejás vacía se usa la cotización vigente de la tienda." },
                   { name: "customsMinor", label: "Costo de aduana (ARS)", type: "pesos", defaultValue: amount(s.customsMinor) },
                 ]} submit="Guardar costos del despacho" />
               </details>

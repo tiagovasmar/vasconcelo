@@ -8,6 +8,7 @@ import { commercialState } from "@/features/catalog/commercial";
 import { adminProducts } from "@/features/catalog/overrides";
 import { getLowStock, isLowStock } from "@/features/admin/settings";
 import { AdminLowStockSettings } from "@/components/admin-low-stock";
+import { incomingProducts, releaseDueImportStock } from "@/features/importaciones/service";
 import { currentRate } from "@/features/fx/service";
 import { hasAsset } from "@/components/slot";
 import { requireAdmin } from "@/server/admin";
@@ -30,6 +31,8 @@ export default async function Admin({ searchParams }: { searchParams: Promise<Re
   const coleccion = typeof sp.coleccion === "string" ? sp.coleccion.slice(0, 80) : "";
 
   const db = getDb();
+  await releaseDueImportStock(db);
+  const incoming = await incomingProducts(db);
   const fx = await currentRate(db);
   const low = await getLowStock(db);
   const expOf = (ids: string[]) => ids.map((id) => catalog.expansions.find((e) => e.id === id)).filter((e) => e !== undefined);
@@ -41,7 +44,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<Re
     return {
       id: p.id, sku: p.sku, title: p.title, expansion: exps.map((e) => e.name).join(", ") || "—", kind: kindLabel[p.kind], language: languageLabel[p.language], lang: p.language, game: p.game ?? "pokemon", state,
       lowStock: state !== "retired" && state !== "hidden" && state !== "draft" && isLowStock(p.stockQuantity, Boolean(p.orderOnly), low.threshold), kindId: p.kind, expIds: p.expansionIds,
-      usdMinor: p.priceUsdMinor ?? null, arsMinor: p.priceMinor, priceBase: base.priceBase ?? "usd", packSize: p.packSize ?? null, stock: p.stockQuantity, orderOnly: Boolean(p.orderOnly), version: a.version, overridden: a.overridden,
+      usdMinor: p.priceUsdMinor ?? null, arsMinor: p.priceMinor, priceBase: base.priceBase ?? "usd", packSize: p.packSize ?? null, stock: p.stockQuantity, incoming: incoming.get(p.id)?.quantity ?? 0, orderOnly: Boolean(p.orderOnly), version: a.version, overridden: a.overridden,
       thumb: p.images[0] && hasAsset(p.images[0].src) ? thumbOf(p.images[0].src) : null, slug: p.slug,
       search: norm(`${p.title} ${p.originalTitle ?? ""} ${p.sku} ${p.id} ${exps.map((e) => `${e.name} ${e.code ?? ""}`).join(" ")}`),
     };

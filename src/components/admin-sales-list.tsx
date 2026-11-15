@@ -47,10 +47,11 @@ export function AdminSalesList({ sales }: { sales: SaleView[] }) {
             <p className="font-mono text-sm font-semibold">{s.id}{s.status === "anulada" && <span className="ml-2 rounded bg-vermilion px-2 py-0.5 font-sans text-xs font-bold text-white">ANULADA</span>}</p>
             <p className="text-sm text-ink/70">{s.soldOn ? s.soldOn.split("-").reverse().join("/") : when(s.createdAt)} · {s.createdByEmail}</p>
           </div>
+          {s.stockFromImport && <p className="mt-1 text-sm font-semibold">Venta de importación{s.customerContact && ` · ${s.customerContact}`}</p>}
           {s.scheduledFor && <p className="mt-1 text-sm font-semibold">{s.status === "agendada" ? "Entrega agendada" : "Entrega acordada"} · {s.scheduledFor.split("-").reverse().join("/")}{s.customerContact && ` · ${s.customerContact}`}</p>}
           {s.inquiry && <p className="mt-1 text-sm" data-testid="venta-origen">Cliente: <b>{s.inquiry.name ?? "Sin nombre"}</b> · consulta <Link href={`/admin/consultas/${s.inquiry.id}`} className="font-mono underline underline-offset-4">{s.inquiry.id}</Link>{s.inquiry.kind === "vinculada" ? " (vinculada)" : ""}</p>}
           <ul className="mt-2 text-sm">
-            {s.lines.map((l) => <li key={l.productId} className="flex justify-between gap-3"><span>{l.quantity} × {l.title}{l.packSize && !/pack de/i.test(l.title) ? ` (pack de ${l.packSize})` : ""} <span className="font-mono text-xs text-ink/70">{l.sku}</span></span><span className="shrink-0 text-right">{formatARS(l.unitPriceMinor)} {l.packSize ? "por pack" : "c/u"}{l.discountMinor > 0 && <span className="block text-xs font-semibold text-emerald" data-testid={`venta-desc-${l.productId}`}>−{formatARS(l.discountMinor)} ({l.discountKind === "combo" ? "combo caja + sobres" : l.discountKind === "transferencia" ? "transferencia" : l.discountKind === "mixto" ? "combo y transferencia" : "descuento"})</span>}</span></li>)}
+            {s.lines.map((l, index) => <li key={`${l.productId}-${index}`} className="flex justify-between gap-3"><span>{l.quantity} × {l.title}{l.packSize && !/pack de/i.test(l.title) ? ` (pack de ${l.packSize})` : ""} <span className="font-mono text-xs text-ink/70">{l.sku}</span></span><span className="shrink-0 text-right">{formatARS(l.unitPriceMinor)} {l.packSize ? "por pack" : "c/u"}{l.discountMinor > 0 && <span className="block text-xs font-semibold text-emerald" data-testid={`venta-desc-${l.productId}`}>−{formatARS(l.discountMinor)} ({l.discountKind === "combo" ? "combo caja + sobres" : l.discountKind === "transferencia" ? "transferencia" : l.discountKind === "mixto" ? "combo y transferencia" : "descuento"})</span>}</span></li>)}
           </ul>
           <p className="mt-2 flex flex-wrap items-baseline justify-between gap-2 border-t border-ink/10 pt-2 text-sm"><span>{s.status === "agendada" || s.paymentMethod === "pendiente" ? "Cobro pendiente" : s.paymentLabel}{s.note ? ` · ${s.note}` : ""}</span><b className="text-lg">{formatARS(s.totalMinor)}</b></p>
           {s.receivedMinor !== null && <p className="mt-1 text-sm">Neto recibido: <b>{formatARS(s.receivedMinor)}</b>{s.installments && ` · ${s.installments} cuotas`}</p>}
@@ -64,12 +65,12 @@ export function AdminSalesList({ sales }: { sales: SaleView[] }) {
             ]} submit="Confirmar cobro" ok="Venta confirmada." />
           </details>}
           {s.status === "anulada" ? (
-            <p className="mt-1 text-xs text-vermilion">Anulada el {s.voidedAt ? when(s.voidedAt) : ""} por {s.voidedByEmail}: {s.voidReason}. El stock se devolvió.</p>
+            <p className="mt-1 text-xs text-vermilion">Anulada el {s.voidedAt ? when(s.voidedAt) : ""} por {s.voidedByEmail}: {s.voidReason}. {s.stockFromImport ? "Se liberaron las unidades de la importación." : "El stock se devolvió."}</p>
           ) : open === s.id ? (
             <div className="mt-3 rounded-lg bg-paper p-3">
               <label htmlFor={`motivo-${s.id}`} className="block text-[.7rem] font-bold uppercase tracking-[.12em] text-ink/70">Motivo de la anulación</label>
               <input id={`motivo-${s.id}`} value={reason} onChange={(e) => setReason(e.target.value)} maxLength={200} autoComplete="off" className="mt-1 block min-h-11 w-full rounded-md border border-ink/40 bg-white px-3 text-base" data-testid="motivo-anulacion" />
-              <p className="mt-1 text-xs text-ink/65">Devuelve el stock de esta venta y la deja marcada como anulada. No se puede deshacer.</p>
+              <p className="mt-1 text-xs text-ink/65">{s.stockFromImport ? "Libera las unidades reservadas en la importación." : "Devuelve el stock de esta venta."} La venta queda anulada.</p>
               {error && <p role="alert" className="mt-1 text-sm font-semibold text-vermilion">{error}</p>}
               <div className="mt-2 flex gap-3">
                 <button type="button" onClick={() => anular(s.id)} disabled={busy} className="min-h-11 rounded-lg bg-vermilion px-4 text-sm font-semibold text-white disabled:opacity-50" data-testid="confirmar-anulacion">{busy ? "Anulando…" : s.status === "agendada" ? "Cancelar entrega" : "Anular venta"}</button>
@@ -77,7 +78,7 @@ export function AdminSalesList({ sales }: { sales: SaleView[] }) {
               </div>
             </div>
           ) : (
-            <button type="button" onClick={() => { setOpen(s.id); setError(""); }} className="mt-2 min-h-11 text-sm font-semibold underline hover:text-vermilion" data-testid={`anular-${s.id}`}>{s.status === "agendada" ? "Cancelar y devolver stock…" : "Anular esta venta…"}</button>
+            <button type="button" onClick={() => { setOpen(s.id); setError(""); }} className="mt-2 min-h-11 text-sm font-semibold underline hover:text-vermilion" data-testid={`anular-${s.id}`}>{s.status === "agendada" ? (s.stockFromImport ? "Cancelar y liberar unidades…" : "Cancelar y devolver stock…") : "Anular esta venta…"}</button>
           )}
         </li>
       ))}

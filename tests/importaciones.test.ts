@@ -1,16 +1,16 @@
 import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { catalog } from "@/content/catalog";
-import { appliedCosts, costPurchaseItems, importParcels, importReservations, orderTracks, saleLines, stockMovements, user } from "@/db/schema";
+import { appliedCosts, costPurchaseItems, importParcels, importReservations, orderTracks, productOverrides, saleLines, stockMovements, user } from "@/db/schema";
 import { loadOverrides } from "@/features/catalog/overrides";
 import { accountingOverview } from "@/features/contabilidad/service";
 import { averageCosts, confirmPurchase, createPurchase, listPurchases } from "@/features/costos/service";
 import { preorderOffers, releaseReservation, requestPreorder } from "@/features/importaciones/preorders";
-import { addPurchasesToShipment, incomingProducts, markOrdered, payPurchase, receiveParcel, releaseDueImportStock, saveDestination, setParcel, setPublication, shippablePurchases } from "@/features/importaciones/service";
+import { addPurchasesToShipment, createImportCustomerSale, receiveShipment, incomingProducts, markOrdered, payPurchase, receiveParcel, releaseDueImportStock, saveDestination, setParcel, setPublication, shippablePurchases } from "@/features/importaciones/service";
 import { createShipment, listShipments, scheduleShipmentStock, updateShipmentCosts, updateShipmentCustomsPayment, updateShipmentStatus } from "@/features/pedidos/envios";
 import { confirmPayment, uploadReceipt } from "@/features/pedidos/pagos";
 import { customerOrderView, lineProgress } from "@/features/pedidos/service";
-import { registerSale } from "@/features/sales/service";
+import { completeScheduledSale, loadSale, registerSale, voidSale } from "@/features/sales/service";
 import type { ReceiptStore } from "@/server/receipt-store";
 import { openTestDb, type TestDb } from "./helpers/pg";
 
@@ -89,6 +89,42 @@ describe("Compras e importaciones", () => {
     await Promise.all([releaseDueImportStock(db, releaseAt), releaseDueImportStock(db, releaseAt)]);
     expect(await stock()).toBe(start + 2);
     expect((await incomingProducts(db, productId, releaseAt)).has(productId)).toBe(false);
+  });
+
+  it("vende varios artículos de una compra como una sola venta sin tocar stock disponible", async () => {
+    const before = await stock();
+    await db.insert(productOverrides).values({ productId: "ejemplo-sobre", stockQuantity: null, orderOnly: true, visible: true, updatedAt: at, updatedByEmail: actor.email });
+
+    const purchase = await createPurchase(db, {
+      ...purchaseBody(3), items: [{ ...item, quantity: 3 }, { ...item, productId: "ejemplo-sobre", quantity: 2 }],
+    }, actor, at, { managedImport: true });
+    const items = (await listPurchases(db, purchase.id))[0].items;
+    const saleBody = { purchaseId: purchase.id, customerContact: "Cliente de prueba", idempotencyKey: key(),
+      items: items.map(({ id }) => ({ itemId: id, quantity: 1, unitPriceMinor: price })) };
+    const sale = await createImportCustomerSale(db, saleBody, actor, at);
+    expect(await createImportCustomerSale(db, saleBody, actor, at)).toEqual({ id: sale.id, replayed: true });
+    expect(await loadSale(db, sale.id)).toMatchObject({ status: "agendada", stockFromImport: true, totalMinor: 2 * price, lines: [{ quantity: 1 }, { quantity: 1 }] });
+    expect(await stock()).toBe(before);
+    expect((await incomingProducts(db)).get(productId)?.quantity).toBe(2);
+    await expect(completeScheduledSale(db, sale.id, { paymentMethod: "efectivo", soldAt: at }, at)).rejects.toThrow(/recepción/i);
+
+    const sh = await shipment();
+    await addPurchasesToShipment(db, { shipmentId: sh.id, purchaseIds: [purchase.id] });
+    await updateShipmentCosts(db, sh.id, { freightUsdMinor: 1234, freightRateText: "1500", customsMinor: 5000 });
+    expect((await listShipments(db))[0]).toMatchObject({ freightUsdMinor: 1234, freightRate10k: 15_000_000, freightMinor: 1_851_000, customsMinor: 5000 });
+    await sh.step("en_transito", hour);
+    await sh.step("recibido_argentina", 2 * hour);
+    expect((await receiveShipment(db, sh.id, actor, at + 2 * hour)).changed).toBe(true);
+    expect((await receiveShipment(db, sh.id, actor, at + 2 * hour)).changed).toBe(false);
+    expect(await stock()).toBe(before + 2);
+    expect((await loadOverrides(db)).get("ejemplo-sobre")?.stockQuantity).toBe(1);
+    expect((await loadOverrides(db)).get("ejemplo-sobre")?.orderOnly).toBe(false);
+    expect((await completeScheduledSale(db, sale.id, { paymentMethod: "efectivo", soldAt: at + 2 * hour }, at + 2 * hour)).replayed).toBe(false);
+    expect(await stock()).toBe(before + 2);
+    expect((await voidSale(db, sale.id, "Cliente canceló la compra", actor, at + 2 * hour)).status).toBe("anulada");
+    expect(await stock()).toBe(before + 2);
+    await releaseDueImportStock(db, at + 2 * hour);
+    expect(await stock()).toBe(before + 3);
   });
 
   it("devuelve a la compra las unidades quitadas de un despacho en preparación", async () => {

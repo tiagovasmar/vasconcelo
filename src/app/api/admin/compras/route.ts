@@ -2,7 +2,7 @@ import { releaseReservation } from "@/features/importaciones/preorders";
 import { getDb } from "@/db/client";
 import { flushQuietly } from "@/features/avisos/outbox";
 import { confirmPurchase, createPurchase } from "@/features/costos/service";
-import { markOrdered, payPurchase, receiveParcel, removeDestination, saveDestination, setParcel, setPublication } from "@/features/importaciones/service";
+import { createImportCustomerSale, markOrdered, payPurchase, receiveParcel, removeDestination, saveDestination, setParcel, setPublication } from "@/features/importaciones/service";
 import { SaleError } from "@/features/sales/errors";
 import { adminAction } from "@/server/admin-api";
 
@@ -14,6 +14,7 @@ export async function POST(req: Request) {
       case "create": return createPurchase(db, b, user, Date.now(), { managedImport: true });
       case "edit": return createPurchase(db, b, user, Date.now(), { editId: String(b.purchaseId ?? ""), managedImport: true });
       case "close": return confirmPurchase(db, String(b.purchaseId ?? ""), user);
+      case "customer_sale": return createImportCustomerSale(db, b, user);
       case "destination": return saveDestination(db, b);
       case "remove_destination": return removeDestination(db, b);
       case "publication": return setPublication(db, b);

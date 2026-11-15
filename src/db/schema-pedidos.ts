@@ -217,6 +217,8 @@ export const shipments = pgTable("shipments", {
   customsPaidAt: ms("customs_paid_at"),
   availableAt: ms("available_at"),
   freightMinor: ms("freight_minor"),
+  freightUsdMinor: ms("freight_usd_minor"),
+  freightRate10k: ms("freight_rate_10k"),
   customsMinor: ms("customs_minor"),
   createdAt: ms("created_at").notNull(),
   createdByEmail: text("created_by_email").notNull(),
