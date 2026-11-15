@@ -33,10 +33,26 @@ export function resilientPostgres(url: string, options: Options<Record<string, n
   let current = make();
   const grace = limits.graceMs ?? 3000;
 
+  /**
+   * Las transacciones (`begin`) NO funcionan con `max_pipeline: 0`: postgres.js nunca llama a `onexecute` y la transacción falla al instante
+   * (con el pooler eso dejaba transacciones abiertas en la base). Por eso, cuando se pide `max_pipeline`, las transacciones van por un cliente
+   * propio con el pipeline normal; las consultas sueltas siguen yendo de a una por el cliente principal. Se crea recién al usarse.
+   */
+  const withPipeline = options as Options<Record<string, never>> & { max_pipeline?: number };
+  const split = withPipeline.max_pipeline !== undefined;
+  const makeTx = () => {
+    const { max_pipeline: _unused, ...rest } = withPipeline;
+    void _unused;
+    return postgres(url, { ...rest, backoff: backoffSeconds }) as unknown as Sql;
+  };
+  let currentTx: Sql | undefined;
+  const txClient = (): Sql => (split ? (currentTx ??= makeTx()) : current);
+
   /** Descarta la conexión que no responde y deja lista una nueva (la solicitud siguiente la usa). */
   const replace = (stuck: Sql) => {
-    if (current !== stuck) return;
-    current = make();
+    if (stuck === current) current = make();
+    else if (stuck === currentTx) currentTx = makeTx();
+    else return;
     void Promise.resolve(stuck.end({ timeout: 0 })).catch(() => undefined);
   };
 
@@ -82,7 +98,7 @@ export function resilientPostgres(url: string, options: Options<Record<string, n
   };
 
   /** Vista de una conexión (`Sql` o la de una transacción) con consultas vigiladas. */
-  const view = (get: () => Sql): Sql =>
+  const view = (get: () => Sql, getBegin?: () => Sql): Sql =>
     new Proxy((() => undefined) as unknown as Sql, {
       apply: (_t, _this, args) => {
         const s = get();
@@ -93,14 +109,18 @@ export function resilientPostgres(url: string, options: Options<Record<string, n
         if (prop === "unsafe") return (...args: unknown[]) => guard((s.unsafe as unknown as (...a: unknown[]) => Pending)(...args), s);
         if (prop === "begin") {
           return (...args: unknown[]) => {
+            const b = getBegin?.() ?? s;
             const cb = args[args.length - 1] as (tx: Sql) => unknown;
             const wrapped = [...args.slice(0, -1), (tx: Sql) => cb(view(() => tx))];
-            return guard((s.begin as unknown as (...a: unknown[]) => Pending)(...wrapped), s);
+            return guard((b.begin as unknown as (...a: unknown[]) => Pending)(...wrapped), b);
           };
+        }
+        if (prop === "end" && getBegin) {
+          return (...args: unknown[]) => Promise.all([s.end(...(args as [never])), currentTx?.end(...(args as [never]))]).then(() => undefined);
         }
         const v = Reflect.get(s, prop, s);
         return typeof v === "function" ? v.bind(s) : v;
       },
     });
-  return view(() => current);
+  return view(() => current, split ? txClient : undefined);
 }
