@@ -1,5 +1,16 @@
 # Pendientes concretos para publicar
 
+## Actualización autorizada para publicar · 25/11/2026
+
+- Agregar «Eliminar de la lista» y «Restaurar» en pedidos mayoristas y órdenes de compra, tanto en listas como en el detalle.
+- Mostrar una vista de Eliminados con confirmación previa. La eliminación es recuperable y solo afecta las listas administrativas: no cancela pedidos ni borra pagos, ventas, costos o movimientos de stock.
+- Migraciones `0017_eliminar_registros_admin` y `0018_pagos_pedidos_usd` aplicadas en Supabase, después de un respaldo verificado del 25/11/2026.
+- Registrar señas y saldos mayoristas directamente en USD con centavos. Conservar la moneda e importe originales, usar el equivalente histórico acordado para el saldo y mostrar el ingreso original en Facturación.
+- Autorización del dueño el 25/11/2026: subir todos los cambios pendientes directamente a la página. Pruebas de pedidos, pagos, restauración, facturación y respaldo verificadas; compilación de producción correcta.
+- Aura Seeker (USD 108/140), seña mayorista del 10%, correcciones de cobros y facturación por fecha de cobro **ya están publicados** en `b7f7908`; no son pendientes.
+
+El resto de este documento conserva la lista histórica de preparación inicial y debe revisarse antes de usarla como estado actual.
+
 La **aplicación local está terminada**. Para vender públicamente falta lo de esta lista. `npm run release:check` la verifica automáticamente (hoy sale con 13 bloqueantes, que es lo esperado en la demo).
 
 ## A. Lo que debe aportar el dueño

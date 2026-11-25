@@ -92,11 +92,18 @@ export const PAYMENT_STATUS_LABEL: Record<PaymentSummary["status"], string> = {
 
 export const depositPercent = (kind: TrackKind): number => kind === "mayorista" ? mayorista.senaPercent : encargo.senaPercent;
 /** Seña según el tipo de pedido. null mientras no haya importe acordado. */
-export const senaFor = (agreedMinor: number | null, kind: TrackKind = "encargo"): number | null => (agreedMinor && agreedMinor > 0 ? percentOf(agreedMinor, depositPercent(kind)) : null);
+export const senaFor = (agreedMinor: number | null, kind: TrackKind = "encargo", agreedUsdMinor?: number | null): number | null => {
+  if (!agreedMinor || agreedMinor <= 0) return null;
+  if (kind === "mayorista" && agreedUsdMinor && agreedUsdMinor > 0) {
+    const usdDeposit = Math.round(agreedUsdMinor * depositPercent(kind) / 100);
+    return Number((BigInt(agreedMinor) * BigInt(usdDeposit) + BigInt(agreedUsdMinor) / 2n) / BigInt(agreedUsdMinor));
+  }
+  return percentOf(agreedMinor, depositPercent(kind));
+};
 /** USD conserva centavos; el redondeo al peso solo corresponde a ARS. */
 export const senaUsdFor = (agreedUsdMinor: number | null, kind: TrackKind): number | null => agreedUsdMinor && agreedUsdMinor > 0 ? Math.round(agreedUsdMinor * depositPercent(kind) / 100) : null;
 
-export type OrderPaymentInput = { kind: TrackKind; stage: string; agreedMinor: number | null; confirmedMinor: number; pendingReceipts: number; cancelled: boolean };
+export type OrderPaymentInput = { kind: TrackKind; stage: string; agreedMinor: number | null; agreedUsdMinor?: number | null; confirmedMinor: number; pendingReceipts: number; cancelled: boolean };
 
 export function remainingOrderBalance(agreedMinor: number | null, confirmedMinor: number): number | null {
   return agreedMinor === null ? null : Math.max(0, agreedMinor - confirmedMinor);
@@ -105,7 +112,7 @@ export function remainingOrderBalance(agreedMinor: number | null, confirmedMinor
 /** Solo pide transferir con disponibilidad e importe confirmados. Nunca vuelve a cobrar lo ya confirmado. */
 export function transferDue(p: OrderPaymentInput): { kind: "sena" | "resto"; amountMinor: number } | null {
   if (p.kind === "stock" || p.cancelled || p.stage === "entregado" || p.pendingReceipts > 0) return null;
-  const sena = senaFor(p.agreedMinor, p.kind);
+  const sena = senaFor(p.agreedMinor, p.kind, p.agreedUsdMinor);
   const r = rank(p.kind, p.stage);
   const balance = remainingOrderBalance(p.agreedMinor, p.confirmedMinor);
   if (sena === null || !balance || r < rank(p.kind, "confirmado_tienda")) return null;

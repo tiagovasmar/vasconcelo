@@ -42,6 +42,7 @@ export const TABLES: TableSpec[] = [
   { name: "product_galleries", pk: ["product_id"] },
   { name: "system_flags", pk: ["key"] },
   { name: "admin_settings", pk: ["key"] },
+  { name: "admin_record_archives", pk: ["kind", "record_id"], optional: true },
   { name: "restock_alerts", pk: ["id"], optional: true },
   { name: "order_tracks", pk: ["inquiry_id"], optional: true },
   { name: "wholesale_order_costs", pk: ["id"], optional: true },

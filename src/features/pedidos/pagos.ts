@@ -10,6 +10,8 @@ import { noticeForOrder } from "@/features/avisos/outbox";
 import { SaleError, type SaleErrorCode } from "@/features/sales/errors";
 import type { ReceiptStore } from "@/server/receipt-store";
 import { formatARS } from "@/lib/format";
+import { formatUSD } from "@/features/fx/convert";
+import { usdOrderPayment } from "./payment-money";
 import { advanceFromFacts, ensureTrack, newId, paymentTotals, sha, trackLock } from "./service";
 import { depositPercent, rank, senaFor, type TrackKind } from "./etapas";
 
@@ -139,15 +141,20 @@ export async function receiptFile(db: Db, store: ReceiptStore, receiptId: string
 
 export const PaymentSchema = z.object({
   kind: z.enum(["sena", "saldo", "pago_total", "otro"], { error: "Elegí el tipo de pago." }),
-  amountMinor: z.number({ error: "Escribí el importe recibido." }).int().positive("El importe debe ser mayor que cero.").max(1_000_000_000_00).multipleOf(100, "Ingresá el importe en pesos enteros."),
+  currency: z.enum(["ARS", "USD"]).default("ARS"),
+  amountMinor: z.number({ error: "Escribí el importe recibido." }).int().positive("El importe debe ser mayor que cero.").max(1_000_000_000_00),
   method: z.enum(["transferencia", "efectivo", "otro"], { error: "Elegí el medio de pago." }),
   paidAt: DATE,
   receiptId: z.string().min(1).max(40).nullish().transform((v) => v ?? null),
   internalNote: TEXT(500),
   idempotencyKey: KEY,
+}).superRefine((value, ctx) => {
+  if (value.currency === "ARS" && value.amountMinor % 100 !== 0) ctx.addIssue({ code: "custom", path: ["amountMinor"], message: "Ingresá el importe en pesos enteros." });
 });
 
 export type PaymentRow = typeof orderPayments.$inferSelect;
+const paymentHash = (p: Pick<PaymentRow, "inquiryId" | "kind" | "amountMinor" | "currency" | "amountUsdMinor" | "method" | "paidAt" | "receiptId">) =>
+  sha(JSON.stringify([p.inquiryId, p.kind, p.currency, p.currency === "USD" ? p.amountUsdMinor : p.amountMinor, p.method, p.paidAt, p.receiptId]));
 
 /**
  * Registra un pago CONFIRMADO por el dueño (lo hace tras ver el ingreso). Idempotente por clave: repetir con los mismos datos devuelve el mismo pago; con otros datos, 422.
@@ -156,13 +163,13 @@ export type PaymentRow = typeof orderPayments.$inferSelect;
  */
 export async function confirmPayment(db: Db, inquiryId: string, body: unknown, actor: Actor, now = Date.now()): Promise<{ payment: PaymentRow; replayed: boolean }> {
   const input = parseOr400(PaymentSchema, body);
-  const hash = sha(JSON.stringify([inquiryId, input.kind, input.amountMinor, input.method, input.paidAt, input.receiptId]));
+  const hash = paymentHash({ ...input, inquiryId, amountUsdMinor: input.currency === "USD" ? input.amountMinor : null });
   try {
     return await db.transaction(async (tx) => {
       await trackLock(tx, inquiryId);
       const [again] = await tx.select().from(orderPayments).where(eq(orderPayments.idempotencyKey, input.idempotencyKey));
       if (again) {
-        if (again.inquiryId !== inquiryId || sha(JSON.stringify([again.inquiryId, again.kind, again.amountMinor, again.method, again.paidAt, again.receiptId])) !== hash) return fail(422, "idempotency_conflict", "Esa operación ya se registró con otros datos.");
+        if (again.inquiryId !== inquiryId || paymentHash(again) !== hash) return fail(422, "idempotency_conflict", "Esa operación ya se registró con otros datos.");
         return { payment: again, replayed: true };
       }
       const track = await ensureTrack(tx, inquiryId, now);
@@ -175,17 +182,28 @@ export async function confirmPayment(db: Db, inquiryId: string, body: unknown, a
       }
       const { confirmedMinor } = await paymentTotals(tx, inquiryId);
       if (track.agreedMinor === null) return fail(409, "order_rule", "Primero confirmá el importe acordado del pedido.");
-      if (hold && confirmedMinor === 0 && input.amountMinor !== senaFor(track.agreedMinor)) return fail(409, "order_rule", "El primer pago de preventa debe coincidir con la seña del 20%.");
-      if (track.kind !== "mayorista" && confirmedMinor + input.amountMinor > track.agreedMinor) return fail(409, "order_rule", `El pago superaría el importe acordado (${formatARS(track.agreedMinor)}): ya hay confirmado ${formatARS(confirmedMinor)}.`);
-      const excess = Math.max(0, confirmedMinor + input.amountMinor - track.agreedMinor);
+      let amountMinor = input.amountMinor;
+      let exchangeRate10k: number | null = null;
+      if (input.currency === "USD") {
+        if (track.kind !== "mayorista") return fail(409, "order_rule", "El registro directo en USD está disponible para pedidos mayoristas.");
+        const [order] = await tx.select({ rate10k: inquiries.fxRate10k }).from(inquiries).where(eq(inquiries.id, inquiryId));
+        const converted = usdOrderPayment(input.amountMinor, { agreedMinor: track.agreedMinor, agreedUsdMinor: track.agreedUsdMinor, rate10k: order?.rate10k ?? null }, confirmedMinor);
+        if (!converted) return fail(409, "order_rule", "Guardá primero el total en USD y su cotización para registrar el pago en dólares.");
+        ({ amountMinor, exchangeRate10k } = converted);
+        if (!Number.isSafeInteger(amountMinor) || amountMinor <= 0 || amountMinor > 1_000_000_000_00) return fail(400, "invalid_input", "El equivalente en pesos está fuera del rango permitido.");
+      }
+      if (hold && confirmedMinor === 0 && amountMinor !== senaFor(track.agreedMinor)) return fail(409, "order_rule", "El primer pago de preventa debe coincidir con la seña del 20%.");
+      if (track.kind !== "mayorista" && confirmedMinor + amountMinor > track.agreedMinor) return fail(409, "order_rule", `El pago superaría el importe acordado (${formatARS(track.agreedMinor)}): ya hay confirmado ${formatARS(confirmedMinor)}.`);
+      const excess = Math.max(0, confirmedMinor + amountMinor - track.agreedMinor);
       const id = newId("PG");
-      const [payment] = await tx.insert(orderPayments).values({ id, inquiryId, kind: input.kind, amountMinor: input.amountMinor, method: input.method, status: "confirmado", receiptId: input.receiptId, paidAt: input.paidAt, internalNote: input.internalNote, idempotencyKey: input.idempotencyKey, createdAt: now, createdByEmail: actor.email }).returning();
+      const [payment] = await tx.insert(orderPayments).values({ id, inquiryId, kind: input.kind, amountMinor, currency: input.currency, amountUsdMinor: input.currency === "USD" ? input.amountMinor : null, exchangeRate10k, method: input.method, status: "confirmado", receiptId: input.receiptId, paidAt: input.paidAt, internalNote: input.internalNote, idempotencyKey: input.idempotencyKey, createdAt: now, createdByEmail: actor.email }).returning();
       if (input.receiptId) await tx.update(paymentReceipts).set({ status: "aceptado", reviewedAt: now, reviewedByEmail: actor.email }).where(eq(paymentReceipts.id, input.receiptId));
-      await tx.insert(orderEvents).values({ inquiryId, kind: "payment", publicText: `Confirmamos tu pago de ${formatARS(input.amountMinor)}.`, internalText: `Pago ${id} (${input.kind}, ${input.method})${input.internalNote ? ` · ${input.internalNote}` : ""}${excess > 0 ? ` · Excedente acumulado sobre el total acordado: ${formatARS(excess)}. Revisar ajuste o devolución.` : ""}`, occurredAt: input.paidAt, createdAt: now, actorEmail: actor.email });
-      await noticeForOrder(tx, inquiryId, "pago_confirmado", id, now, `Importe confirmado: ${formatARS(input.amountMinor)}.`);
+      const label = input.currency === "USD" ? `${formatUSD(input.amountMinor)} (equivalente contable ${formatARS(amountMinor)})` : formatARS(amountMinor);
+      await tx.insert(orderEvents).values({ inquiryId, kind: "payment", publicText: `Confirmamos tu pago de ${label}.`, internalText: `Pago ${id} (${input.kind}, ${input.method})${input.internalNote ? ` · ${input.internalNote}` : ""}${excess > 0 ? ` · Excedente acumulado sobre el total acordado: ${formatARS(excess)}. Revisar ajuste o devolución.` : ""}`, occurredAt: input.paidAt, createdAt: now, actorEmail: actor.email });
+      await noticeForOrder(tx, inquiryId, "pago_confirmado", id, now, `Importe confirmado: ${label}.`);
       const kind = track.kind as TrackKind;
-      const sena = senaFor(track.agreedMinor, kind);
-      if (kind !== "stock" && sena !== null && confirmedMinor + input.amountMinor >= sena && rank(kind, track.stage) >= rank(kind, "confirmado_tienda") && rank(kind, track.stage) < rank(kind, "sena_confirmada")) {
+      const sena = senaFor(track.agreedMinor, kind, track.agreedUsdMinor);
+      if (kind !== "stock" && sena !== null && confirmedMinor + amountMinor >= sena && rank(kind, track.stage) >= rank(kind, "confirmado_tienda") && rank(kind, track.stage) < rank(kind, "sena_confirmada")) {
         await advanceFromFacts(tx, inquiryId, "sena_confirmada", input.paidAt, actor, now, id, `Abonaste la seña del ${depositPercent(kind)}%.`);
       }
       if (hold) await syncPaidPreorder(tx, inquiryId, actor, now);
@@ -193,7 +211,7 @@ export async function confirmPayment(db: Db, inquiryId: string, body: unknown, a
     });
   } catch (e) {
     const [raced] = await db.select().from(orderPayments).where(eq(orderPayments.idempotencyKey, input.idempotencyKey));
-    if (raced && raced.inquiryId === inquiryId && sha(JSON.stringify([raced.inquiryId, raced.kind, raced.amountMinor, raced.method, raced.paidAt, raced.receiptId])) === hash) return { payment: raced, replayed: true };
+    if (raced && raced.inquiryId === inquiryId && paymentHash(raced) === hash) return { payment: raced, replayed: true };
     throw e;
   }
 }

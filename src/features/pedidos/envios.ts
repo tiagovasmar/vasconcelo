@@ -254,7 +254,7 @@ export async function recordDelivery(db: Db, inquiryId: string, body: unknown, a
     }
     if (kind !== "stock") {
       const { confirmedMinor } = await paymentTotals(tx, inquiryId);
-      const sena = senaFor(track.agreedMinor, kind);
+      const sena = senaFor(track.agreedMinor, kind, track.agreedUsdMinor);
       if (track.agreedMinor === null || sena === null) return fail(409, "order_rule", "Falta confirmar el importe acordado.");
       if (confirmedMinor < track.agreedMinor) return fail(409, "order_rule", `Antes de entregar tiene que estar confirmado el pago completo (${formatARS(track.agreedMinor)}); hay confirmado ${formatARS(confirmedMinor)}.`);
     }

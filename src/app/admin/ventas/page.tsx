@@ -131,7 +131,7 @@ export default async function Ventas({ searchParams }: { searchParams: Promise<{
         {wholesaleCash.rows.length === 0 ? <p className="mt-3 text-sm text-ink/75">Sin ingresos mayoristas en estas fechas.</p> : <ul className="mt-3 divide-y divide-ink/10">
           {wholesaleCash.rows.map((payment) => <li key={payment.id} className="flex flex-wrap justify-between gap-2 py-2 text-sm">
             <span><Link href={`/admin/pedidos/${payment.reference}`} className="font-semibold underline">{payment.reference}</Link> · {payment.kind === "sena" ? "Seña" : payment.kind === "saldo" ? "Saldo" : "Pago"} · {new Intl.DateTimeFormat("es-AR", { dateStyle: "short", timeZone: "America/Argentina/Buenos_Aires" }).format(payment.paidAt)}</span>
-            <b>{formatARS(payment.amountMinor)}</b>
+            <span className="text-right"><b>{payment.currency === "USD" && payment.amountUsdMinor !== null ? formatUSD(payment.amountUsdMinor) : formatARS(payment.amountMinor)}</b>{payment.currency === "USD" && <span className="block text-xs text-ink/70">Equivalente {formatARS(payment.amountMinor)}</span>}</span>
           </li>)}
         </ul>}
       </section>}

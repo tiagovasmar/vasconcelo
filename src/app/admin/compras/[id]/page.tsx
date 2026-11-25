@@ -16,6 +16,8 @@ import { currentRate } from "@/features/fx/service";
 import { formatARS } from "@/lib/format";
 import { requireAdmin } from "@/server/admin";
 import { purchaseProducts } from "../products";
+import { AdminRecordDelete } from "@/components/admin-record-delete";
+import { isRecordArchived } from "@/features/admin/record-archives";
 
 const EP = "/api/admin/compras";
 const section = "space-y-3 rounded-xl border border-ink/20 bg-white p-4 sm:p-5";
@@ -34,6 +36,7 @@ export default async function PurchaseDetail({ params }: { params: Promise<{ id:
   const db = getDb();
   const [p] = await listPurchases(db, id);
   if (!p) notFound();
+  const archived = await isRecordArchived(db, "purchase", id);
   const products = purchaseProducts();
   const title = (id: string) => products.find((p) => p.value === id)?.label ?? id;
   const { allocations, parcels, documents, payments, availablePayments, holds, history } =
@@ -63,6 +66,8 @@ export default async function PurchaseDetail({ params }: { params: Promise<{ id:
         <p className="mt-1 break-words text-sm">{p.id} · {date(p.purchasedAt)}{p.reference && ` · Ref. ${p.reference}`} · {p.currency}{p.rateToArs10k && ` · ${p.rateToArs10k / 10_000} ARS por ${p.currency}`}</p>
         <p className="mt-1 text-sm text-ink/75">{reconciled === totalUnits ? `Recepción revisada y finalizada · ${date(history.reduce((n, h) => Math.max(n, h.occurredAt), 0))}` : p.orderedAt ? `Comprado al proveedor · ${date(p.orderedAt)}` : "Compra registrada"}</p>
         {p.note && <p className="mt-2 whitespace-pre-wrap break-words text-sm">{p.note}</p>}
+        {archived && <p className="mt-3 rounded-lg bg-gold/20 p-3 text-sm font-semibold">Esta compra está en Eliminados. Sus pagos, costos y stock siguen registrados.</p>}
+        <div className="mt-3"><AdminRecordDelete kind="purchase" recordId={id} archived={archived} /></div>
       </header>
       <section className={section}>
         <h2 className="text-lg font-semibold">Resumen</h2>

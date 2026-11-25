@@ -9,6 +9,7 @@ import { quoteAmount } from "@/lib/taobao-quote";
 import { formatARS } from "@/lib/format";
 import { requireAdmin } from "@/server/admin";
 import { PurchaseForm } from "@/components/purchase-form";
+import { AdminRecordDelete } from "@/components/admin-record-delete";
 
 const field = "w-full min-w-0 rounded-lg border border-ink/40 bg-white p-2.5";
 const dateOf = (date: number) => new Intl.DateTimeFormat("sv-SE", { timeZone: "America/Argentina/Buenos_Aires" }).format(date);
@@ -23,11 +24,12 @@ export default async function PurchasesPage({ searchParams }: { searchParams: Pr
   const to = get("hasta");
   const status = get("estado");
   const awaitingReceipt = get("recepcion") === "pendiente";
+  const archived = get("eliminadas") === "1";
   const labels = new Map(purchaseProducts().map((p) => [p.value, p.label]));
   const db = getDb();
   // El pool de producción usa una conexión por instancia. Leé en orden para evitar
   // que las consultas de esta página se encolen juntas y se cancelen por tiempo.
-  const records = await listPurchases(db);
+  const records = await listPurchases(db, undefined, { archived });
   const progress = await importProgress(db);
   const suppliers = await listTaobaoSuppliers(db);
   const supplierNames = [...new Set(suppliers.filter((supplier) => !supplier.archived).map((supplier) => supplier.name))];
@@ -60,9 +62,14 @@ export default async function PurchasesPage({ searchParams }: { searchParams: Pr
         </div>
       </details>
       <section className="rounded-xl border border-ink/20 bg-white p-4">
-        <h2 className="text-lg font-semibold">Compras registradas</h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-lg font-semibold">{archived ? "Compras eliminadas" : "Compras registradas"}</h2>
+          <Link href={archived ? "/admin/compras" : "/admin/compras?eliminadas=1"} className="min-h-11 content-center text-sm font-semibold underline">{archived ? "Volver a compras" : "Ver eliminadas"}</Link>
+        </div>
+        {archived && <p className="mt-2 text-sm text-ink/75">Estos registros se quitaron de la lista principal. Sus costos, pagos y movimientos de stock se conservan. Podés restaurarlos.</p>}
         {awaitingReceipt && <p className="mt-2 text-sm"><b>Compras por recibir</b> · <Link href="/admin/compras" className="underline">Quitar filtro</Link></p>}
         <form className="my-4 grid gap-3 sm:grid-cols-3">
+          {archived && <input type="hidden" name="eliminadas" value="1" />}
           {awaitingReceipt && <input type="hidden" name="recepcion" value="pendiente" />}
           <label className="min-w-0 text-sm">Buscar<input name="q" defaultValue={q} placeholder="Referencia, producto o SKU" className={field} /></label>
           <label className="min-w-0 text-sm">Proveedor<input name="proveedor" defaultValue={supplier} className={field} /></label>
@@ -87,7 +94,10 @@ export default async function PurchasesPage({ searchParams }: { searchParams: Pr
                 <ul className="mt-1 space-y-1">{p.items.map((item) => <li key={item.id}>{item.quantity} × {labels.get(item.productId) ?? item.productId}</li>)}</ul>
               </details>
             </div>
-            <span className="rounded-full bg-paper-2 px-3 py-1 text-xs">{stages[p.stage]} · {p.status === "confirmada" ? "Costos cerrados" : "Costos abiertos"}</span>
+            <div className="flex flex-col items-end gap-2">
+              <span className="rounded-full bg-paper-2 px-3 py-1 text-xs">{stages[p.stage]} · {p.status === "confirmada" ? "Costos cerrados" : "Costos abiertos"}</span>
+              <AdminRecordDelete kind="purchase" recordId={p.id} archived={archived} />
+            </div>
           </li>;
           })}
         </ul>

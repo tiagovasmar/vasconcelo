@@ -7,6 +7,7 @@ import { listOrders } from "@/features/pedidos/service";
 import { when } from "@/features/consultas/ui";
 import { formatARS } from "@/lib/format";
 import { requireAdmin } from "@/server/admin";
+import { AdminRecordDelete } from "@/components/admin-record-delete";
 
 export const dynamic = "force-dynamic";
 const one = (v: string | string[] | undefined) => (typeof v === "string" ? v : "");
@@ -22,9 +23,10 @@ export default async function AdminPedidos({ searchParams }: { searchParams: Pro
   const requestedStage = one(sp.etapa) as Stage;
   const stage = kind === "mayorista" && stageOptions.includes(requestedStage) ? requestedStage : undefined;
   const pending = sp.pendiente === "comprobantes" || sp.pendiente === "retiro" ? sp.pendiente : undefined;
-  const rows = await listOrders(getDb(), { kind, search, stage, pending });
+  const archived = one(sp.eliminados) === "1";
+  const rows = await listOrders(getDb(), { kind, search, stage, pending, archived });
   const kindHref = (value?: string) => {
-    const params = new URLSearchParams({ ...(value ? { tipo: value } : {}), ...(pending ? { pendiente: pending } : {}) });
+    const params = new URLSearchParams({ ...(value ? { tipo: value } : {}), ...(pending ? { pendiente: pending } : {}), ...(archived ? { eliminados: "1" } : {}) });
     return `/admin/pedidos${params.size ? `?${params}` : ""}`;
   };
   const tab = (k: string | undefined, label: string) => <Link key={label} href={kindHref(k)} aria-current={kind === k ? "page" : undefined} className={`rounded-full border px-3 py-1.5 text-sm font-semibold ${kind === k ? "border-ink bg-ink text-paper" : "border-ink/30 hover:bg-white"}`}>{label}</Link>;
@@ -37,10 +39,13 @@ export default async function AdminPedidos({ searchParams }: { searchParams: Pro
       </div>
       <p className="mt-2 max-w-3xl text-sm text-ink/75">{kind === "mayorista" ? "Gestioná acá los pedidos del catálogo y los que recibís por WhatsApp u otros canales." : "Un pedido es una consulta con seguimiento: se abre al confirmar una venta, al recibirse un pedido mayorista o desde el detalle de cualquier consulta."}</p>
       <div className="mt-4 flex flex-wrap gap-2">{tab(undefined, "Todos")}{tab("stock", "Compras de stock")}{tab("encargo", "Encargos")}{tab("mayorista", "Mayoristas")}</div>
+      <p className="mt-3 text-sm"><Link href={archived ? "/admin/pedidos?tipo=mayorista" : "/admin/pedidos?tipo=mayorista&eliminados=1"} className="font-semibold underline">{archived ? "Volver a pedidos mayoristas" : "Ver pedidos mayoristas eliminados"}</Link></p>
+      {archived && <p className="mt-2 text-sm text-ink/75">Eliminados de la lista principal. Se conservan sus pagos, ventas y seguimiento. Podés restaurarlos.</p>}
       {pending && <p className="mt-3 text-sm"><strong>{pending === "retiro" ? "Listos para retirar" : "Comprobantes por revisar"}</strong> · <Link href={kind ? `/admin/pedidos?tipo=${kind}` : "/admin/pedidos"} className="underline">Quitar filtro</Link></p>}
       {kind === "mayorista" && (
         <form className="mt-4 flex flex-wrap items-end gap-3" action="/admin/pedidos">
           <input type="hidden" name="tipo" value="mayorista" />
+          {archived && <input type="hidden" name="eliminados" value="1" />}
           {pending && <input type="hidden" name="pendiente" value={pending} />}
           <label className="grid gap-1 text-sm">Cliente, teléfono, referencia o guía
             <input name="q" defaultValue={search} maxLength={100} className="min-h-11 rounded-md border border-ink/40 bg-white px-3" />
@@ -52,12 +57,12 @@ export default async function AdminPedidos({ searchParams }: { searchParams: Pro
             </select>
           </label>
           <button className="min-h-11 rounded-md bg-ink px-4 text-sm font-semibold text-paper">Filtrar</button>
-          {(search || stage) && <Link href="/admin/pedidos?tipo=mayorista" className="self-center text-sm underline">Limpiar filtros</Link>}
+          {(search || stage) && <Link href={archived ? "/admin/pedidos?tipo=mayorista&eliminados=1" : "/admin/pedidos?tipo=mayorista"} className="self-center text-sm underline">Limpiar filtros</Link>}
         </form>
       )}
       <p role="status" className="mt-4 text-sm text-ink/70" data-testid="pedidos-cantidad">{rows.length} {rows.length === 1 ? "pedido" : "pedidos"}</p>
       {rows.length === 0 ? (
-        <p className="mt-4 rounded-xl border border-dashed border-ink/40 bg-white/60 p-8 text-center text-ink/70">{search || stage || pending ? "No encontramos pedidos con esos filtros." : kind === "mayorista" ? "Todavía no hay pedidos mayoristas. Podés cargar el primero con «Nuevo pedido mayorista»." : <>Todavía no hay pedidos con seguimiento. Abrí uno desde <Link href="/admin/consultas" className="underline">Consultas</Link>.</>}</p>
+        <p className="mt-4 rounded-xl border border-dashed border-ink/40 bg-white/60 p-8 text-center text-ink/70">{search || stage || pending ? "No encontramos pedidos con esos filtros." : archived ? "No hay pedidos mayoristas eliminados." : kind === "mayorista" ? "Todavía no hay pedidos mayoristas. Podés cargar el primero con «Nuevo pedido mayorista»." : <>Todavía no hay pedidos con seguimiento. Abrí uno desde <Link href="/admin/consultas" className="underline">Consultas</Link>.</>}</p>
       ) : (
         <div className="mt-3 overflow-x-auto rounded-xl border border-ink/15 bg-white">
           <table className="w-full min-w-[820px] text-sm">
@@ -66,10 +71,11 @@ export default async function AdminPedidos({ searchParams }: { searchParams: Pro
               {rows.map((r) => {
                 const wholesale = r.kind === "mayorista";
                 const amount = (minor: number) => {
-                  const usd = wholesale && r.rate10k ? orderUsdEquivalent(minor, r.rate10k) : null;
+                  const usd = wholesale && r.agreedUsdMinor && r.agreedMinor ? Math.round(minor * r.agreedUsdMinor / r.agreedMinor)
+                    : wholesale && r.rate10k ? orderUsdEquivalent(minor, r.rate10k) : null;
                   return usd === null ? formatARS(minor) : formatUSD(usd);
                 };
-                const deposit = wholesale ? senaFor(r.agreedMinor, "mayorista") : null;
+                const deposit = wholesale ? senaFor(r.agreedMinor, "mayorista", r.agreedUsdMinor) : null;
                 const depositUsd = senaUsdFor(r.agreedUsdMinor, "mayorista");
                 const depositText = deposit === null ? null : depositUsd !== null && r.confirmedMinor >= deposit ? formatUSD(depositUsd) : amount(Math.min(deposit, r.confirmedMinor));
                 return (
@@ -87,6 +93,7 @@ export default async function AdminPedidos({ searchParams }: { searchParams: Pro
                     {r.pendingReceipts > 0 && <Link href={`/admin/pedidos/${r.reference}#comprobantes`} className="mr-1 rounded bg-gold/40 px-1.5 py-0.5 font-semibold underline">{r.pendingReceipts} comprobante{r.pendingReceipts === 1 ? "" : "s"} por revisar</Link>}
                     {r.openIncidents > 0 && <span className="mr-1 rounded bg-vermilion/15 px-1.5 py-0.5 font-semibold text-vermilion">{r.openIncidents} incidente{r.openIncidents === 1 ? "" : "s"}</span>}
                     {r.failedNotices > 0 && <span className="rounded bg-ink/10 px-1.5 py-0.5 font-semibold">{r.failedNotices} aviso{r.failedNotices === 1 ? "" : "s"} sin enviar</span>}
+                    {wholesale && <div className="mt-2"><AdminRecordDelete kind="wholesale" recordId={r.reference} archived={archived} /></div>}
                   </td>
                 </tr>
                 );

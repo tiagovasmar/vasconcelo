@@ -13,6 +13,9 @@ import { averageCosts } from "@/features/costos/service";
 import { formatRate, formatUSD } from "@/features/fx/convert";
 import { formatARS } from "@/lib/format";
 import { requireAdmin } from "@/server/admin";
+import { AdminRecordDelete } from "@/components/admin-record-delete";
+import { AdminOrderPayment } from "@/components/admin-order-payment";
+import { isRecordArchived } from "@/features/admin/record-archives";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +34,7 @@ export default async function AdminPedidoDetalle({ params }: { params: Promise<{
   const { inquiry: i, track, events, payments, receipts, incidents, refunds, items, totals, notices, deliveries } = d;
   const ep = `/api/admin/pedidos/${id}`;
   const kind = (track?.kind ?? "stock") as TrackKind;
+  const archived = kind === "mayorista" && await isRecordArchived(db, "wholesale", id);
   const pay = summarizePayments({ agreedMinor: track?.agreedMinor ?? null, ...totals });
   const stageOptions = stagesFor(kind).map((s) => ({ value: s, label: STAGE_LABEL[s] }));
   const pendingReceipts = receipts.filter((r) => r.status === "pendiente_revision");
@@ -41,7 +45,9 @@ export default async function AdminPedidoDetalle({ params }: { params: Promise<{
     : [[], 0] as const;
   const paidRefunds = refunds.filter((r) => r.status === "reintegrado").reduce((sum, r) => sum + r.amountMinor, 0);
   const wholesaleRate = kind === "mayorista" ? i.fxRate10k : null;
-  const confirmedUsd = wholesaleRate ? orderUsdEquivalent(totals.confirmedMinor, wholesaleRate) : null;
+  const confirmedUsd = kind === "mayorista" && track?.agreedUsdMinor && track.agreedMinor
+    ? Math.round(totals.confirmedMinor * track.agreedUsdMinor / track.agreedMinor)
+    : wholesaleRate ? orderUsdEquivalent(totals.confirmedMinor, wholesaleRate) : null;
   const depositUsd = wholesaleRate && d.senaMinor !== null ? senaUsdFor(track?.agreedUsdMinor ?? null, kind) ?? orderUsdEquivalent(d.senaMinor, wholesaleRate) : null;
   const balance = remainingOrderBalance(track?.agreedMinor ?? null, totals.confirmedMinor);
   const useUsd = track?.agreedUsdMinor != null;
@@ -89,6 +95,8 @@ export default async function AdminPedidoDetalle({ params }: { params: Promise<{
       <p className="mt-1 text-sm text-ink/75">{i.userId ? "Con cuenta" : "Invitado"} · {i.contactPhone ?? "sin teléfono"} · {when(i.createdAt)}</p>
       {track && kind === "mayorista" && <section className={card} aria-labelledby="mayorista-resumen">
         <h2 id="mayorista-resumen" className={h2}>Resumen del pedido</h2>
+        {archived && <p className="mt-3 rounded-lg bg-gold/20 p-3 text-sm font-semibold">Este pedido está en Eliminados. Sus pagos, ventas y seguimiento se conservan.</p>}
+        <div className="mt-3"><AdminRecordDelete kind="wholesale" recordId={id} archived={archived} /></div>
         <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-3">
           <div><dt className="text-ink/75">Total acordado</dt><dd className="text-lg font-bold">{track.agreedMinor === null ? "A confirmar" : amountForSummary(track.agreedMinor, track.agreedUsdMinor)}</dd></div>
           <div><dt className="text-ink/75">Pagos confirmados</dt><dd className="text-lg font-bold" data-testid="mayorista-pagado">{amountForSummary(totals.confirmedMinor, paidUsd)}</dd></div>
@@ -163,7 +171,7 @@ export default async function AdminPedidoDetalle({ params }: { params: Promise<{
             <ul className="mt-4 divide-y divide-ink/10 text-sm" aria-label="Pagos">
               {payments.map((p) => (
                 <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 py-2" data-testid="pago-fila">
-                  <span><b>{formatARS(p.amountMinor)}</b> · {paymentKind[p.kind as keyof typeof paymentKind] ?? "Pago"} · {p.method} · {when(p.paidAt)}{p.status === "anulado" && <b className="ml-2 text-vermilion">ANULADO ({p.voidReason})</b>}</span>
+                  <span><b>{p.currency === "USD" && p.amountUsdMinor !== null ? formatUSD(p.amountUsdMinor) : formatARS(p.amountMinor)}</b>{p.currency === "USD" && <span className="ml-1 text-xs text-ink/70">(equivalente {formatARS(p.amountMinor)})</span>} · {paymentKind[p.kind as keyof typeof paymentKind] ?? "Pago"} · {p.method} · {when(p.paidAt)}{p.status === "anulado" && <b className="ml-2 text-vermilion">ANULADO ({p.voidReason})</b>}</span>
                   {p.status === "confirmado" && <details className="w-full" open={kind !== "mayorista"}>
                     <summary className="cursor-pointer text-xs underline">Corregir pago</summary>
                     <div className="mt-2"><AdminForm endpoint={ep} compact fixed={{ action: "void_payment", paymentId: p.id }} fields={[{ name: "reason", label: "Motivo de la anulación", required: true }]} submit="Anular pago" ok="Pago anulado." confirmText="¿Anular este pago? Queda registrado como anulado." idempotent={false} /></div>
@@ -174,15 +182,11 @@ export default async function AdminPedidoDetalle({ params }: { params: Promise<{
             {!track.cancelledAt && (kind !== "mayorista" || balance !== null) && (
               <div className="mt-4 border-t border-ink/10 pt-4">
                 {!needsWholesaleDeposit && <h3 className="text-sm font-semibold">Registrar pago recibido</h3>}
-                <p className="mb-2 text-sm text-ink/75">Cargá únicamente lo que recibiste en este pago, sin volver a sumar la seña. {balance !== null && <>Saldo pendiente: <b>{formatARS(balance)}</b>. </>}{kind === "mayorista" && "Si recibiste más, se guarda el ingreso real y la diferencia queda como excedente a revisar."}</p>
-                <AdminForm key={`payment-${totals.confirmedMinor}-${balance}`} endpoint={ep} fixed={{ action: "payment" }} fields={[
-                  { name: "kind", label: "Tipo", type: "select", required: true, defaultValue: kind === "stock" ? "pago_total" : kind === "mayorista" && remainingDeposit === 0 ? "saldo" : "sena", options: kind === "stock" ? [{ value: "pago_total", label: "Pago total" }, { value: "otro", label: "Otro pago" }] : [{ value: "sena", label: "Seña" }, { value: "saldo", label: "Saldo" }, { value: "pago_total", label: "Pago total" }, { value: "otro", label: "Otro" }] },
-                  { name: "amountMinor", label: "Importe recibido ahora en pesos", type: "pesos", required: true, defaultValue: kind === "mayorista" && balance !== null && balance > 0 ? String((needsWholesaleDeposit && remainingDeposit ? remainingDeposit : balance) / 100) : "" },
-                  { name: "method", label: "Medio", type: "select", required: true, options: [{ value: "transferencia", label: "Transferencia" }, { value: "efectivo", label: "Efectivo" }, { value: "otro", label: "Otro" }] },
-                  { name: "paidAt", label: "Fecha real del ingreso", type: "date", required: true },
-                  { name: "receiptId", label: "Comprobante que respalda el pago", type: "select", optional: true, options: pendingReceipts.map((r) => ({ value: r.id, label: `${r.id} · ${when(r.createdAt)}${r.declaredAmountMinor ? ` · dice ${formatARS(r.declaredAmountMinor)}` : ""}` })) },
-                  { name: "internalNote", label: "Nota interna (opcional)", optional: true },
-                ]} submit="Confirmar ingreso" ok="Ingreso confirmado." testId="form-pago" />
+                <p className="mb-2 text-sm text-ink/75">Cargá únicamente lo que recibiste en este pago, sin volver a sumar la seña. {balance !== null && <>Saldo pendiente: <b>{amountForSummary(balance, track.agreedUsdMinor !== null && track.agreedMinor ? Math.round(balance * track.agreedUsdMinor / track.agreedMinor) : null)}</b>. </>}{kind === "mayorista" && "Si recibiste más, se guarda el ingreso real y la diferencia queda como excedente a revisar."}</p>
+                <AdminOrderPayment endpoint={ep} wholesale={kind === "mayorista"} agreedMinor={track.agreedMinor} agreedUsdMinor={track.agreedUsdMinor}
+                  rate10k={wholesaleRate} confirmedMinor={totals.confirmedMinor} balance={balance} depositDue={remainingDeposit}
+                  defaultKind={kind === "stock" ? "pago_total" : kind === "mayorista" && remainingDeposit === 0 ? "saldo" : "sena"}
+                  receipts={pendingReceipts.map((r) => ({ value: r.id, label: `${r.id} · ${when(r.createdAt)}${r.declaredAmountMinor ? ` · dice ${formatARS(r.declaredAmountMinor)}` : ""}` }))} />
               </div>
             )}
           </section>

@@ -1,4 +1,5 @@
 import { holdState } from "@/features/importaciones/hold-state";
+import { recordArchiveFilter } from "@/features/admin/record-archives";
 import { importShipmentItems } from "@/features/importaciones/tracking";
 import { createHash, randomBytes } from "node:crypto";
 import { and, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
@@ -152,11 +153,11 @@ async function assertStageAllowed(tx: Tx, track: TrackRow, stage: Stage): Promis
     fail(409, "order_rule", "Primero confirmá el importe acordado del pedido.");
   }
   if (kind !== "stock" && stage === "sena_confirmada") {
-    const sena = senaFor(track.agreedMinor, kind);
+    const sena = senaFor(track.agreedMinor, kind, track.agreedUsdMinor);
     if (sena === null || confirmedMinor < sena) fail(409, "order_rule", `La seña (${sena === null ? "sin importe acordado" : formatARS(sena)}) todavía no está confirmada: registrá antes el pago recibido.`);
   }
   if (kind !== "stock" && rank(kind, stage) >= rank(kind, "comprado_proveedor") && rank(kind, track.stage) < rank(kind, "sena_confirmada")) {
-    const sena = senaFor(track.agreedMinor, kind);
+    const sena = senaFor(track.agreedMinor, kind, track.agreedUsdMinor);
     if (sena === null || confirmedMinor < sena) fail(409, "order_rule", "No se puede comprar al proveedor sin la seña confirmada.");
   }
   if (isShippingStage(stage) && kind !== "stock") {
@@ -356,10 +357,10 @@ export async function sharedWholesaleStatus(db: Db, inquiryId: string, token: st
 
 export type CustomerOrderView = {
   preorder?: { expiresAt: number; status: "retenida" | "confirmada" | "liberada" | "cancelada" };
-  reference: string; kind: TrackKind; stage: string; stageLabel: string; cancelled: boolean; createdAt: number; agreedMinor: number | null;
+  reference: string; kind: TrackKind; stage: string; stageLabel: string; cancelled: boolean; createdAt: number; agreedMinor: number | null; agreedUsdMinor?: number | null;
   steps: Array<{ stage: string; label: string; reachedAt: number | null; current: boolean }>;
   timeline: Array<{ at: number; text: string; kind: string }>;
-  payments: Array<{ id: string; kind: string; amountMinor: number; method: string; paidAt: number }>;
+  payments: Array<{ id: string; kind: string; amountMinor: number; currency?: string; amountUsdMinor?: number | null; method: string; paidAt: number }>;
   paymentStatus: string; paymentStatusLabel: string; pendingReceipts: number;
   receipts: Array<{ id: string; status: string; createdAt: number; declaredAmountMinor: number | null; rejectReason: string | null }>;
   action: string | null;
@@ -396,14 +397,14 @@ export async function customerOrderView(db: Db, inquiryId: string): Promise<Cust
   const cancelled = track.cancelledAt !== null || Boolean(hold?.expired);
   return {
     preorder: hold ? { expiresAt: hold.expiresAt, status: hold.expired ? "liberada" : track.cancelledAt ? "cancelada" : totals.confirmedMinor >= (senaFor(track.agreedMinor, kind) ?? Infinity) ? "confirmada" : "retenida" } : undefined,
-    reference: inquiryId, kind, stage: track.stage, stageLabel: STAGE_LABEL[track.stage as Stage] ?? track.stage, cancelled: cancelled, createdAt: inq?.createdAt ?? track.createdAt, agreedMinor: track.agreedMinor,
+    reference: inquiryId, kind, stage: track.stage, stageLabel: STAGE_LABEL[track.stage as Stage] ?? track.stage, cancelled: cancelled, createdAt: inq?.createdAt ?? track.createdAt, agreedMinor: track.agreedMinor, agreedUsdMinor: track.agreedUsdMinor,
     steps: stages.map((s) => ({ stage: s, label: STAGE_LABEL[s], reachedAt: reachedAt.get(s) ?? null, current: s === track.stage })),
     // Solo texto PÚBLICO: `internalText` no se selecciona hacia afuera.
     timeline: events.filter((e) => e.publicText).map((e) => ({ at: e.occurredAt, text: e.publicText as string, kind: e.kind })),
-    payments: pays.map((p) => ({ id: p.id, kind: p.kind, amountMinor: p.amountMinor, method: p.method, paidAt: p.paidAt })),
+    payments: pays.map((p) => ({ id: p.id, kind: p.kind, amountMinor: p.amountMinor, currency: p.currency, amountUsdMinor: p.amountUsdMinor, method: p.method, paidAt: p.paidAt })),
     paymentStatus: pay.status, paymentStatusLabel: ({ sin_pago: "Sin pagos confirmados", comprobante_en_revision: "Comprobante en revisión", parcial: "Pago parcial confirmado", completo: "Pago completo confirmado" } as const)[pay.status], pendingReceipts: totals.pendingReceipts,
     receipts: receipts.map((r) => ({ id: r.id, status: r.status, createdAt: r.createdAt, declaredAmountMinor: r.declaredAmountMinor, rejectReason: r.status === "rechazado" ? r.rejectReason : null })),
-    action: nextAction({ kind, stage: track.stage, agreedMinor: track.agreedMinor, confirmedMinor: totals.confirmedMinor, pendingReceipts: totals.pendingReceipts, cancelled: cancelled }, formatARS),
+    action: nextAction({ kind, stage: track.stage, agreedMinor: track.agreedMinor, agreedUsdMinor: track.agreedUsdMinor, confirmedMinor: totals.confirmedMinor, pendingReceipts: totals.pendingReceipts, cancelled: cancelled }, formatARS),
     items: items.map(({ productId, ...l }) => { void productId; return l; }),
     incidents: incidents.map((i) => ({ id: i.id, kind: i.kind, publicText: i.publicText, status: i.status, openedAt: i.openedAt })),
     refunds: refunds.map((r) => ({ id: r.id, amountMinor: r.amountMinor, status: r.status, refundedAt: r.refundedAt })),
@@ -416,11 +417,12 @@ export type AdminOrderRow = {
   phone: string | null; carrier: string | null; tracking: string | null; agreedUsdMinor: number | null; rate10k: number | null;
 };
 
-export async function listOrders(db: Db, opts: { kind?: string; stage?: string; search?: string; pending?: "comprobantes" | "retiro"; limit?: number } = {}): Promise<AdminOrderRow[]> {
+export async function listOrders(db: Db, opts: { kind?: string; stage?: string; search?: string; pending?: "comprobantes" | "retiro"; limit?: number; archived?: boolean } = {}): Promise<AdminOrderRow[]> {
   const query = opts.search?.trim().slice(0, 100).replace(/[\\%_]/g, "\\$&");
   const pattern = query ? `%${query}%` : null;
   const rows = await db.select({ t: orderTracks, name: inquiries.contactName, phone: inquiries.contactPhone, rate10k: inquiries.fxRate10k, createdAt: inquiries.createdAt }).from(orderTracks).innerJoin(inquiries, eq(inquiries.id, orderTracks.inquiryId))
     .where(and(
+      recordArchiveFilter("wholesale", sql`${orderTracks.inquiryId}`, opts.archived),
       opts.kind ? eq(orderTracks.kind, opts.kind) : undefined,
       opts.stage ? eq(orderTracks.stage, opts.stage) : undefined,
       opts.pending === "retiro" ? and(eq(orderTracks.stage, "listo_retiro"), sql`${orderTracks.cancelledAt} is null`) : undefined,
@@ -459,5 +461,5 @@ export async function adminOrderDetail(db: Db, inquiryId: string) {
     db.select().from(notificationOutbox).where(eq(notificationOutbox.inquiryId, inquiryId)).orderBy(desc(notificationOutbox.createdAt)),
   ]);
   const deliveries = await db.select().from(lineDeliveries).where(eq(lineDeliveries.inquiryId, inquiryId)).orderBy(desc(lineDeliveries.deliveredAt));
-  return { inquiry: inq, track: track ?? null, events, payments: pays, receipts, incidents, refunds, items, totals, notices, deliveries, senaMinor: senaFor(track?.agreedMinor ?? null, (track?.kind ?? "stock") as TrackKind) };
+  return { inquiry: inq, track: track ?? null, events, payments: pays, receipts, incidents, refunds, items, totals, notices, deliveries, senaMinor: senaFor(track?.agreedMinor ?? null, (track?.kind ?? "stock") as TrackKind, track?.agreedUsdMinor) };
 }

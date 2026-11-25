@@ -3,6 +3,7 @@ import { depositPercent, remainingOrderBalance, shipmentProgressLabel, senaFor, 
 import { encargo, mayorista } from "@/content/politicas";
 import { transferencia } from "@/content/transferencia";
 import { formatARS } from "@/lib/format";
+import { formatUSD } from "@/features/fx/convert";
 import { ReceiptUpload } from "./receipt-upload";
 
 const day = (ms: number) => new Intl.DateTimeFormat("es-AR", { dateStyle: "long", timeZone: "America/Argentina/Buenos_Aires" }).format(new Date(ms));
@@ -19,7 +20,7 @@ const receiptState: Record<string, string> = { pendiente_revision: "En revisión
 export function OrderTracking({ view, whatsappNumber, linkToken }: { view: CustomerOrderView; whatsappNumber: string | null; linkToken?: string }) {
   const wa = whatsappNumber ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(`Hola, consulto por mi pedido ${view.reference}.`)}` : null;
   const k = linkToken ? `?k=${encodeURIComponent(linkToken)}` : "";
-  const sena = view.kind === "stock" ? null : senaFor(view.agreedMinor, view.kind);
+  const sena = view.kind === "stock" ? null : senaFor(view.agreedMinor, view.kind, view.agreedUsdMinor);
   const confirmedMinor = view.payments.reduce((sum, p) => sum + p.amountMinor, 0);
   const due = transferDue({ ...view, confirmedMinor });
   const balance = remainingOrderBalance(view.agreedMinor, confirmedMinor);
@@ -63,7 +64,7 @@ export function OrderTracking({ view, whatsappNumber, linkToken }: { view: Custo
           </dl>
           {view.payments.length > 0 && (
             <ul className="mt-2 divide-y divide-ink/10 text-sm" aria-label="Pagos confirmados">
-              {view.payments.map((p) => <li key={p.id} className="flex justify-between gap-3 py-1"><span>{payKind[p.kind] ?? "Pago"} · {methodName[p.method] ?? p.method} · {day(p.paidAt)}</span><b>{formatARS(p.amountMinor)}</b></li>)}
+              {view.payments.map((p) => <li key={p.id} className="flex justify-between gap-3 py-1"><span>{payKind[p.kind] ?? "Pago"} · {methodName[p.method] ?? p.method} · {day(p.paidAt)}</span><b>{p.currency === "USD" && p.amountUsdMinor != null ? formatUSD(p.amountUsdMinor) : formatARS(p.amountMinor)}</b></li>)}
             </ul>
           )}
           {view.action && <p className="mt-3 border-l-4 border-gold bg-gold/15 p-3 text-sm font-semibold" data-testid="accion-pedido">{view.action}</p>}

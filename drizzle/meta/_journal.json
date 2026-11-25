@@ -120,6 +120,20 @@
       "when": 1794932174997,
       "tag": "0016_gastos_pendientes",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1795642605065,
+      "tag": "0017_eliminar_registros_admin",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1795647882097,
+      "tag": "0018_pagos_pedidos_usd",
+      "breakpoints": true
     }
   ]
 }

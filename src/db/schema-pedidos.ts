@@ -10,6 +10,15 @@ import { inquiries, inquiryLines, sales, saleLines, accountingExpenses } from ".
  */
 const ms = (name: string) => bigint(name, { mode: "number" });
 
+/** Eliminación recuperable de la lista del panel; no altera pagos, costos, stock ni seguimiento. */
+export const adminRecordArchives = pgTable("admin_record_archives", {
+  kind: text("kind").notNull(),
+  recordId: text("record_id").notNull(),
+  archivedAt: ms("archived_at"),
+  updatedAt: ms("updated_at").notNull(),
+  updatedByEmail: text("updated_by_email").notNull(),
+}, (t) => [primaryKey({ columns: [t.kind, t.recordId] }), check("admin_record_archives_kind", sql`${t.kind} in ('purchase', 'wholesale')`)]);
+
 /** «Avisame cuando vuelva». No reserva stock ni garantiza precio; no es una consulta ni una venta. Un aviso activo por producto y correo. */
 export const restockAlerts = pgTable(
   "restock_alerts",
@@ -112,6 +121,10 @@ export const orderPayments = pgTable(
     /** sena | saldo | pago_total | otro */
     kind: text("kind").notNull(),
     amountMinor: ms("amount_minor").notNull(),
+    /** Moneda e importe originales; amountMinor sigue siendo el equivalente contable en ARS. */
+    currency: text("currency").notNull().default("ARS"),
+    amountUsdMinor: ms("amount_usd_minor"),
+    exchangeRate10k: ms("exchange_rate_10k"),
     /** transferencia | efectivo | otro */
     method: text("method").notNull(),
     /** confirmado | anulado */

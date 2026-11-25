@@ -74,7 +74,7 @@ export async function accountingOverview(db: Db, period: AccountingPeriod = {}) 
 export async function wholesaleReceipts(db: Db, period: AccountingPeriod = {}) {
   const filter = and(eq(orderTracks.kind, "mayorista"), eq(orderPayments.status, "confirmado"), accountingDateFilter(accountingDay(sql`${orderPayments.paidAt}`), period));
   const [rows, [totals]] = await Promise.all([
-    db.select({ id: orderPayments.id, reference: orderPayments.inquiryId, kind: orderPayments.kind, amountMinor: orderPayments.amountMinor, paidAt: orderPayments.paidAt, method: orderPayments.method })
+    db.select({ id: orderPayments.id, reference: orderPayments.inquiryId, kind: orderPayments.kind, amountMinor: orderPayments.amountMinor, currency: orderPayments.currency, amountUsdMinor: orderPayments.amountUsdMinor, paidAt: orderPayments.paidAt, method: orderPayments.method })
       .from(orderPayments).innerJoin(orderTracks, eq(orderTracks.inquiryId, orderPayments.inquiryId)).where(filter).orderBy(desc(orderPayments.paidAt), desc(orderPayments.createdAt)).limit(50),
     db.select({ amount: sql<string>`coalesce(sum(${orderPayments.amountMinor}),0)` }).from(orderPayments).innerJoin(orderTracks, eq(orderTracks.inquiryId, orderPayments.inquiryId)).where(filter),
   ]);

@@ -14,6 +14,7 @@ import { MAX_QUOTE_RATE, MIN_QUOTE_RATE } from "@/lib/taobao-quote";
 import { accountingDateFilter, accountingDay, saleAccountingDay, type AccountingChannel, type AccountingPeriod } from "@/features/contabilidad/period";
 import { wholesaleResult } from "@/features/pedidos/mayorista-costos";
 import { listProductCosts } from "./product-costs";
+import { recordArchiveFilter } from "@/features/admin/record-archives";
 
 /**
  * Costos PRIVADOS (solo panel). Nada de este módulo se importa desde páginas públicas ni rutas de clientes.
@@ -411,8 +412,8 @@ export async function profitReport(db: Db, period: AccountingPeriod = {}, channe
 
 export type ProfitReport = Awaited<ReturnType<typeof profitReport>>;
 
-export async function listPurchases(db: Db, id?: string) {
-  const ps = await db.select().from(costPurchases).where(id ? eq(costPurchases.id, id) : undefined).orderBy(desc(costPurchases.purchasedAt));
+export async function listPurchases(db: Db, id?: string, opts: { archived?: boolean } = {}) {
+  const ps = await db.select().from(costPurchases).where(id ? eq(costPurchases.id, id) : recordArchiveFilter("purchase", sql`${costPurchases.id}`, opts.archived)).orderBy(desc(costPurchases.purchasedAt));
   if (!ps.length) return [];
   const items = await db.select().from(costPurchaseItems).where(inArray(costPurchaseItems.purchaseId, ps.map((p) => p.id))).orderBy(costPurchaseItems.id);
   const exps = await db.select().from(costExpenses).where(inArray(costExpenses.purchaseId, ps.map((p) => p.id))).orderBy(costExpenses.id);
