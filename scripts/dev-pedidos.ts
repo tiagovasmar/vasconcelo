@@ -135,7 +135,7 @@ async function main() {
   await reviewWholesaleRequest(db, request.reference, "aprobada", actor.email, { now: at(11) });
   for (const product of propuesta) {
     const current = (await loadOverrides(db)).get(product.id);
-    await saveProductChange(db, realCatalog.products, product.id, { priceUsdMinor: Math.round(product.retailUsd * 100), expectedVersion: current?.updatedAt ?? 0 }, actor);
+    if (product.retailUsd !== null) await saveProductChange(db, realCatalog.products, product.id, { priceUsdMinor: Math.round(product.retailUsd * 100), expectedVersion: current?.updatedAt ?? 0 }, actor);
     for (const [minQty, usd] of product.tiers) {
       await saveTier(db, { productId: product.id, minQty, unitPriceUsdMinor: Math.round(usd * 100) }, actor, at(9));
     }

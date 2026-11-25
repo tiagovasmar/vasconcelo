@@ -1,6 +1,8 @@
 import type { Product, Source } from "../schema";
+import photos from "../colecciones/imagenes-pokebolas-figura.json";
 
 const id = "zh-30th-pikachu-figura";
+const pikachuPhoto = photos.find((image) => image.id === id)!;
 
 const pikachuSource: Source = {
   id: "zh-30th-pikachu-figura-oficial",
@@ -30,16 +32,16 @@ const pikachu: Product = {
   isDemo: false,
   createdAt: "2026-11-10",
   images: [{
-    src: `/images/products/${id}/portada.webp`,
-    alt: "Envase amarillo del set de figura de Pikachu del 30.º aniversario",
-    width: 1100,
-    height: 1007,
-    opaque: true,
+    src: pikachuPhoto.src,
+    alt: pikachuPhoto.alt,
+    width: pikachuPhoto.width,
+    height: pikachuPhoto.height,
+    opaque: false,
     status: "reference",
     source: "supplier",
-    view: "front",
-    origin: "Imagen de la variante SKU_01 aportada por el dueño. https://item.taobao.com/item.htm?id=1079986406064",
-    license: "Imagen de referencia del proveedor aportada por el dueño.",
+    view: "closed",
+    origin: pikachuPhoto.origin,
+    license: pikachuPhoto.license,
   }],
   fallbackTone: "gold",
   description: "Set de colección del 30.º aniversario en chino simplificado. Cada caja individual trae una figura sorpresa, su carta correspondiente y un sobre de la expansión 30th Celebration.",

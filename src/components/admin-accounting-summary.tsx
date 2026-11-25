@@ -1,13 +1,13 @@
 import type { ProfitReport } from "@/features/costos/service";
 import { formatARS } from "@/lib/format";
 
-export function AdminAccountingSummary({ report }: { report: ProfitReport }) {
+export function AdminAccountingSummary({ report, outstandingLabel = "Por cobrar" }: { report: ProfitReport; outstandingLabel?: string }) {
   const { totals, rows } = report;
   const gain = rows.length > 0 && totals.pendingCostRows === rows.length ? "Pendiente" : formatARS(totals.profitMinor);
   const items = [
     ["Vendido", formatARS(totals.billedMinor)],
     ["Cobrado", formatARS(totals.collectedMinor)],
-    ["Por cobrar", formatARS(totals.outstandingMinor)],
+    [outstandingLabel, formatARS(totals.outstandingMinor)],
     ["Ganancia calculada", gain],
   ];
   return (

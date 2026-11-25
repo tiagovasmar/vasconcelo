@@ -18,6 +18,7 @@ import { rank, type TrackKind } from "@/features/pedidos/etapas";
 import { SaleError } from "@/features/sales/errors";
 import { getEffectiveRate } from "@/features/fx/service";
 import { moveStockInTransaction, newSaleId } from "@/features/sales/service";
+import { saleAmountsInPesos, SaleUsdRate } from "@/features/sales/amounts";
 
 const id = z.number().int().positive();
 const ref = z.string().trim().min(1).max(80);
@@ -126,6 +127,7 @@ const CustomerSale = z.object({
   purchaseId: ref,
   customerContact: z.string().trim().min(2, "Ingresá el nombre o contacto del cliente.").max(150),
   items: z.array(z.object({ itemId: id, quantity: qty.positive(), unitPriceMinor: z.number().int().positive().max(100_000_000_000) })).min(1).max(100),
+  usdRate10k: SaleUsdRate.optional(),
   idempotencyKey: key,
 });
 
@@ -133,10 +135,9 @@ export async function createImportCustomerSale(db: Db, body: unknown, actor: Act
   const v = parse(CustomerSale, body);
   const selected = [...v.items].sort((a, b) => a.itemId - b.itemId);
   if (new Set(selected.map((line) => line.itemId)).size !== selected.length) return conflict("Cargá una sola línea por artículo de la compra.");
-  const totalMinor = selected.reduce((sum, line) => sum + line.quantity * line.unitPriceMinor, 0);
-  if (!Number.isSafeInteger(totalMinor) || totalMinor > 30_000_000_000_000) return conflict("Revisá el total de la venta.");
-  const contentHash = sha(JSON.stringify([v.purchaseId, v.customerContact, selected]));
-  const fx = await getEffectiveRate(db, now);
+  const amounts = saleAmountsInPesos(selected.map((line) => ({ ...line, discountMinor: 0 })), v.usdRate10k);
+  const contentHash = sha(JSON.stringify([v.purchaseId, v.customerContact, selected, ...(v.usdRate10k ? [v.usdRate10k] : [])]));
+  const rate = v.usdRate10k ?? (await getEffectiveRate(db, now)).rate10k;
   return db.transaction(async (tx) => {
     await lockKey(tx, `sale:${v.idempotencyKey}`);
     const [previous] = await tx.select({ id: sales.id, hash: sales.contentHash }).from(sales).where(eq(sales.idempotencyKey, v.idempotencyKey));
@@ -150,11 +151,11 @@ export async function createImportCustomerSale(db: Db, body: unknown, actor: Act
     const allocations = await tx.select().from(importAllocations).where(inArray(importAllocations.itemId, items.map((item) => item.id)));
     const saleId = newSaleId();
     await tx.insert(sales).values({
-      id: saleId, idempotencyKey: v.idempotencyKey, contentHash, totalMinor, customerContact: v.customerContact,
-      stockFromImport: true, paymentMethod: "pendiente", status: "agendada", fxRate10k: fx.rate10k,
+      id: saleId, idempotencyKey: v.idempotencyKey, contentHash, totalMinor: amounts.totalMinor, totalUsdMinor: amounts.totalUsdMinor, customerContact: v.customerContact,
+      stockFromImport: true, paymentMethod: "pendiente", status: "agendada", fxRate10k: rate,
       createdAt: now, createdByUserId: actor.id, createdByEmail: actor.email,
     });
-    for (const line of selected) {
+    for (const line of amounts.items) {
       const item = items.find((candidate) => candidate.id === line.itemId);
       if (!item) return missing("Uno de los artículos no pertenece a esta compra.");
       const product = catalog.products.find((candidate) => candidate.id === item.productId);
@@ -163,7 +164,7 @@ export async function createImportCustomerSale(db: Db, body: unknown, actor: Act
       if (line.quantity > item.quantity - taken) return conflict(`Hay ${item.quantity - taken} unidades de «${product.title}» libres para asignar.`);
       const [saleLine] = await tx.insert(saleLines).values({
         saleId, productId: product.id, sku: product.sku, title: product.title, language: product.language,
-        quantity: line.quantity, unitPriceMinor: line.unitPriceMinor, lineTotalMinor: line.quantity * line.unitPriceMinor, baseCurrency: "ARS",
+        quantity: line.quantity, unitPriceMinor: line.unitPriceMinor, unitPriceUsdMinor: line.unitPriceUsdMinor, lineTotalMinor: line.lineTotalMinor, baseCurrency: "ARS",
       }).returning({ id: saleLines.id });
       await tx.insert(importAllocations).values({ itemId: item.id, destination: "vendido", saleLineId: saleLine.id, quantity: line.quantity });
     }
@@ -475,8 +476,12 @@ export async function payPurchase(db: Db, body: unknown, actor: Actor) {
     await lockKey(tx, `import-disbursement:${expenseId}`);
     const [existing] = await tx.select().from(importDisbursements).where(eq(importDisbursements.expenseId, expenseId));
     if (existing && existing.purchaseId !== p.id) return conflict("Ese egreso ya se vinculó a otra compra.");
-    if (!v.expenseId) await registerExpense(tx, body, actor.email);
-    else if (!(await tx.select({ id: accountingExpenses.id }).from(accountingExpenses).where(eq(accountingExpenses.id, expenseId)))[0]) return missing("El egreso no existe.");
+    if (!v.expenseId) await registerExpense(tx, { ...raw, pending: false }, actor.email);
+    else {
+      const [expense] = await tx.select({ method: accountingExpenses.paymentMethod }).from(accountingExpenses).where(eq(accountingExpenses.id, expenseId));
+      if (!expense) return missing("El egreso no existe.");
+      if (expense.method === "pendiente") return conflict("Confirmá el pago del gasto antes de vincularlo a la compra.");
+    }
     await tx.insert(importDisbursements).values({ purchaseId: p.id, expenseId }).onConflictDoNothing();
     return { changed: !existing };
   });
@@ -492,7 +497,8 @@ export async function purchaseRelations(db: Db, purchaseId: string, itemIds: num
     .innerJoin(accountingExpenses, eq(importDisbursements.expenseId, accountingExpenses.id)).where(eq(importDisbursements.purchaseId, purchaseId));
   const availablePayments = await db.select().from(accountingExpenses)
     .leftJoin(importDisbursements, eq(accountingExpenses.id, importDisbursements.expenseId))
-    .where(isNull(importDisbursements.expenseId)).orderBy(sql`${accountingExpenses.spentAt} desc`).limit(100);
+    .where(and(isNull(importDisbursements.expenseId), ne(accountingExpenses.paymentMethod, "pendiente")))
+    .orderBy(sql`coalesce(${accountingExpenses.paidAt}, ${accountingExpenses.spentAt}) desc`).limit(100);
   const history = await db.select().from(importReceipts).where(inArray(importReceipts.parcelId, parcels.map(({ parcel }) => parcel.id))).orderBy(sql`${importReceipts.createdAt} desc`);
   const reservations = await db.select({ r: importReservations, track: orderTracks }).from(importReservations)
     .innerJoin(orderTracks, eq(importReservations.inquiryId, orderTracks.inquiryId)).where(inArray(importReservations.sourceParcelId, parcels.map(({ parcel }) => parcel.id)));

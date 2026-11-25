@@ -106,6 +106,20 @@
       "when": 1794708776434,
       "tag": "0014_importacion_ventas_y_envio_usd",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1794712754562,
+      "tag": "0015_ventas_en_usd",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1794932174997,
+      "tag": "0016_gastos_pendientes",
+      "breakpoints": true
     }
   ]
 }

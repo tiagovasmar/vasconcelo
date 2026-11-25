@@ -4,11 +4,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { formatARS } from "@/lib/format";
+import { formatRate, formatUSD } from "@/features/fx/convert";
 import type { SaleView } from "@/features/sales/service";
 import { AdminForm } from "./admin-form";
 import { refreshAdminNotifications } from "./admin-notifications";
 
 const when = (ms: number) => new Intl.DateTimeFormat("es-AR", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Argentina/Buenos_Aires" }).format(new Date(ms));
+const money = (pesos: number, dollars?: number | null) => dollars == null ? formatARS(pesos) : formatUSD(dollars);
 
 /** Historial de ventas. Nada se edita ni se borra: lo único posible es anular una venta (devuelve el stock y queda constancia). */
 const deliveryPayments = [
@@ -51,16 +53,17 @@ export function AdminSalesList({ sales }: { sales: SaleView[] }) {
           {s.scheduledFor && <p className="mt-1 text-sm font-semibold">{s.status === "agendada" ? "Entrega agendada" : "Entrega acordada"} · {s.scheduledFor.split("-").reverse().join("/")}{s.customerContact && ` · ${s.customerContact}`}</p>}
           {s.inquiry && <p className="mt-1 text-sm" data-testid="venta-origen">Cliente: <b>{s.inquiry.name ?? "Sin nombre"}</b> · consulta <Link href={`/admin/consultas/${s.inquiry.id}`} className="font-mono underline underline-offset-4">{s.inquiry.id}</Link>{s.inquiry.kind === "vinculada" ? " (vinculada)" : ""}</p>}
           <ul className="mt-2 text-sm">
-            {s.lines.map((l, index) => <li key={`${l.productId}-${index}`} className="flex justify-between gap-3"><span>{l.quantity} × {l.title}{l.packSize && !/pack de/i.test(l.title) ? ` (pack de ${l.packSize})` : ""} <span className="font-mono text-xs text-ink/70">{l.sku}</span></span><span className="shrink-0 text-right">{formatARS(l.unitPriceMinor)} {l.packSize ? "por pack" : "c/u"}{l.discountMinor > 0 && <span className="block text-xs font-semibold text-emerald" data-testid={`venta-desc-${l.productId}`}>−{formatARS(l.discountMinor)} ({l.discountKind === "combo" ? "combo caja + sobres" : l.discountKind === "transferencia" ? "transferencia" : l.discountKind === "mixto" ? "combo y transferencia" : "descuento"})</span>}</span></li>)}
+            {s.lines.map((l, index) => <li key={`${l.productId}-${index}`} className="flex justify-between gap-3"><span>{l.quantity} × {l.title}{l.packSize && !/pack de/i.test(l.title) ? ` (pack de ${l.packSize})` : ""} <span className="font-mono text-xs text-ink/70">{l.sku}</span></span><span className="shrink-0 text-right">{money(l.unitPriceMinor, l.unitPriceUsdMinor)} {l.packSize ? "por pack" : "c/u"}{l.discountMinor > 0 && <span className="block text-xs font-semibold text-emerald" data-testid={`venta-desc-${l.productId}`}>−{money(l.discountMinor, l.discountUsdMinor)} ({l.discountKind === "combo" ? "combo caja + sobres" : l.discountKind === "transferencia" ? "transferencia" : l.discountKind === "mixto" ? "combo y transferencia" : "descuento"})</span>}</span></li>)}
           </ul>
-          <p className="mt-2 flex flex-wrap items-baseline justify-between gap-2 border-t border-ink/10 pt-2 text-sm"><span>{s.status === "agendada" || s.paymentMethod === "pendiente" ? "Cobro pendiente" : s.paymentLabel}{s.note ? ` · ${s.note}` : ""}</span><b className="text-lg">{formatARS(s.totalMinor)}</b></p>
-          {s.receivedMinor !== null && <p className="mt-1 text-sm">Neto recibido: <b>{formatARS(s.receivedMinor)}</b>{s.installments && ` · ${s.installments} cuotas`}</p>}
+          <p className="mt-2 flex flex-wrap items-baseline justify-between gap-2 border-t border-ink/10 pt-2 text-sm"><span>{s.status === "agendada" || s.paymentMethod === "pendiente" ? "Cobro pendiente" : s.paymentLabel}{s.note ? ` · ${s.note}` : ""}</span><b className="text-lg">{money(s.totalMinor, s.totalUsdMinor)}</b></p>
+          {s.totalUsdMinor != null && s.fxRate10k && <p className="mt-1 text-right text-xs text-ink/75">{formatARS(s.totalMinor)} en contabilidad · {formatRate(s.fxRate10k)} por USD</p>}
+          {s.receivedMinor !== null && <p className="mt-1 text-sm">Neto recibido: <b>{money(s.receivedMinor, s.receivedUsdMinor)}</b>{s.installments && ` · ${s.installments} cuotas`}</p>}
           {s.status === "agendada" && <details className="my-3">
             <summary className="min-h-11 cursor-pointer text-sm font-semibold underline">Confirmar entrega y cobro</summary>
             <AdminForm endpoint={`/api/admin/ventas/${encodeURIComponent(s.id)}/completar`} fields={[
               { name: "soldAt", label: "Fecha efectiva de venta", type: "date", required: true },
               { name: "paymentMethod", label: "Medio de pago", type: "select", required: true, options: deliveryPayments },
-              { name: "receivedMinor", label: "Importe neto recibido (solo tarjeta)", type: "pesos", optional: true },
+              { name: "receivedMinor", label: s.totalUsdMinor != null ? "Importe neto recibido en USD (solo tarjeta)" : "Importe neto recibido (solo tarjeta)", type: s.totalUsdMinor != null ? "usd" : "pesos", optional: true },
               { name: "installments", label: "Cantidad de cuotas (solo tarjeta en cuotas)", type: "int", optional: true },
             ]} submit="Confirmar cobro" ok="Venta confirmada." />
           </details>}

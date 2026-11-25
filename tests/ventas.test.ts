@@ -5,7 +5,7 @@ import { createDb } from "@/db/client";
 import { productAudit, productOverrides, saleLines, sales, stockMovements } from "@/db/schema";
 import { loadOverrides, saveProductChange } from "@/features/catalog/overrides";
 import { createInquiry, hashToken } from "@/features/inquiries/service";
-import { accountingOverview, registerExpense } from "@/features/contabilidad/service";
+import { accountingOverview, markExpensePaid, registerExpense, reservedSalesToCollect } from "@/features/contabilidad/service";
 import { completeScheduledSale, listMovements, listSales, moveStock, previewSale, registerSale, SaleError, voidSale } from "@/features/sales/service";
 import type { EffectiveRate } from "@/features/fx/convert";
 import { openTestDb, type TestDb } from "./helpers/pg";
@@ -32,7 +32,52 @@ const counts = async () => ({ sales: (await db.select().from(sales)).length, lin
 
 beforeEach(async () => { db = await openTestDb(); });
 
+it("muestra un gasto pendiente hasta confirmar el pago y lo imputa al mes del pago una sola vez", async () => {
+  const expense = { idempotencyKey: key(), spentAt: Date.parse("2026-11-29T15:00:00Z"), amountMinor: peso(2500), description: "Insumos", pending: true };
+  const november = { from: "2026-11-01", to: "2026-11-30" };
+  const december = { from: "2026-12-01", to: "2026-12-31" };
+  expect(await registerExpense(db, expense, actor.email)).toEqual({ replayed: false });
+  expect(await accountingOverview(db, november)).toMatchObject({ spent: 0, pendingSpent: peso(2500), expenses: [] });
+  expect(await accountingOverview(db, december)).toMatchObject({ spent: 0, pendingSpent: peso(2500) });
+
+  const pay = { expenseId: expense.idempotencyKey, paidAt: Date.parse("2026-12-02T15:00:00Z"), paymentMethod: "transferencia" };
+  expect(await markExpensePaid(db, pay)).toEqual({ replayed: false });
+  expect(await markExpensePaid(db, pay)).toEqual({ replayed: true });
+  expect(await code(markExpensePaid(db, { ...pay, paymentMethod: "efectivo" }))).toBe("order_rule");
+  expect(await registerExpense(db, expense, actor.email)).toEqual({ replayed: true });
+  expect(await accountingOverview(db, november)).toMatchObject({ spent: 0, pendingExpenses: [] });
+  expect(await accountingOverview(db, december)).toMatchObject({ spent: peso(2500), pendingSpent: 0, expenses: [{ paidAt: pay.paidAt }] });
+});
+
 describe("registrar una venta", () => {
+  it("conserva los dólares, congela la cotización y contabiliza en pesos al cobrar una entrega", async () => {
+    const before = (await stockOf("storm-sobre"))!;
+    const body = {
+      items: [{ productId: "storm-sobre", quantity: 2, unitPriceMinor: 1_250, discountMinor: 50 }],
+      idempotencyKey: key(), usdRate10k: 12_345_000, paymentMethod: "pendiente", scheduledFor: "2026-11-16",
+    };
+    const preview = await previewSale(db, body);
+    expect(preview).toMatchObject({ totalUsdMinor: 2_450, totalMinor: 3_024_525, ok: true });
+    expect(await code(reg({ ...body, usdRate10k: undefined }))).toBe("invalid_input");
+    const { sale: reserved } = await reg(body);
+    expect(reserved).toMatchObject({ totalUsdMinor: 2_450, totalMinor: 3_024_525, fxRate10k: 12_345_000 });
+    expect(reserved.lines[0]).toMatchObject({ unitPriceUsdMinor: 1_250, discountUsdMinor: 50 });
+    expect(await reservedSalesToCollect(db)).toMatchObject([{ id: reserved.id, totalUsdMinor: 2_450, totalMinor: 3_024_525 }]);
+    expect((await accountingOverview(db)).gross).toBe(0);
+    expect((await reg(body, { fx: { ...FX, rate10k: 15_000_000 } })).replayed).toBe(true);
+    expect(await stockOf("storm-sobre")).toBe(before - 2);
+
+    const soldAt = Date.parse("2026-11-16T15:00:00Z");
+    const payment = { paymentMethod: "tarjeta", soldAt, receivedMinor: 2_300 };
+    expect(await completeScheduledSale(db, reserved.id, payment, soldAt)).toEqual({ replayed: false });
+    expect(await completeScheduledSale(db, reserved.id, payment, soldAt)).toEqual({ replayed: true });
+    expect((await listSales(db))[0]).toMatchObject({ receivedUsdMinor: 2_300, receivedMinor: 2_839_350 });
+    expect(await reservedSalesToCollect(db)).toEqual([]);
+    expect(await accountingOverview(db)).toMatchObject({ gross: 3_024_525, net: 2_839_350 });
+    await voidSale(db, reserved.id, "Devolución de prueba", actor);
+    expect(await stockOf("storm-sobre")).toBe(before);
+  });
+
   it("reserva stock al agendar, factura al cobrar y devuelve stock al cancelar otra entrega", async () => {
     const start = (await stockOf("storm-sobre"))!;
     const items = [{ productId: "storm-sobre", quantity: 1, price: 9000 }];
@@ -54,6 +99,7 @@ describe("registrar una venta", () => {
 
     const { sale: cancelled } = await reg({ ...schedule, idempotencyKey: key() });
     await voidSale(db, cancelled.id, "El cliente canceló", actor);
+    expect(await reservedSalesToCollect(db)).toEqual([]);
     await expect(completeScheduledSale(db, cancelled.id, payment, soldAt)).rejects.toThrow(/cerró/);
     expect(await stockOf("storm-sobre")).toBe(start - 1);
     expect((await accountingOverview(db)).gross).toBe(peso(9000));

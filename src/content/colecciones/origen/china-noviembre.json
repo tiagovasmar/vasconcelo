@@ -1,0 +1,267 @@
+[
+  {
+    "id": "zh-xingcai-jingli-slim-caja",
+    "sku": "ZH-CSV9-SLIM-BOX",
+    "title": "Stellar Crystal · Caja Slim de 15 sobres",
+    "original": "星彩晶璃",
+    "packs": 15,
+    "cards": 5,
+    "rmb": 135,
+    "logistics": 10,
+    "wholesale": 46,
+    "retail": 65,
+    "expansion": "zh-xingcai-jingli",
+    "aliases": [
+      "星彩晶璃",
+      "Sparkling Crystal",
+      "Surging Sparks chino"
+    ],
+    "description": "Caja en chino simplificado de 星彩晶璃: 15 sobres de 5 cartas aleatorias. El nombre en inglés es una denominación comercial descriptiva."
+  },
+  {
+    "id": "zh-jiucai-yuan-jumbo-caja",
+    "sku": "ZH-CS4B-JUMBO-BOX",
+    "title": "Nine Colors Gathering Source · Caja Jumbo de 6 sobres",
+    "original": "九彩汇聚 源",
+    "packs": 6,
+    "cards": 25,
+    "rmb": 388,
+    "logistics": 22,
+    "wholesale": 120,
+    "retail": 160,
+    "expansion": "",
+    "aliases": [
+      "九彩汇聚 源",
+      "Evolving Skies chino",
+      "Nine Colors Gathering Origin"
+    ],
+    "description": "Caja en chino simplificado de 九彩汇聚 源: 6 sobres de 25 cartas aleatorias. El nombre en inglés es una denominación comercial descriptiva."
+  },
+  {
+    "id": "zh-jiucai-peng-jumbo-caja",
+    "sku": "ZH-CS4A-JUMBO-BOX",
+    "title": "Nine Colors Gathering Friends · Caja Jumbo de 6 sobres",
+    "original": "九彩汇聚 朋",
+    "packs": 6,
+    "cards": 25,
+    "rmb": 780,
+    "logistics": 22,
+    "wholesale": 210,
+    "retail": 280,
+    "expansion": "",
+    "aliases": [
+      "九彩汇聚 朋",
+      "Evolving Skies chino",
+      "Nine Colors Gathering Friend"
+    ],
+    "description": "Caja en chino simplificado de 九彩汇聚 朋: 6 sobres de 25 cartas aleatorias. El nombre en inglés es una denominación comercial descriptiva."
+  },
+  {
+    "id": "zh-heijing-chicheng-jumbo-caja",
+    "sku": "ZH-CSV5-JUMBO-BOX",
+    "title": "Dark Crystal Blaze · Caja Jumbo de 6 sobres",
+    "original": "黑晶炽诚",
+    "packs": 6,
+    "cards": 20,
+    "rmb": 198,
+    "logistics": 22,
+    "wholesale": 78,
+    "retail": 105,
+    "expansion": "zh-heijing-chicheng",
+    "aliases": [
+      "黑晶炽诚"
+    ],
+    "description": "Caja en chino simplificado de 黑晶炽诚: 6 sobres de 20 cartas aleatorias. El nombre en inglés es una denominación comercial descriptiva."
+  },
+  {
+    "id": "zh-liren-mengxing-slim-caja",
+    "sku": "ZH-CSV7-SLIM-BOX",
+    "title": "Blade Awakening · Caja Slim de 15 sobres",
+    "original": "利刃猛醒",
+    "packs": 15,
+    "cards": 5,
+    "rmb": 120,
+    "logistics": 10,
+    "wholesale": 42,
+    "retail": 60,
+    "expansion": "zh-liren-mengxing",
+    "aliases": [
+      "利刃猛醒"
+    ],
+    "description": "Caja en chino simplificado de 利刃猛醒: 15 sobres de 5 cartas aleatorias. El nombre en inglés es una denominación comercial descriptiva."
+  },
+  {
+    "id": "zh-baoshibao-vol4-caja",
+    "sku": "ZH-CBB4-BOX",
+    "title": "Gem Pack Vol. 4 · Caja de 18 sobres",
+    "original": "宝石包 VOL.4",
+    "packs": 18,
+    "cards": 4,
+    "rmb": 122,
+    "logistics": 10,
+    "wholesale": 43,
+    "retail": 60,
+    "expansion": "",
+    "aliases": [
+      "宝石包 VOL.4"
+    ],
+    "description": "Caja en chino simplificado de 宝石包 VOL.4: 18 sobres de 4 cartas aleatorias. El nombre en inglés es una denominación comercial descriptiva."
+  },
+  {
+    "id": "zh-baoshibao-vol5-caja",
+    "sku": "ZH-CBB5-BOX",
+    "title": "Gem Pack Vol. 5 · Caja de 18 sobres",
+    "original": "宝石包 VOL.5",
+    "packs": 18,
+    "cards": 4,
+    "rmb": 194,
+    "logistics": 10,
+    "wholesale": 60,
+    "retail": 80,
+    "expansion": "",
+    "aliases": [
+      "宝石包 VOL.5"
+    ],
+    "description": "Caja en chino simplificado de 宝石包 VOL.5: 18 sobres de 4 cartas aleatorias. El nombre en inglés es una denominación comercial descriptiva."
+  },
+  {
+    "id": "zh-baoshibao-vol6-caja",
+    "sku": "ZH-CBB6-BOX",
+    "title": "Gem Pack Vol. 6 · Caja de 18 sobres",
+    "original": "宝石包 VOL.6",
+    "packs": 18,
+    "cards": 4,
+    "rmb": 117,
+    "logistics": 10,
+    "wholesale": 42,
+    "retail": 55,
+    "expansion": "zh-baoshibao-vol6",
+    "aliases": [
+      "宝石包 VOL.6"
+    ],
+    "description": "Caja en chino simplificado de 宝石包 VOL.6: 18 sobres de 4 cartas aleatorias. El nombre en inglés es una denominación comercial descriptiva."
+  },
+  {
+    "id": "zh-baoshibao-vol7-caja",
+    "sku": "ZH-CBB7-BOX",
+    "title": "Gem Pack Vol. 7 · Caja de 18 sobres",
+    "original": "宝石包 VOL.7",
+    "packs": 18,
+    "cards": 4,
+    "rmb": 168,
+    "logistics": 10,
+    "wholesale": 55,
+    "retail": 75,
+    "expansion": "",
+    "aliases": [
+      "宝石包 VOL.7"
+    ],
+    "description": "Caja en chino simplificado de 宝石包 VOL.7: 18 sobres de 4 cartas aleatorias. El nombre en inglés es una denominación comercial descriptiva."
+  },
+  {
+    "id": "zh-jiajiang-huihe-slim-caja",
+    "sku": "ZH-CSV4-SLIM-BOX",
+    "title": "Reward Round · Caja Slim de 15 sobres",
+    "original": "嘉奖回合",
+    "packs": 15,
+    "cards": 5,
+    "rmb": 170,
+    "logistics": 10,
+    "wholesale": 55,
+    "retail": 75,
+    "expansion": "zh-jiajiang-huihe",
+    "aliases": [
+      "嘉奖回合"
+    ],
+    "description": "Caja en chino simplificado de 嘉奖回合: 15 sobres de 5 cartas aleatorias. El nombre en inglés es una denominación comercial descriptiva."
+  },
+  {
+    "id": "zh-umbreon-display-set",
+    "sku": "ZH-UMBREON-DISPLAY",
+    "title": "Umbreon · Set de exhibición",
+    "original": "卡牌展示组合 月亮伊布",
+    "packs": 0,
+    "cards": 0,
+    "rmb": 129,
+    "logistics": 6,
+    "wholesale": 38,
+    "retail": 52,
+    "expansion": "",
+    "aliases": [
+      "卡牌展示组合 月亮伊布"
+    ],
+    "description": "Set de exhibición en chino simplificado con temática de Umbreon."
+  },
+  {
+    "id": "zh-mew-display-set",
+    "sku": "ZH-MEW-DISPLAY",
+    "title": "Mew · Set de exhibición",
+    "original": "卡牌展示组合 梦幻",
+    "packs": 0,
+    "cards": 0,
+    "rmb": 79,
+    "logistics": 6,
+    "wholesale": 28,
+    "retail": 38,
+    "expansion": "",
+    "aliases": [
+      "卡牌展示组合 梦幻"
+    ],
+    "description": "Set de exhibición en chino simplificado con temática de Mew."
+  },
+  {
+    "id": "zh-151-lv-slim-caja",
+    "sku": "ZH-151-LV-SLIM-BOX",
+    "title": "151 Journey · Caja Slim de 15 sobres",
+    "original": "收集啦151 旅",
+    "aliases": [
+      "151 旅",
+      "Collect 151 Journey"
+    ],
+    "packs": 15,
+    "cards": 5,
+    "rmb": null,
+    "logistics": 10,
+    "wholesale": 45,
+    "retail": 60,
+    "expansion": "",
+    "description": "Caja Slim de 151 Journey en chino simplificado. Contiene 15 sobres de 5 cartas aleatorias. Misma tarifa de lista que 151 Hope y Surprise."
+  },
+  {
+    "id": "zh-151-ju-slim-caja",
+    "sku": "ZH-151-JU-SLIM-BOX",
+    "title": "151 Gathering · Caja Slim de 15 sobres",
+    "original": "收集啦151 聚",
+    "aliases": [
+      "151 聚",
+      "Collect 151 Gathering"
+    ],
+    "packs": 15,
+    "cards": 5,
+    "rmb": null,
+    "logistics": 10,
+    "wholesale": 45,
+    "retail": 60,
+    "expansion": "",
+    "description": "Caja Slim de 151 Gathering en chino simplificado. Contiene 15 sobres de 5 cartas aleatorias. Misma tarifa de lista que 151 Hope y Surprise."
+  },
+  {
+    "id": "zh-gongzhu-rongguang-slim-caja",
+    "sku": "ZH-CSV10-SLIM-BOX",
+    "title": "Chasing Glory Together · Caja Slim de 15 sobres",
+    "original": "共逐荣光",
+    "aliases": [
+      "Destiny Rivals chino",
+      "Destined Rivals chino",
+      "共逐荣光"
+    ],
+    "packs": 15,
+    "cards": 5,
+    "rmb": 114,
+    "logistics": 10,
+    "wholesale": 42,
+    "retail": 55,
+    "expansion": "zh-gongzhu-rongguang",
+    "description": "Caja Slim en chino simplificado de Chasing Glory Together. Contiene 15 sobres de 5 cartas aleatorias. Se identifica comercialmente como Destiny Rivals chino; es una edición china propia."
+  }
+]

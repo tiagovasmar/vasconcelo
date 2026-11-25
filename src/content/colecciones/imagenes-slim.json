@@ -1,0 +1,122 @@
+[
+  {
+    "id": "zh-xingcai-jingli-slim-caja",
+    "src": "/images/products/zh-xingcai-jingli-slim-caja/sobre-slim-v2.webp",
+    "width": 280,
+    "height": 480,
+    "view": "front",
+    "opaque": false,
+    "status": "reference",
+    "source": "supplier",
+    "origin": "/images/products/zh-xingcai-jingli-slim-caja/referencia-original.webp",
+    "license": "Sobre de referencia de la edición exacta. Solo recorte de margen y fondo exterior; sin recrear ilustraciones."
+  },
+  {
+    "id": "zh-liren-mengxing-slim-caja",
+    "src": "/images/products/zh-liren-mengxing-slim-caja/sobre-slim-v2.webp",
+    "width": 267,
+    "height": 468,
+    "view": "front",
+    "opaque": false,
+    "status": "reference",
+    "source": "supplier",
+    "origin": "/images/products/zh-liren-mengxing-slim-caja/referencia-original.webp",
+    "license": "Sobre de referencia de la edición exacta. Solo recorte de margen y fondo exterior; sin recrear ilustraciones."
+  },
+  {
+    "id": "zh-jiajiang-huihe-slim-caja",
+    "src": "/images/products/zh-jiajiang-huihe-slim-caja/sobre-slim-v2.webp",
+    "width": 279,
+    "height": 486,
+    "view": "front",
+    "opaque": false,
+    "status": "reference",
+    "source": "supplier",
+    "origin": "/images/products/zh-jiajiang-huihe-slim-caja/referencia-original.webp",
+    "license": "Sobre de referencia de la edición exacta. Solo recorte de margen y fondo exterior; sin recrear ilustraciones."
+  },
+  {
+    "id": "zh-gongzhu-rongguang-slim-caja",
+    "src": "/images/products/zh-gongzhu-rongguang-slim-caja/sobre-slim-v2.webp",
+    "width": 347,
+    "height": 617,
+    "view": "front",
+    "opaque": false,
+    "status": "reference",
+    "source": "supplier",
+    "origin": "/images/products/zh/zh-gongzhu-rongguang-sobre-5-1.webp",
+    "license": "Sobre de referencia de la edición exacta. Solo recorte de margen y fondo exterior; sin recrear ilustraciones."
+  },
+  {
+    "id": "zh-black-bolt-slim-caja",
+    "src": "/images/products/zh-black-bolt-slim-caja/sobre-slim-v2.webp",
+    "width": 774,
+    "height": 1372,
+    "view": "front",
+    "opaque": false,
+    "status": "reference",
+    "source": "supplier",
+    "origin": "/images/products/zh-black-bolt-slim-caja/sobre-referencia.png",
+    "license": "Sobre de referencia de la edición exacta. Solo recorte de margen y fondo exterior; sin recrear ilustraciones."
+  },
+  {
+    "id": "zh-151-wang-slim-caja",
+    "src": "/images/products/zh-151-wang-slim-caja/sobre-slim-v2.webp",
+    "width": 1031,
+    "height": 1829,
+    "view": "front",
+    "opaque": false,
+    "status": "reference",
+    "source": "supplier",
+    "origin": "/images/products/zh-151-wang-slim-caja/referencia.webp",
+    "license": "Sobre de referencia de la edición exacta. Solo recorte de margen y fondo exterior; sin recrear ilustraciones."
+  },
+  {
+    "id": "zh-151-jing-slim-caja",
+    "src": "/images/products/zh-151-jing-slim-caja/sobre-slim-v2.webp",
+    "width": 1031,
+    "height": 1829,
+    "view": "front",
+    "opaque": false,
+    "status": "reference",
+    "source": "supplier",
+    "origin": "/images/products/zh-151-jing-slim-caja/referencia.webp",
+    "license": "Sobre de referencia de la edición exacta. Solo recorte de margen y fondo exterior; sin recrear ilustraciones."
+  },
+  {
+    "id": "zh-151-lv-slim-caja",
+    "src": "/images/products/zh-151-lv-slim-caja/sobre-slim-v2.webp",
+    "width": 1523,
+    "height": 2676,
+    "view": "front",
+    "opaque": false,
+    "status": "reference",
+    "source": "manufacturer",
+    "origin": "https://www.pokemon.cn/tcg/product/15688.html",
+    "license": "Imagen de referencia del sobre de la edición exacta. Margen y fondo exterior recortados; sin alterar el arte ni recrear el envase."
+  },
+  {
+    "id": "zh-151-ju-slim-caja",
+    "src": "/images/products/zh-151-ju-slim-caja/sobre-slim-v2.webp",
+    "width": 1030,
+    "height": 1828,
+    "view": "front",
+    "opaque": false,
+    "status": "reference",
+    "source": "manufacturer",
+    "origin": "https://www.pokipair.com/collect-151-gathering-everything-you-need-to-know/",
+    "license": "Imagen de referencia del sobre de la edición exacta. Margen y fondo exterior recortados; sin alterar el arte ni recrear el envase."
+  },
+  {
+    "id": "zh-white-flare-slim-caja",
+    "src": "/images/products/zh-white-flare-slim-caja/sobre-slim-v2.webp",
+    "width": 764,
+    "height": 1322,
+    "view": "front",
+    "opaque": false,
+    "status": "reference",
+    "source": "supplier",
+    "origin": "https://vaultifyuk.co.uk/products/pokemon-tcg-white-flare-csv10-6c-simplified-chinese-booster-pack",
+    "license": "Imagen de referencia del sobre de la edición exacta. Margen y fondo exterior recortados; sin alterar el arte ni recrear el envase."
+  }
+]

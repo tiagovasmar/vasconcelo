@@ -8,12 +8,13 @@ import { todayYmd } from "./admin-form";
 import { refreshAdminNotifications } from "./admin-notifications";
 import { parseMoney } from "@/lib/money-input";
 import { formatARS } from "@/lib/format";
+import { formatRate, formatUSD, parseRateInput, parseUsdInput, toRate10k, usdToArsExactMinor } from "@/features/fx/convert";
+import type { SalePreview } from "@/features/sales/service";
 
 export type SaleProduct = { id: string; sku: string; title: string; language: string; stock: number | null; priceMinor: number | null; low: boolean; orderOnly: boolean; /** Unidades por pack (accesorios): el stock se cuenta en packs. */ packSize?: number | null };
 type Line = { productId: string; quantity: string; price: string; /** Descuento TOTAL de la línea en pesos (de la consulta: ya calculado; la venta no vuelve a aplicar promociones). */ discount: string; /** Descuento y cantidad de origen (consulta) para ajustar el descuento en proporción si se cambia la cantidad. */ origin?: { discount: number; quantity: number }; touched?: boolean };
 /** Consulta que se está convirtiendo en venta: la venta, el descuento de stock y el vínculo se guardan juntos. Las líneas vienen precargadas y se pueden editar. */
 export type InquiryPrefill = { id: string; name: string; payment: string; lines: Array<{ productId: string; quantity: number; unitPriceMinor: number; discountMinor?: number }> };
-type Preview = { lines: Array<{ productId: string; sku: string; title: string; quantity: number; unitPriceMinor: number; discountMinor: number; lineTotalMinor: number; stockNow: number | null; stockAfter: number | null; problem: string | null }>; totalMinor: number; ok: boolean };
 
 const norm = (s: string) => s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
 const newKey = () => crypto.randomUUID().replace(/-/g, "");
@@ -25,7 +26,7 @@ const pesos = (s: string) => (/^\d{1,9}$/.test(s.trim()) ? Number(s.trim()) : nu
  * Registro de una venta manual en tres pasos: armar → revisar el resumen y el stock resultante (lo calcula el servidor) → confirmar.
  * Confirmar usa una clave de operación fija para esa venta: un doble clic o un reintento tras un corte devuelven la misma venta en lugar de registrar otra.
  */
-export function AdminSaleForm({ products, inquiry }: { products: SaleProduct[]; inquiry?: InquiryPrefill }) {
+export function AdminSaleForm({ products, inquiry, defaultRate10k }: { products: SaleProduct[]; inquiry?: InquiryPrefill; defaultRate10k?: number | null }) {
   const router = useRouter();
   const [lines, setLines] = useState<Line[]>(() => (inquiry?.lines ?? []).map((l) => ({ productId: l.productId, quantity: String(l.quantity), price: String(Math.round(l.unitPriceMinor / 100)), discount: String(Math.round((l.discountMinor ?? 0) / 100)), origin: { discount: l.discountMinor ?? 0, quantity: l.quantity } })));
   const [payment, setPayment] = useState<string>(inquiry?.payment ?? "");
@@ -34,6 +35,19 @@ export function AdminSaleForm({ products, inquiry }: { products: SaleProduct[]; 
   const [contact, setContact] = useState("");
   const [received, setReceived] = useState("");
   const [installments, setInstallments] = useState("");
+  const [currency, setCurrency] = useState<"ARS" | "USD">("ARS");
+  const [rateText, setRateText] = useState("");
+  const isUsd = currency === "USD";
+  const usdRate10k = isUsd ? (rateText.trim() ? toRate10k(parseRateInput(rateText)) : defaultRate10k ?? null) : null;
+  const money = isUsd ? formatUSD : formatARS;
+  const currencyLabel = isUsd ? "USD" : "$";
+  const inputMode = isUsd ? "decimal" : "numeric";
+  const moneyInput = (value: string) => isUsd ? value.replace(/[^\d.,]/g, "").slice(0, 14) : value.replace(/\D/g, "").slice(0, 9);
+  const parseAmount = (value: string) => {
+    if (isUsd) return /^0+(?:[.,]0{1,2})?$/.test(value.trim()) ? 0 : parseUsdInput(value);
+    const amount = pesos(value);
+    return amount === null ? null : amount * 100;
+  };
   const options = inquiry ? paymentMethods : [
     { id: "efectivo", label: "Efectivo" },
     { id: "transferencia", label: "Transferencia" },
@@ -41,14 +55,14 @@ export function AdminSaleForm({ products, inquiry }: { products: SaleProduct[]; 
     { id: "tarjeta-cuotas", label: "Tarjeta · cuotas" },
   ];
   const externalCard = !inquiry && !scheduled && payment.startsWith("tarjeta");
-  const receivedMinor = externalCard ? parseMoney(received) : null;
+  const receivedMinor = externalCard ? (isUsd ? parseAmount(received) : parseMoney(received)) : null;
   const [note, setNote] = useState("");
   const [q, setQ] = useState("");
   const [step, setStep] = useState<"armar" | "revisar" | "hecho">("armar");
-  const [preview, setPreview] = useState<Preview | null>(null);
+  const [preview, setPreview] = useState<SalePreview | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [done, setDone] = useState<{ id: string; replayed: boolean; total: number } | null>(null);
+  const [done, setDone] = useState<{ id: string; replayed: boolean; total: number; totalUsd: number | null } | null>(null);
   const key = useRef(newKey());
   const submitting = useRef(false);
   const byId = useMemo(() => new Map(products.map((p) => [p.id, p])), [products]);
@@ -59,15 +73,15 @@ export function AdminSaleForm({ products, inquiry }: { products: SaleProduct[]; 
     return products.filter((p) => !lines.some((l) => l.productId === p.id) && terms.every((t) => norm(`${p.title} ${p.sku} ${p.id}`).includes(t))).slice(0, 8);
   }, [q, products, lines]);
 
-  const parsed = lines.map((l) => ({ ...l, qty: /^\d{1,3}$/.test(l.quantity.trim()) ? Number(l.quantity.trim()) : null, pesos: pesos(l.price), off: pesos(l.discount === "" ? "0" : l.discount) }));
-  const total = parsed.reduce((n, l) => n + (l.qty && l.pesos && l.off !== null ? l.qty * l.pesos * 100 - l.off * 100 : 0), 0);
-  const discountOk = (l: (typeof parsed)[number]) => l.off !== null && (!l.qty || !l.pesos || l.off <= l.qty * l.pesos);
-  const formOk = parsed.length > 0 && parsed.every((l) => l.qty && l.qty >= 1 && l.pesos && l.pesos >= 1 && discountOk(l)) && (scheduled || Boolean(payment));
-  const body = () => ({ items: parsed.map((l) => ({ productId: l.productId, quantity: l.qty, unitPriceMinor: (l.pesos ?? 0) * 100, discountMinor: (l.off ?? 0) * 100 })), paymentMethod: scheduled ? "pendiente" : payment, ...(scheduled ? { scheduledFor: soldOn, customerContact: contact.trim() || undefined } : !inquiry ? { soldOn } : {}), ...(externalCard && receivedMinor !== null ? { receivedMinor } : {}), ...(!scheduled && payment === "tarjeta-cuotas" ? { installments: Number(installments) } : {}), note: note.trim() || undefined, ...(inquiry ? { inquiryId: inquiry.id } : {}), idempotencyKey: key.current });
+  const parsed = lines.map((l) => ({ ...l, qty: /^\d{1,3}$/.test(l.quantity.trim()) ? Number(l.quantity.trim()) : null, unit: parseAmount(l.price), off: parseAmount(l.discount || "0") }));
+  const total = parsed.reduce((n, l) => n + (l.qty && l.unit && l.off !== null ? l.qty * l.unit - l.off : 0), 0);
+  const discountOk = (l: (typeof parsed)[number]) => l.off !== null && (!l.qty || !l.unit || l.off <= l.qty * l.unit);
+  const formOk = parsed.length > 0 && parsed.every((l) => l.qty && l.qty >= 1 && l.unit && discountOk(l)) && (scheduled || Boolean(payment));
+  const body = () => ({ items: parsed.map((l) => ({ productId: l.productId, quantity: l.qty, unitPriceMinor: l.unit, discountMinor: l.off })), usdRate10k: usdRate10k ?? undefined, paymentMethod: scheduled ? "pendiente" : payment, ...(scheduled ? { scheduledFor: soldOn, customerContact: contact.trim() || undefined } : !inquiry ? { soldOn } : {}), ...(externalCard && receivedMinor !== null ? { receivedMinor } : {}), ...(!scheduled && payment === "tarjeta-cuotas" ? { installments: Number(installments) } : {}), note: note.trim() || undefined, ...(inquiry ? { inquiryId: inquiry.id } : {}), idempotencyKey: key.current });
 
   // Cualquier cambio de contenido es una venta distinta: clave de operación nueva (así no se confunde con un reintento de la anterior).
   const change = (fn: () => void) => { fn(); setError(""); setPreview(null); setStep("armar"); key.current = newKey(); };
-  const add = (p: SaleProduct) => change(() => { setLines((ls) => [...ls, { productId: p.id, quantity: "1", price: p.priceMinor ? String(p.priceMinor / 100) : "", discount: "0" }]); setQ(""); });
+  const add = (p: SaleProduct) => change(() => { setLines((ls) => [...ls, { productId: p.id, quantity: "1", price: !isUsd && p.priceMinor ? String(p.priceMinor / 100) : "", discount: "0" }]); setQ(""); });
 
   async function call(url: string) {
     const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body()) });
@@ -76,7 +90,8 @@ export function AdminSaleForm({ products, inquiry }: { products: SaleProduct[]; 
   }
 
   async function review() {
-    if (!formOk) { setError(parsed.length === 0 ? "Elegí al menos un producto." : !payment ? "Elegí el método de pago." : "Completá cantidad y precio de cada producto (números enteros)."); return; }
+    if (isUsd && !usdRate10k) { setError("Ingresá una cotización válida en pesos por dólar."); return; }
+    if (!formOk) { setError(parsed.length === 0 ? "Elegí al menos un producto." : !scheduled && !payment ? "Elegí el método de pago." : "Revisá la cantidad, el precio y el descuento de cada producto."); return; }
     if (!inquiry && !soldOn) { setError("Elegí la fecha de la venta."); return; }
     if (externalCard && (receivedMinor === null || receivedMinor > total)) { setError("Ingresá un importe neto recibido válido, hasta el total de la venta."); return; }
     if (!scheduled && payment === "tarjeta-cuotas" && (!/^\d+$/.test(installments) || Number(installments) < 2 || Number(installments) > 48)) { setError("Ingresá entre 2 y 48 cuotas."); return; }
@@ -98,21 +113,21 @@ export function AdminSaleForm({ products, inquiry }: { products: SaleProduct[]; 
       refreshAdminNotifications();
       // Desde una consulta, el resultado se ve en la propia consulta (queda «Convertida en venta», con la venta vigente y el historial).
       if (inquiry) { router.push(`/admin/consultas/${encodeURIComponent(inquiry.id)}?venta=${data.replayed ? "repetida" : "ok"}`); return; }
-      setDone({ id: data.sale.id, replayed: Boolean(data.replayed), total: data.sale.totalMinor });
+      setDone({ id: data.sale.id, replayed: Boolean(data.replayed), total: data.sale.totalMinor, totalUsd: data.sale.totalUsdMinor ?? null });
       setStep("hecho");
       router.refresh();
     } catch { setError("Se cortó la conexión. No sabemos si la venta se guardó: tocá «Confirmar venta» otra vez (si ya estaba guardada no se duplica) o revisá la lista de ventas."); } finally { submitting.current = false; setBusy(false); }
   }
 
   function reset() {
-    setLines([]); setPayment(""); setSoldOn(todayYmd()); setScheduled(false); setContact(""); setReceived(""); setInstallments(""); setNote(""); setQ(""); setPreview(null); setDone(null); setError(""); setStep("armar"); key.current = newKey();
+    setLines([]); setPayment(""); setSoldOn(todayYmd()); setScheduled(false); setContact(""); setReceived(""); setInstallments(""); setNote(""); setQ(""); setPreview(null); setDone(null); setError(""); setStep("armar"); setCurrency("ARS"); setRateText(""); key.current = newKey();
   }
 
   if (step === "hecho" && done) {
     return (
       <div className="rounded-xl border border-emerald/40 bg-emerald/10 p-5" role="status" data-testid="venta-registrada">
         <p className="text-lg font-semibold">{scheduled ? "Entrega agendada" : done.replayed ? "Esa venta ya estaba registrada" : "Venta registrada"}: {done.id}</p>
-        <p className="mt-1 text-sm">Total {formatARS(done.total)}. El stock ya se descontó{done.replayed ? " (una sola vez)" : ""} y quedó en el historial de movimientos.{scheduled ? " Confirmá el cobro en Entregas agendadas cuando concretes la venta." : ""}{inquiry ? " La consulta quedó como «Convertida en venta»." : ""}</p>
+        <p className="mt-1 text-sm">Total {done.totalUsd === null ? formatARS(done.total) : `${formatUSD(done.totalUsd)} · ${formatARS(done.total)}`}. El stock ya se descontó{done.replayed ? " (una sola vez)" : ""} y quedó en el historial de movimientos.{scheduled ? " Confirmá el cobro en Entregas agendadas cuando concretes la venta." : ""}{inquiry ? " La consulta quedó como «Convertida en venta»." : ""}</p>
         {inquiry ? (
           <p className="mt-3"><Link href={`/admin/consultas/${inquiry.id}`} className="inline-flex min-h-11 items-center rounded-lg bg-ink px-5 text-sm font-semibold text-paper hover:bg-emerald" data-testid="volver-consulta">Volver a la consulta {inquiry.id}</Link></p>
         ) : (
@@ -130,6 +145,21 @@ export function AdminSaleForm({ products, inquiry }: { products: SaleProduct[]; 
             <input type="checkbox" className="h-5 w-5" checked={scheduled} onChange={(event) => change(() => setScheduled(event.target.checked))} />
             Agendar entrega y reservar stock
           </label>}
+          {!inquiry && <div className="grid gap-3 sm:grid-cols-2">
+            <label className="text-sm font-semibold">Moneda de la venta
+              <select value={currency} onChange={(event) => change(() => {
+                const next = event.target.value === "USD" ? "USD" : "ARS";
+                setCurrency(next);
+                setReceived("");
+                setLines((items) => items.map((line) => ({ ...line, price: "", discount: "0" })));
+              })} className={inputCls}>
+                <option value="ARS">Pesos (ARS)</option><option value="USD">Dólares (USD)</option>
+              </select>
+            </label>
+            {isUsd && <label className="text-sm font-semibold">Cotización (ARS por USD)
+              <input value={rateText} onChange={(event) => change(() => setRateText(event.target.value))} placeholder={defaultRate10k ? formatRate(defaultRate10k) : "Ingresá la cotización"} className={inputCls} inputMode="decimal" />
+            </label>}
+          </div>}
           <div>
             <label htmlFor="venta-buscar" className={labelCls}>Agregar producto (nombre, colección o SKU)</label>
             <input id="venta-buscar" type="search" value={q} onChange={(e) => setQ(e.target.value)} autoComplete="off" placeholder="Ej.: Storm, 30th, ZH-…" className={`${inputCls} mt-1`} />
@@ -175,17 +205,17 @@ export function AdminSaleForm({ products, inquiry }: { products: SaleProduct[]; 
                         })))} aria-invalid={pr.qty === null || over} className={`${inputCls} mt-1`} data-testid={`venta-cantidad-${l.productId}`} />
                       </div>
                       <div>
-                        <label htmlFor={`precio-${l.productId}`} className={labelCls}>Precio de venta c/u ($)</label>
-                        <input id={`precio-${l.productId}`} inputMode="numeric" autoComplete="off" value={l.price} onChange={(e) => change(() => setLines((ls) => ls.map((x) => (x.productId === l.productId ? { ...x, price: e.target.value.replace(/\D/g, "").slice(0, 9) } : x))))} aria-invalid={!pr.pesos} placeholder={p.priceMinor ? undefined : "Sin precio de lista"} className={`${inputCls} mt-1`} data-testid={`venta-precio-${l.productId}`} />
+                        <label htmlFor={`precio-${l.productId}`} className={labelCls}>Precio de venta c/u ({currencyLabel})</label>
+                        <input id={`precio-${l.productId}`} inputMode={inputMode} autoComplete="off" value={l.price} onChange={(e) => change(() => setLines((ls) => ls.map((x) => (x.productId === l.productId ? { ...x, price: moneyInput(e.target.value) } : x))))} aria-invalid={!pr.unit} className={`${inputCls} mt-1`} data-testid={`venta-precio-${l.productId}`} />
                       </div>
                     </div>
                     <div className="mt-2 sm:max-w-md">
-                      <label htmlFor={`desc-${l.productId}`} className={labelCls}>Descuento de la línea ($, total)</label>
-                      <input id={`desc-${l.productId}`} inputMode="numeric" autoComplete="off" value={l.discount} onChange={(e) => change(() => setLines((ls) => ls.map((x) => (x.productId === l.productId ? { ...x, discount: e.target.value.replace(/\D/g, "").slice(0, 9), touched: true } : x))))} aria-invalid={!discountOk(pr)} className={`${inputCls} mt-1`} data-testid={`venta-descuento-${l.productId}`} />
+                      <label htmlFor={`desc-${l.productId}`} className={labelCls}>Descuento de la línea ({currencyLabel}, total)</label>
+                      <input id={`desc-${l.productId}`} inputMode={inputMode} autoComplete="off" value={l.discount} onChange={(e) => change(() => setLines((ls) => ls.map((x) => (x.productId === l.productId ? { ...x, discount: moneyInput(e.target.value), touched: true } : x))))} aria-invalid={!discountOk(pr)} className={`${inputCls} mt-1`} data-testid={`venta-descuento-${l.productId}`} />
                       {l.origin && l.origin.discount > 0 && <p className="mt-1 text-xs text-ink/65">Viene de la consulta (combo caja + sobres y/o transferencia): no se vuelve a calcular.</p>}
                       {!discountOk(pr) && <p role="alert" className="mt-1 text-sm font-semibold text-vermilion">El descuento no puede superar el importe de la línea.</p>}
                     </div>
-                    <p className="mt-1 text-xs text-ink/65">{p.priceMinor ? `Precio de lista hoy: ${formatARS(p.priceMinor)}. ` : "Este producto no tiene precio de lista: escribí el precio cobrado. "}Pesos enteros; se guarda el precio que escribas.{p.packSize ? ` Cada unidad es un pack de ${p.packSize}: el stock se descuenta en packs.` : ""}</p>
+                    <p className="mt-1 text-xs text-ink/65">{p.priceMinor ? `Precio de lista hoy: ${formatARS(p.priceMinor)}. ` : ""}{isUsd ? "Ingresá el precio cobrado en dólares." : "Ingresá el precio en pesos enteros."}{p.packSize ? ` Cada unidad es un pack de ${p.packSize}.` : ""}</p>
                     {over && <p role="alert" className="mt-1 text-sm font-semibold text-vermilion">Stock insuficiente: hay {p.stock}.</p>}
                   </li>
                 );
@@ -210,7 +240,7 @@ export function AdminSaleForm({ products, inquiry }: { products: SaleProduct[]; 
               <input id="venta-fecha" type="date" value={soldOn} onChange={(e) => change(() => setSoldOn(e.target.value))} className={`${inputCls} mt-1`} />
             </div>}
             {externalCard && <div>
-              <label htmlFor="venta-recibido" className={labelCls}>Monto neto recibido ($)</label>
+              <label htmlFor="venta-recibido" className={labelCls}>Monto neto recibido ({currencyLabel})</label>
               <input id="venta-recibido" inputMode="decimal" value={received} onChange={(e) => change(() => setReceived(e.target.value))} className={`${inputCls} mt-1`} />
             </div>}
             {!scheduled && payment === "tarjeta-cuotas" && <div>
@@ -222,7 +252,7 @@ export function AdminSaleForm({ products, inquiry }: { products: SaleProduct[]; 
               <input id="venta-nota" maxLength={300} value={note} onChange={(e) => change(() => setNote(e.target.value))} autoComplete="off" placeholder={scheduled ? "Ej.: 18 h en la estación de Ramos Mejía" : "Ej.: venta en persona, cliente de Haedo"} className={`${inputCls} mt-1`} data-testid="venta-nota" />
             </div>
           </div>
-          <p className="text-lg font-semibold" data-testid="venta-total-armado">Total: {formatARS(total)}</p>
+          <p className="text-lg font-semibold" data-testid="venta-total-armado">Total: {money(total)}{usdRate10k && total >= 0 ? ` · ${formatARS(usdToArsExactMinor(total, usdRate10k))}` : ""}</p>
           <p className="text-xs text-ink/65">{scheduled ? "Al agendar, las unidades se descuentan del stock disponible. Confirmá el cobro cuando entregues." : "El total se calcula con los precios y descuentos que cargues. El stock se descuenta al confirmar la venta."}</p>
           <button type="button" onClick={review} disabled={busy} className="min-h-12 rounded-lg bg-emerald px-6 text-base font-semibold text-paper hover:bg-emerald-2 disabled:opacity-50" data-testid="revisar-venta">{busy ? "Preparando…" : scheduled ? "Revisar entrega" : "Revisar venta"}</button>
         </>
@@ -239,9 +269,9 @@ export function AdminSaleForm({ products, inquiry }: { products: SaleProduct[]; 
                   <tr key={l.productId} data-testid={`resumen-venta-${l.productId}`}>
                     <td className="py-2 pr-3"><b>{l.title}</b><span className="block font-mono text-xs text-ink/60">{l.sku}</span></td>
                     <td className="py-2 pr-3">{l.quantity}</td>
-                    <td className="py-2 pr-3">{formatARS(l.unitPriceMinor)}</td>
-                    <td className="py-2 pr-3" data-testid={`resumen-descuento-${l.productId}`}>{l.discountMinor > 0 ? `−${formatARS(l.discountMinor)}` : "—"}</td>
-                    <td className="py-2 pr-3">{formatARS(l.lineTotalMinor)}</td>
+                    <td className="py-2 pr-3">{money(l.unitPriceUsdMinor ?? l.unitPriceMinor)}</td>
+                    <td className="py-2 pr-3" data-testid={`resumen-descuento-${l.productId}`}>{l.discountMinor > 0 ? `−${money(l.discountUsdMinor ?? l.discountMinor)}` : "—"}</td>
+                    <td className="py-2 pr-3">{money(l.unitPriceUsdMinor === null ? l.lineTotalMinor : l.quantity * l.unitPriceUsdMinor - (l.discountUsdMinor ?? 0))}</td>
                     <td className="py-2">{l.problem ? <span className="font-semibold text-vermilion">{l.problem}</span> : <span data-testid={`stock-resultante-${l.productId}`}>{l.stockNow} → <b>{l.stockAfter}</b></span>}</td>
                   </tr>
                 ))}
@@ -252,9 +282,10 @@ export function AdminSaleForm({ products, inquiry }: { products: SaleProduct[]; 
             {!scheduled && <div className="flex justify-between"><dt className="text-ink/70">Método de pago</dt><dd className="font-semibold">{options.find((m) => m.id === payment)?.label}</dd></div>}
             {!inquiry && <p>{scheduled ? "Entrega acordada" : "Fecha de venta"} · {soldOn.split("-").reverse().join("/")}</p>}
             {scheduled && contact.trim() && <p>Cliente o contacto · {contact.trim()}</p>}
-            {externalCard && receivedMinor !== null && <p>Neto recibido: <b>{formatARS(receivedMinor)}</b>{payment === "tarjeta-cuotas" && ` · ${installments} cuotas`}</p>}
+            {externalCard && receivedMinor !== null && <p>Neto recibido: <b>{money(receivedMinor)}</b>{payment === "tarjeta-cuotas" && ` · ${installments} cuotas`}</p>}
+            {usdRate10k && <p>Cotización usada · {formatRate(usdRate10k)} por USD</p>}
             {note.trim() && <div className="flex justify-between gap-3"><dt className="text-ink/70">Observación</dt><dd className="text-right font-semibold">{note.trim()}</dd></div>}
-            <div className="flex items-end justify-between border-t border-ink/15 pt-2"><dt className="font-bold">Total</dt><dd className="text-2xl font-extrabold" data-testid="venta-total-resumen">{formatARS(preview.totalMinor)}</dd></div>
+            <div className="flex items-end justify-between border-t border-ink/15 pt-2"><dt className="font-bold">Total</dt><dd className="text-right text-2xl font-extrabold" data-testid="venta-total-resumen">{money(preview.totalUsdMinor ?? preview.totalMinor)}{preview.totalUsdMinor !== null && <span className="block text-sm">{formatARS(preview.totalMinor)}</span>}</dd></div>
           </dl>
           {!preview.ok && <p role="alert" className="mt-3 text-sm font-semibold text-vermilion">Hay productos que no se pueden vender tal como está armada la venta. Volvé a editar.</p>}
           <div className="mt-4 flex flex-wrap gap-3">

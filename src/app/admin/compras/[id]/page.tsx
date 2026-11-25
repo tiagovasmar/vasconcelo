@@ -12,6 +12,7 @@ import { linkableLines, purchaseRelations } from "@/features/importaciones/servi
 import { listShipments } from "@/features/pedidos/envios";
 import { SHIPMENT_LABEL, type ShipmentStatus } from "@/features/pedidos/etapas";
 import { formatUSD } from "@/features/fx/convert";
+import { currentRate } from "@/features/fx/service";
 import { formatARS } from "@/lib/format";
 import { requireAdmin } from "@/server/admin";
 import { purchaseProducts } from "../products";
@@ -42,6 +43,7 @@ export default async function PurchaseDetail({ params }: { params: Promise<{ id:
   const holdHours = preorderHours();
   const draft = p.status === "borrador";
   const assignable = p.items.map((item) => ({ id: item.id, title: title(item.productId), available: item.quantity - allocations.filter((a) => a.itemId === item.id).reduce((sum, a) => sum + a.quantity, 0) })).filter((item) => item.available > 0);
+  const saleRate10k = draft && assignable.length > 0 ? (await currentRate(db)).rate10k : null;
   const base = p.items.map((i) => itemBaseCostMinor(p, i.unitPriceOriginalMinor, i.quantity));
   const merchandise = base.reduce((n, x) => n + x, 0);
   const shares = p.expenses.map((e) => e.shares.length ? p.items.map((i) => e.shares.find((s) => s.itemId === i.id)?.shareMinor ?? 0) : expenseShares(p.items, base, e));
@@ -101,7 +103,7 @@ export default async function PurchaseDetail({ params }: { params: Promise<{ id:
       {p.managedImport && <section className={section}>
         <h2 className="text-lg font-semibold">Destinos y publicación</h2>
         <p className="text-sm text-ink/75">Asigná cada unidad. Las personales participan en el reparto de gastos y quedan fuera del costo comercial. {holdHours ? `Preventa activa: ${holdHours} h para cargar el comprobante en lotes que ya salieron.` : "La preventa queda en preparación hasta definir la vigencia de la retención y el tratamiento de transferencias tardías."}</p>
-        {draft && assignable.length > 0 && <ImportCustomerSale purchaseId={p.id} items={assignable} />}
+        {draft && assignable.length > 0 && <ImportCustomerSale purchaseId={p.id} items={assignable} defaultRate10k={saleRate10k} />}
         {p.items.map((i) => {
           const own = allocations.filter((a) => a.itemId === i.id);
           const remaining = i.quantity - own.reduce((n, a) => n + a.quantity, 0);
@@ -205,11 +207,11 @@ export default async function PurchaseDetail({ params }: { params: Promise<{ id:
       <section className={section}>
         <h2 className="text-lg font-semibold">Egresos pagados</h2>
         <p className="text-sm">El costo registrado y lo efectivamente pagado se muestran por separado. Vinculá un egreso existente si ya lo cargaste en Contabilidad.</p>
-        <ul className="space-y-1 text-sm">{payments.map(({ expense }) => <li key={expense.id}>{date(expense.spentAt)} · {expense.description} · {money(expense.amountMinor)}</li>)}</ul>
+        <ul className="space-y-1 text-sm">{payments.map(({ expense }) => <li key={expense.id}>{date(expense.paidAt ?? expense.spentAt)} · {expense.description} · {money(expense.amountMinor)}</li>)}</ul>
         {availablePayments.length > 0 && <details>
           <summary className="cursor-pointer font-semibold">Vincular egreso existente</summary>
           <AdminForm endpoint={EP} fixed={{ action: "pay", purchaseId: p.id }} fields={[
-            { name: "expenseId", label: "Egreso de Contabilidad", type: "select", required: true, options: availablePayments.map((e) => ({ value: e.id, label: `${date(e.spentAt)} · ${e.description} · ${money(e.amountMinor)}` })) },
+            { name: "expenseId", label: "Egreso de Contabilidad", type: "select", required: true, options: availablePayments.map((e) => ({ value: e.id, label: `${date(e.paidAt ?? e.spentAt)} · ${e.description} · ${money(e.amountMinor)}` })) },
           ]} submit="Vincular egreso" />
         </details>}
         <details>

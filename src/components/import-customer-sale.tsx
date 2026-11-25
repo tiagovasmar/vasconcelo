@@ -4,15 +4,18 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useId, useRef, useState } from "react";
 import { newKey, parseMoney } from "./admin-form";
+import { formatRate, parseRateInput, parseUsdInput, toRate10k } from "@/features/fx/convert";
 
 type Item = { id: number; title: string; available: number };
 const input = "block min-h-11 w-full rounded border border-ink/40 bg-white px-2";
 
-export function ImportCustomerSale({ purchaseId, items }: { purchaseId: string; items: Item[] }) {
+export function ImportCustomerSale({ purchaseId, items, defaultRate10k }: { purchaseId: string; items: Item[]; defaultRate10k: number | null }) {
   const router = useRouter();
   const group = useId();
   const operation = useRef(newKey());
   const [contact, setContact] = useState("");
+  const [currency, setCurrency] = useState<"ARS" | "USD">("ARS");
+  const [rateText, setRateText] = useState(defaultRate10k ? formatRate(defaultRate10k) : "");
   const [selected, setSelected] = useState<Record<number, { quantity: string; price: string }>>({});
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState("");
@@ -22,8 +25,11 @@ export function ImportCustomerSale({ purchaseId, items }: { purchaseId: string; 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     if (busy || !chosen.length) return;
+    const usdRate10k = currency === "USD" ? toRate10k(parseRateInput(rateText)) : null;
+    if (currency === "USD" && !usdRate10k) { setError("Ingresá una cotización válida en pesos por dólar."); return; }
+    const parsePrice = currency === "USD" ? parseUsdInput : parseMoney;
     const lines = chosen.map((item) => ({
-      itemId: item.id, quantity: Number(selected[item.id].quantity), unitPriceMinor: parseMoney(selected[item.id].price),
+      itemId: item.id, quantity: Number(selected[item.id].quantity), unitPriceMinor: parsePrice(selected[item.id].price),
     }));
     if (lines.some((line) => !line.unitPriceMinor)) {
       setError("Ingresá un precio por unidad en cada producto seleccionado.");
@@ -35,7 +41,7 @@ export function ImportCustomerSale({ purchaseId, items }: { purchaseId: string; 
     try {
       const res = await fetch("/api/admin/compras", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "customer_sale", purchaseId, customerContact: contact, items: lines, idempotencyKey: operation.current }),
+        body: JSON.stringify({ action: "customer_sale", purchaseId, customerContact: contact, items: lines, usdRate10k: usdRate10k ?? undefined, idempotencyKey: operation.current }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data?.error?.message ?? "No se pudo crear la venta."); return; }
@@ -56,6 +62,19 @@ export function ImportCustomerSale({ purchaseId, items }: { purchaseId: string; 
         <label className="text-sm font-semibold">Nombre o contacto del cliente
           <input className={input} value={contact} onChange={(e) => setContact(e.target.value)} required minLength={2} maxLength={150} />
         </label>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <label className="text-sm font-semibold">Moneda de la venta
+            <select className={input} value={currency} onChange={(event) => {
+              setCurrency(event.target.value === "USD" ? "USD" : "ARS");
+              setSelected((current) => Object.fromEntries(Object.entries(current).map(([id, line]) => [id, { ...line, price: "" }])));
+            }}>
+              <option value="ARS">Pesos (ARS)</option><option value="USD">Dólares (USD)</option>
+            </select>
+          </label>
+          {currency === "USD" && <label className="text-sm font-semibold">Cotización (ARS por USD)
+            <input className={input} inputMode="decimal" required value={rateText} onChange={(event) => setRateText(event.target.value)} />
+          </label>}
+        </div>
         {items.map((item) => {
           const draft = selected[item.id];
           return <div key={item.id} className="rounded border border-ink/15 p-2">
@@ -71,7 +90,7 @@ export function ImportCustomerSale({ purchaseId, items }: { purchaseId: string; 
                 <input id={`${group}-qty-${item.id}`} className={input} type="number" min={1} max={item.available} required value={draft.quantity}
                   onChange={(e) => setSelected({ ...selected, [item.id]: { ...draft, quantity: e.target.value } })} />
               </label>
-              <label className="text-xs" htmlFor={`${group}-price-${item.id}`}>Precio por unidad (ARS)
+              <label className="text-xs" htmlFor={`${group}-price-${item.id}`}>Precio por unidad ({currency})
                 <input id={`${group}-price-${item.id}`} className={input} inputMode="decimal" required value={draft.price}
                   onChange={(e) => setSelected({ ...selected, [item.id]: { ...draft, price: e.target.value } })} />
               </label>

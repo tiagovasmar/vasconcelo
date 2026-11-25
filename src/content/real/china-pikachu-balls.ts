@@ -1,4 +1,5 @@
 import type { Product, Source } from "../schema";
+import photos from "../colecciones/imagenes-pokebolas-figura.json";
 
 const sourceId = "zh-pikachu-legendary-celebration-balls-oficial";
 const verifiedAt = "2026-11-10";
@@ -19,6 +20,8 @@ const variants = [
 
 export const products: Product[] = variants.map((variant) => {
   const id = `zh-pikachu-legendary-celebration-${variant.slug}`;
+  const photo = photos.find((image) => image.id === id);
+  if (!photo) throw new Error(`Falta la portada de ${id}`);
   return {
     id, slug: id, sku: id.toUpperCase(),
     title: `Pikachu Legendary Celebration · ${variant.name} ${variant.color}`,
@@ -30,12 +33,12 @@ export const products: Product[] = variants.map((variant) => {
     currency: "ARS", priceUsdMinor: null, priceMinor: null, stockQuantity: 0,
     active: true, isDemo: false, createdAt: verifiedAt,
     images: [{
-      src: `/images/products/${id}/portada.webp`,
-      alt: `Caja Pikachu Legendary Celebration con ${variant.name} ${variant.color}`,
-      width: 600, height: 600, opaque: true,
-      status: "reference", source: "supplier", view: "front",
-      origin: "Foto de referencia de Taobao aportada por el dueño. https://item.taobao.com/item.htm?id=1070495984911",
-      license: "Imagen de referencia del proveedor aportada por el dueño.",
+      src: photo.src,
+      alt: photo.alt,
+      width: photo.width, height: photo.height, opaque: false,
+      status: "reference", source: "supplier", view: "closed",
+      origin: photo.origin,
+      license: photo.license,
     }],
     fallbackTone: "paper",
     description: `Caja de colección de Pokémon TCG en chino simplificado con una ${variant.name} ${variant.color} para guardar objetos. Incluye dos cartas holográficas aleatorias y un sobre de Espada y Escudo de 25 cartas.`,

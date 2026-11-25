@@ -8,6 +8,7 @@ import { importAllocations, inquiries, inquiryLines, inquirySales, productOverri
 import { discountKindOf } from "@/features/promos/combo";
 import { assertConvertible, attachSale, closeLinkOnVoid, lockInquiry } from "@/features/consultas/links";
 import { SaleError } from "./errors";
+import { saleAmountsInPesos, SaleUsdRate } from "./amounts";
 import { accountingDateFilter, saleAccountingDay, type AccountingPeriod } from "@/features/contabilidad/period";
 import { catalog } from "@/content/catalog";
 import { legacyPaymentLabels, paymentMethods } from "@/content/checkout-options";
@@ -17,7 +18,7 @@ import { listAllProducts } from "@/features/catalog/data";
 import { defaultStock } from "@/features/catalog/commercial";
 import { currentRate } from "@/features/fx/service";
 import { snapshotSaleCosts } from "@/features/costos/service";
-import type { EffectiveRate } from "@/features/fx/convert";
+import { usdToArsExactMinor, type EffectiveRate } from "@/features/fx/convert";
 import { releaseDueImportStock } from "@/features/importaciones/service";
 
 /**
@@ -44,15 +45,15 @@ export const SaleInputSchema = z.object({
       z.object({
         productId: z.string().min(1).max(80),
         quantity: z.number({ error: "La cantidad debe ser un número." }).int("La cantidad debe ser un número entero.").min(1, "La cantidad mínima es 1.").max(999, "La cantidad es demasiado alta."),
-        /** Precio unitario cobrado, en centavos de ARS; siempre en pesos enteros. */
-        unitPriceMinor: z.number({ error: "Escribí el precio de venta." }).int("El precio debe ser un número entero.").min(100, "El precio de venta debe ser de al menos $1.").max(1_000_000_000, "El precio es demasiado alto.").multipleOf(100, "El precio debe estar en pesos enteros."),
-        /** Descuento TOTAL de la línea (combo caja + sobres y/o transferencia), en pesos enteros. Al convertir una consulta viene ya calculado: la venta NO vuelve a aplicar ninguna promoción. */
-        discountMinor: z.number({ error: "El descuento debe ser un número." }).int("El descuento debe ser un número entero.").min(0, "El descuento no puede ser negativo.").max(1_000_000_000, "El descuento es demasiado alto.").multipleOf(100, "El descuento debe estar en pesos enteros.").optional().default(0),
+        /** Centavos de la moneda de la venta. */
+        unitPriceMinor: z.number({ error: "Escribí el precio de venta." }).int().positive().max(1_000_000_000, "El precio es demasiado alto."),
+        discountMinor: z.number({ error: "El descuento debe ser un número." }).int().min(0).max(1_000_000_000).optional().default(0),
       }),
     )
     .min(1, "Elegí al menos un producto.")
     .max(30, "Demasiados productos en una sola venta."),
   paymentMethod: z.enum([...SALE_PAYMENT_IDS, "pendiente"], { error: "Elegí un método de pago." }),
+  usdRate10k: SaleUsdRate.optional(),
   scheduledFor: z.iso.date({ error: "Ingresá una fecha válida para la entrega." }).optional(),
   customerContact: z.string().trim().max(160).optional(),
   soldOn: z.iso.date({ error: "Ingresá una fecha de venta válida." }).optional(),
@@ -67,19 +68,21 @@ export type SaleInput = z.input<typeof SaleInputSchema>;
 
 export type PreviewLine = {
   productId: string; sku: string; title: string; quantity: number; unitPriceMinor: number; discountMinor: number; lineTotalMinor: number;
+  unitPriceUsdMinor: number | null; discountUsdMinor: number | null;
   /** Stock actual (null = pendiente) y cómo quedaría. */
   stockNow: number | null; stockAfter: number | null; problem: string | null;
 };
-export type SalePreview = { lines: PreviewLine[]; totalMinor: number; ok: boolean };
+export type SalePreview = { lines: PreviewLine[]; totalMinor: number; totalUsdMinor: number | null; ok: boolean };
 
 export type SaleView = {
   id: string; status: string; paymentMethod: string; paymentLabel: string; note: string | null; totalMinor: number; createdAt: number; createdByEmail: string;
   soldOn: string | null; receivedMinor: number | null; installments: number | null;
+  totalUsdMinor?: number | null; receivedUsdMinor?: number | null; fxRate10k?: number | null;
   scheduledFor?: string | null; customerContact?: string | null; stockFromImport?: boolean;
   voidedAt: number | null; voidedByEmail: string | null; voidReason: string | null;
   /** Consulta de origen (y su persona), si la venta salió de una consulta o se vinculó a una. */
   inquiry?: { id: string; name: string | null; kind: string; active: boolean } | null;
-  lines: Array<{ productId: string; sku: string; title: string; language: Language; quantity: number; unitPriceMinor: number; catalogPriceMinor: number | null; catalogPriceUsdMinor: number | null; lineTotalMinor: number; discountMinor: number; discountKind: string | null; baseCurrency: string | null; packSize: number | null }>;
+  lines: Array<{ productId: string; sku: string; title: string; language: Language; quantity: number; unitPriceMinor: number; unitPriceUsdMinor?: number | null; catalogPriceMinor: number | null; catalogPriceUsdMinor: number | null; lineTotalMinor: number; discountMinor: number; discountUsdMinor?: number | null; discountKind: string | null; baseCurrency: string | null; packSize: number | null }>;
 };
 
 const sha = (s: string) => createHash("sha256").update(s).digest("hex");
@@ -89,7 +92,7 @@ export function newSaleId(): string {
 }
 
 type Parsed = z.output<typeof SaleInputSchema>;
-const hashOf = (i: Parsed) => sha(JSON.stringify({ items: [...i.items].map((x) => [x.productId, x.quantity, x.unitPriceMinor, x.discountMinor]).sort((a, b) => String(a[0]).localeCompare(String(b[0]))), p: i.paymentMethod, n: i.note ?? "", q: i.inquiryId ?? "", fecha: i.soldOn, recibido: i.receivedMinor, cuotas: i.installments, entrega: i.scheduledFor, contacto: i.customerContact }));
+const hashOf = (i: Parsed) => sha(JSON.stringify({ items: [...i.items].map((x) => [x.productId, x.quantity, x.unitPriceMinor, x.discountMinor]).sort((a, b) => String(a[0]).localeCompare(String(b[0]))), p: i.paymentMethod, n: i.note ?? "", q: i.inquiryId ?? "", fecha: i.soldOn, recibido: i.receivedMinor, cuotas: i.installments, entrega: i.scheduledFor, contacto: i.customerContact, usdRate10k: i.usdRate10k }));
 
 function parse(body: unknown): Parsed {
   const r = SaleInputSchema.safeParse(body);
@@ -97,6 +100,11 @@ function parse(body: unknown): Parsed {
   const { paymentMethod, scheduledFor, soldOn, inquiryId, customerContact } = r.data;
   if (scheduledFor ? paymentMethod !== "pendiente" || soldOn || inquiryId : paymentMethod === "pendiente" || customerContact !== undefined) {
     throw new SaleError(400, "invalid_input", "Revisá los datos de la entrega y del cobro.");
+  }
+  if (r.data.usdRate10k && inquiryId) throw new SaleError(400, "invalid_input", "La consulta se registra en la moneda de la cotización acordada.");
+  for (const line of r.data.items) {
+    if (!r.data.usdRate10k && (line.unitPriceMinor % 100 || line.discountMinor % 100)) throw new SaleError(400, "invalid_input", "Ingresá el precio y el descuento en pesos enteros.");
+    if (line.discountMinor > line.unitPriceMinor * line.quantity) throw new SaleError(400, "invalid_input", "El descuento de una línea no puede superar su importe.");
   }
   validatePayment(r.data, r.data.items.reduce((sum, line) => sum + line.quantity * line.unitPriceMinor - line.discountMinor, 0));
   const ids = r.data.items.map((i) => i.productId);
@@ -122,6 +130,7 @@ const productOf = (id: string): Product => {
 /** Vista previa SIN escribir nada: qué stock hay ahora y cómo quedaría. El servidor es la autoridad; el navegador solo la muestra. */
 export async function previewSale(db: Db, body: unknown): Promise<SalePreview> {
   const input = parse(body);
+  const amounts = saleAmountsInPesos(input.items, input.usdRate10k);
   await releaseDueImportStock(db);
   if (input.inquiryId) {
     const [inq] = await db.select({ id: inquiries.id }).from(inquiries).where(eq(inquiries.id, input.inquiryId));
@@ -130,19 +139,18 @@ export async function previewSale(db: Db, body: unknown): Promise<SalePreview> {
     if (active) throw new SaleError(409, "already_converted", `Esta consulta ya tiene una venta vigente (${active.saleId}).`, { saleId: active.saleId });
   }
   const rows = new Map((await db.select().from(productOverrides).where(inArray(productOverrides.productId, input.items.map((i) => i.productId)))).map((r) => [r.productId, r]));
-  const lines = input.items.map((it): PreviewLine => {
+  const lines = amounts.items.map((it): PreviewLine => {
     const p = productOf(it.productId);
     const row = rows.get(p.id);
     const stockNow = row ? row.stockQuantity : defaultStock(p);
     const orderOnly = row ? row.orderOnly : Boolean(p.orderOnly);
-    if (it.discountMinor > it.unitPriceMinor * it.quantity) throw new SaleError(400, "invalid_input", `El descuento de «${p.title}» no puede superar el importe de la línea.`);
     let problem: string | null = null;
     if (stockNow === null) problem = "El stock está pendiente: cargalo en Productos o con un ajuste antes de vender.";
     else if (orderOnly && stockNow === 0) problem = "Este producto es solo por encargo y no tiene stock cargado: registrá primero la entrada.";
     else if (it.quantity > stockNow) problem = `Stock insuficiente: hay ${stockNow} y querés vender ${it.quantity}.`;
-    return { productId: p.id, sku: p.sku, title: row?.title ?? p.title, quantity: it.quantity, unitPriceMinor: it.unitPriceMinor, discountMinor: it.discountMinor, lineTotalMinor: it.unitPriceMinor * it.quantity - it.discountMinor, stockNow, stockAfter: problem || stockNow === null ? null : stockNow - it.quantity, problem };
+    return { ...it, sku: p.sku, title: row?.title ?? p.title, stockNow, stockAfter: problem || stockNow === null ? null : stockNow - it.quantity, problem };
   });
-  return { lines, totalMinor: lines.reduce((n, l) => n + l.lineTotalMinor, 0), ok: lines.every((l) => !l.problem) };
+  return { lines, totalMinor: amounts.totalMinor, totalUsdMinor: amounts.totalUsdMinor, ok: lines.every((l) => !l.problem) };
 }
 
 export async function loadSale(db: Db, id: string): Promise<SaleView | null> {
@@ -165,9 +173,10 @@ function toView(s: typeof sales.$inferSelect, lines: Array<typeof saleLines.$inf
   return {
     id: s.id, status: s.status, paymentMethod: s.paymentMethod, paymentLabel: paymentLabelOf(s.paymentMethod), note: s.note, totalMinor: s.totalMinor, createdAt: s.createdAt, createdByEmail: s.createdByEmail,
     soldOn: s.soldOn, receivedMinor: s.receivedMinor, installments: s.installments,
+    totalUsdMinor: s.totalUsdMinor, receivedUsdMinor: s.receivedUsdMinor, fxRate10k: s.fxRate10k,
     scheduledFor: s.scheduledFor, customerContact: s.customerContact, stockFromImport: s.stockFromImport,
     voidedAt: s.voidedAt, voidedByEmail: s.voidedByEmail, voidReason: s.voidReason,
-    lines: lines.map((l) => ({ productId: l.productId, sku: l.sku, title: l.title, language: l.language as Language, quantity: l.quantity, unitPriceMinor: l.unitPriceMinor, catalogPriceMinor: l.catalogPriceMinor, catalogPriceUsdMinor: l.catalogPriceUsdMinor, lineTotalMinor: l.lineTotalMinor, discountMinor: l.discountMinor, discountKind: l.discountKind, baseCurrency: l.baseCurrency, packSize: l.packSize })),
+    lines: lines.map((l) => ({ productId: l.productId, sku: l.sku, title: l.title, language: l.language as Language, quantity: l.quantity, unitPriceMinor: l.unitPriceMinor, unitPriceUsdMinor: l.unitPriceUsdMinor, catalogPriceMinor: l.catalogPriceMinor, catalogPriceUsdMinor: l.catalogPriceUsdMinor, lineTotalMinor: l.lineTotalMinor, discountMinor: l.discountMinor, discountUsdMinor: l.discountUsdMinor, discountKind: l.discountKind, baseCurrency: l.baseCurrency, packSize: l.packSize })),
   };
 }
 
@@ -180,6 +189,9 @@ export async function registerSale(db: Db, body: unknown, actor: Actor, ctx: { f
   const hash = hashOf(input);
   const existing = await loadByKey(db, input.idempotencyKey);
   if (existing) return replay(existing, hash);
+  const { items, totalMinor: total, totalUsdMinor } = saleAmountsInPesos(input.items, input.usdRate10k);
+  const receivedUsdMinor = input.usdRate10k ? input.receivedMinor ?? null : null;
+  const receivedMinor = input.usdRate10k && receivedUsdMinor !== null ? usdToArsExactMinor(receivedUsdMinor, input.usdRate10k) : input.receivedMinor ?? null;
 
   // Referencia de catálogo (solo informativa): precio vigente en pesos y en dólares al momento de vender.
   const fx = ctx.fx ?? (await currentRate(db));
@@ -202,18 +214,16 @@ export async function registerSale(db: Db, body: unknown, actor: Actor, ctx: { f
       }
       for (const it of ordered) await lockKey(tx, `override:${it.productId}`);
       const rows = new Map((await tx.select().from(productOverrides).where(inArray(productOverrides.productId, ordered.map((i) => i.productId)))).map((r) => [r.productId, r]));
-      for (const i of input.items) if (i.discountMinor > i.unitPriceMinor * i.quantity) throw new SaleError(400, "invalid_input", "El descuento de una línea no puede superar su importe.");
-      const total = input.items.reduce((n, i) => n + i.unitPriceMinor * i.quantity - i.discountMinor, 0);
       // Si la venta convierte una consulta, el detalle del descuento sale de ESA consulta (no se recalcula nada): si coincide con lo que se cotizó, conserva su tipo.
       const inquiryLinesByProduct = new Map<string, typeof inquiryLines.$inferSelect>();
       if (inquiry) for (const l of await tx.select().from(inquiryLines).where(eq(inquiryLines.inquiryId, inquiry.id))) inquiryLinesByProduct.set(l.productId, l);
       await tx.insert(sales).values({
         id, idempotencyKey: input.idempotencyKey, contentHash: hash, paymentMethod: input.paymentMethod, note: input.note ?? null, totalMinor: total,
-        soldOn: input.soldOn ?? null, receivedMinor: input.receivedMinor ?? null, installments: input.installments ?? null,
+        soldOn: input.soldOn ?? null, receivedMinor, receivedUsdMinor, totalUsdMinor, installments: input.installments ?? null,
         scheduledFor: input.scheduledFor ?? null, customerContact: input.customerContact || null,
-        fxRate10k: fx.rate10k ?? null, status: input.scheduledFor ? "agendada" : "registrada", createdAt: now, createdByUserId: actor.id, createdByEmail: actor.email,
+        fxRate10k: input.usdRate10k ?? fx.rate10k, status: input.scheduledFor ? "agendada" : "registrada", createdAt: now, createdByUserId: actor.id, createdByEmail: actor.email,
       });
-      for (const it of input.items) {
+      for (const it of items) {
         const p = catalogProducts.find((x) => x.id === it.productId)!;
         const row = rows.get(p.id);
         const stock = row ? row.stockQuantity : defaultStock(p);
@@ -226,8 +236,8 @@ export async function registerSale(db: Db, body: unknown, actor: Actor, ctx: { f
         const w = await writeStock(tx, p, row, stock - it.quantity, actor, `${actor.email} (${reason})`, now);
         await tx.insert(stockMovements).values({ productId: p.id, sku: p.sku, title, kind: "venta", delta: -it.quantity, stockBefore: stock, stockAfter: stock - it.quantity, reason, saleId: id, userId: actor.id, userEmail: actor.email, createdAt: w.version });
         const live = current.get(p.id);
-        await tx.insert(saleLines).values({ saleId: id, productId: p.id, sku: p.sku, title, language: p.language, quantity: it.quantity, unitPriceMinor: it.unitPriceMinor, catalogPriceMinor: live?.priceMinor ?? null, catalogPriceUsdMinor: live?.priceUsdMinor ?? null, lineTotalMinor: it.unitPriceMinor * it.quantity - it.discountMinor,
-          discountMinor: it.discountMinor, baseCurrency: (live?.priceUsdMinor ?? null) !== null ? "USD" : "ARS", packSize: p.packSize ?? null,
+        await tx.insert(saleLines).values({ ...it, saleId: id, sku: p.sku, title, language: p.language, catalogPriceMinor: live?.priceMinor ?? null, catalogPriceUsdMinor: live?.priceUsdMinor ?? null,
+          baseCurrency: (live?.priceUsdMinor ?? null) !== null ? "USD" : "ARS", packSize: p.packSize ?? null,
           discountKind: it.discountMinor === 0 ? null : (() => { const q = inquiryLinesByProduct.get(p.id); return q && q.comboDiscountMinor + q.transferDiscountMinor === it.discountMinor ? discountKindOf(q) : "manual"; })() });
       }
       if (!input.scheduledFor) await snapshotSaleCosts(tx, id, now, fx.rate10k);
@@ -253,7 +263,7 @@ const ScheduledPayment = z.object({
 export async function completeScheduledSale(db: Db, saleId: string, body: unknown, now = Date.now()) {
   const parsed = ScheduledPayment.safeParse(body);
   if (!parsed.success) throw new SaleError(400, "invalid_input", parsed.error.issues[0]?.message ?? "Revisá los datos del cobro.");
-  const { paymentMethod, soldAt, receivedMinor, installments } = parsed.data;
+  const { paymentMethod, soldAt, receivedMinor: received, installments } = parsed.data;
   const localDay = (time: number) => new Intl.DateTimeFormat("sv-SE", { timeZone: "America/Argentina/Buenos_Aires" }).format(time);
   const soldOn = localDay(soldAt);
   if (soldOn > localDay(now)) throw new SaleError(400, "invalid_input", "Ingresá la fecha real de la venta.");
@@ -262,7 +272,7 @@ export async function completeScheduledSale(db: Db, saleId: string, body: unknow
     const [sale] = await tx.select().from(sales).where(eq(sales.id, saleId));
     if (!sale) throw new SaleError(404, "not_found", "La entrega no existe.");
     if (sale.status === "registrada" && (sale.scheduledFor || sale.stockFromImport) && sale.soldOn === soldOn && sale.paymentMethod === paymentMethod &&
-        sale.receivedMinor === (receivedMinor ?? null) && sale.installments === (installments ?? null)) return { replayed: true };
+        (sale.totalUsdMinor !== null ? sale.receivedUsdMinor : sale.receivedMinor) === (received ?? null) && sale.installments === (installments ?? null)) return { replayed: true };
     if (sale.status !== "agendada") throw new SaleError(409, "order_rule", "La entrega ya se cerró.");
     if (sale.stockFromImport) {
       const [pending] = await tx.select({ id: saleLines.id }).from(saleLines).where(and(eq(saleLines.saleId, sale.id), sql`
@@ -271,8 +281,10 @@ export async function completeScheduledSale(db: Db, saleId: string, body: unknow
       `)).limit(1);
       if (pending) throw new SaleError(409, "order_rule", "Confirmá la recepción de todas las unidades de esta venta antes de cerrarla.");
     }
-    validatePayment(parsed.data, sale.totalMinor);
-    await tx.update(sales).set({ status: "registrada", soldOn, paymentMethod, receivedMinor: receivedMinor ?? null, installments: installments ?? null }).where(eq(sales.id, sale.id));
+    validatePayment(parsed.data, sale.totalUsdMinor ?? sale.totalMinor);
+    const receivedUsdMinor = sale.totalUsdMinor !== null ? received ?? null : null;
+    const receivedMinor = sale.fxRate10k && receivedUsdMinor !== null ? usdToArsExactMinor(receivedUsdMinor, sale.fxRate10k) : received ?? null;
+    await tx.update(sales).set({ status: "registrada", soldOn, paymentMethod, receivedMinor, receivedUsdMinor, installments: installments ?? null }).where(eq(sales.id, sale.id));
     await snapshotSaleCosts(tx, sale.id, now, sale.fxRate10k);
     return { replayed: false };
   });

@@ -1,0 +1,57 @@
+[
+  {
+    "id": "battle-partners",
+    "name": "Battle Partners",
+    "original": "バトルパートナーズ",
+    "code": "SV9",
+    "packs": 30,
+    "cards": 5,
+    "date": "2025-01-24",
+    "path": "sv9",
+    "series": "Scarlet & Violet"
+  },
+  {
+    "id": "super-electric-breaker",
+    "name": "Super Electric Breaker",
+    "original": "超電ブレイカー",
+    "code": "SV8",
+    "packs": 30,
+    "cards": 5,
+    "date": "2024-10-18",
+    "path": "sv8",
+    "series": "Scarlet & Violet"
+  },
+  {
+    "id": "ruler-of-the-black-flame",
+    "name": "Ruler of the Black Flame",
+    "original": "黒炎の支配者",
+    "code": "SV3",
+    "packs": 30,
+    "cards": 5,
+    "date": "2023-07-28",
+    "path": "sv3",
+    "series": "Scarlet & Violet"
+  },
+  {
+    "id": "shiny-treasure-ex",
+    "name": "Shiny Treasure ex",
+    "original": "シャイニートレジャーex",
+    "code": "SV4a",
+    "packs": 10,
+    "cards": 10,
+    "date": "2023-12-01",
+    "path": "sv4a",
+    "series": "Scarlet & Violet"
+  },
+  {
+    "id": "mega-brave",
+    "name": "Mega Brave",
+    "original": "メガブレイブ",
+    "code": "M1L",
+    "packs": 30,
+    "cards": 5,
+    "date": "2025-08-01",
+    "path": "m1",
+    "series": "MEGA"
+  }
+]

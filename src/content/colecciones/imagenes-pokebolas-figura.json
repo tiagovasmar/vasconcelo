@@ -1,0 +1,107 @@
+[
+  {
+    "id": "zh-pikachu-legendary-celebration-poke-ball",
+    "src": "/images/products/zh-pikachu-legendary-celebration-poke-ball/portada-producto-v2.webp",
+    "width": 479,
+    "height": 489,
+    "alt": "Caja de colección Pikachu Legendary Celebration con Poké Ball roja, sin fondo",
+    "origin": "Captura original del proveedor Taobao aportada por el dueño el 24/11/2026.",
+    "license": "Recorte del producto original siguiendo el contorno de la caja. Sin reconstruir ilustraciones ni textos; fondo y elementos publicitarios exteriores eliminados.",
+    "cropPolygon": [
+      [
+        168,
+        288
+      ],
+      [
+        352,
+        222
+      ],
+      [
+        607,
+        278
+      ],
+      [
+        594,
+        557
+      ],
+      [
+        412,
+        671
+      ],
+      [
+        175,
+        578
+      ]
+    ]
+  },
+  {
+    "id": "zh-pikachu-legendary-celebration-super-ball",
+    "src": "/images/products/zh-pikachu-legendary-celebration-super-ball/portada-producto-v2.webp",
+    "width": 496,
+    "height": 513,
+    "alt": "Caja de colección Pikachu Legendary Celebration con Super Ball azul, sin fondo",
+    "origin": "Foto original de referencia del proveedor aportada por el dueño. https://item.taobao.com/item.htm?id=1070495984911",
+    "license": "Recorte del producto original siguiendo el contorno de la caja. Sin reconstruir ilustraciones ni textos; fondo y elementos publicitarios exteriores eliminados.",
+    "cropPolygon": [
+      [
+        73,
+        129
+      ],
+      [
+        257,
+        58
+      ],
+      [
+        527,
+        115
+      ],
+      [
+        514,
+        426
+      ],
+      [
+        330,
+        529
+      ],
+      [
+        78,
+        427
+      ]
+    ]
+  },
+  {
+    "id": "zh-30th-pikachu-figura",
+    "src": "/images/products/zh-30th-pikachu-figura/portada-producto-v2.webp",
+    "width": 435,
+    "height": 483,
+    "alt": "Caja individual amarilla del set de figura sorpresa de Pikachu 30th Celebration, sin fondo",
+    "origin": "Gráfico de referencia del proveedor Tmall aportado por el dueño: detail_tmall_com_20261112-010730_image.jpg.",
+    "license": "Recorte del producto original siguiendo el contorno de la caja. Sin reconstruir ilustraciones ni textos; fondo y elementos publicitarios exteriores eliminados.",
+    "cropPolygon": [
+      [
+        197,
+        327
+      ],
+      [
+        390,
+        307
+      ],
+      [
+        590,
+        315
+      ],
+      [
+        592,
+        698
+      ],
+      [
+        463,
+        750
+      ],
+      [
+        198,
+        707
+      ]
+    ]
+  }
+]

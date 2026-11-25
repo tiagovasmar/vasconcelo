@@ -41,6 +41,12 @@ export function parseRateInput(text: string): number | null {
 
 export const rateFrom10k = (rate10k: number): number => rate10k / RATE_SCALE;
 
+/** Convierte un cobro al centavo de ARS, sin el redondeo de precios de catálogo. */
+export function usdToArsExactMinor(usdMinor: number, rate10k: number): number {
+  const scale = BigInt(RATE_SCALE);
+  return Number((BigInt(usdMinor) * BigInt(rate10k) + scale / 2n) / scale);
+}
+
 /**
  * Precio unitario en centavos de peso a partir de centavos de dólar y la cotización escalada.
  * Exacto: usa BigInt porque usdMinor × rate10k puede superar 2^53.

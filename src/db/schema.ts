@@ -288,6 +288,7 @@ export const storefrontVisits = pgTable("storefront_visits", {
 export const accountingExpenses = pgTable("accounting_expenses", {
   id: text("id").primaryKey(),
   spentAt: ms("spent_at").notNull(),
+  paidAt: ms("paid_at"),
   amountMinor: ms("amount_minor").notNull(),
   description: text("description").notNull(),
   paymentMethod: text("payment_method").notNull(),
@@ -311,10 +312,12 @@ export const sales = pgTable(
     customerContact: text("customer_contact"),
     stockFromImport: boolean("stock_from_import").notNull().default(false),
     receivedMinor: ms("received_minor"),
+    receivedUsdMinor: ms("received_usd_minor"),
     installments: integer("installments"),
     /** Total cobrado (suma de las líneas), en centavos de ARS. */
     totalMinor: ms("total_minor").notNull(),
-    /** Cotización vigente al registrar (solo informativa; el precio cobrado es el de cada línea). */
+    totalUsdMinor: ms("total_usd_minor"),
+    /** Cotización fijada para cobros en USD, o referencia de catálogo para ventas en ARS. */
     fxRate10k: ms("fx_rate_10k"),
     /** agendada | registrada | anulada */
     status: text("status").notNull().default("registrada"),
@@ -340,6 +343,7 @@ export const saleLines = pgTable(
     quantity: integer("quantity").notNull(),
     /** Precio unitario cobrado ANTES del descuento de la línea (centavos de ARS). El descuento va aparte en `discountMinor`. */
     unitPriceMinor: ms("unit_price_minor").notNull(),
+    unitPriceUsdMinor: ms("unit_price_usd_minor"),
     /** Precio de catálogo (ARS) y precio base en USD vigentes en ese momento, solo como referencia (null si estaban pendientes). */
     catalogPriceMinor: ms("catalog_price_minor"),
     catalogPriceUsdMinor: integer("catalog_price_usd_minor"),
@@ -347,6 +351,7 @@ export const saleLines = pgTable(
     lineTotalMinor: ms("line_total_minor").notNull(),
     /** Descuento de la línea (combo caja + sobres y/o transferencia), en centavos; 0 = ninguno. Viene de la consulta: al convertir NO se vuelve a calcular. */
     discountMinor: ms("discount_minor").notNull().default(0),
+    discountUsdMinor: ms("discount_usd_minor"),
     /** combo | transferencia | mixto (las dos en unidades distintas) | null. */
     discountKind: text("discount_kind"),
     /** Moneda del precio base del producto (USD | ARS) y tamaño del pack (5 en los accesorios), solo como constancia. */

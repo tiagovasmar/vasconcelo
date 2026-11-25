@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { AccountingChart } from "@/components/accounting-chart";
 import { AdminAccountingSummary } from "@/components/admin-accounting-summary";
+import { AdminReceivables } from "@/components/admin-receivables";
 import { averageCosts, profitReport } from "@/features/costos/service";
 import { listProductCosts } from "@/features/costos/product-costs";
 import { formatUSD } from "@/features/fx/convert";
 import proposal from "@/content/real/propuesta-mayorista.json";
-import { AdminForm } from "@/components/admin-form";
+import { AdminExpenses } from "@/components/admin-expenses";
 import { currentAccountingMonth, parseAccountingPeriod, type AccountingChannel } from "@/features/contabilidad/period";
-import { accountingOverview } from "@/features/contabilidad/service";
+import { accountingOverview, reservedSalesToCollect } from "@/features/contabilidad/service";
 import { formatARS } from "@/lib/format";
 import { AdminSaleForm, type SaleProduct } from "@/components/admin-sale-form";
 import { AdminSalesList } from "@/components/admin-sales-list";
@@ -54,7 +55,11 @@ export default async function Ventas({ searchParams }: { searchParams: Promise<{
   if (typeof selectedMonth === "string" && monthEnd && !months.includes(selectedMonth)) months.push(selectedMonth);
   const filtered = Boolean(period.from || period.to);
   const ids = catalog.products.map((product) => product.id);
-  const [fx, low, sales, overview, costs, report, manualCosts, scheduled] = await Promise.all([currentRate(db), getLowStock(db), listSales(db, 30, period), accountingOverview(db, period), averageCosts(db, ids), profitReport(db, period, channel), listProductCosts(db, ids), listSales(db, 500, undefined, true)]);
+  const [fx, low, sales, overview, costs, report, manualCosts, scheduled, reserved] = await Promise.all([
+    currentRate(db), getLowStock(db), listSales(db, 30, period), accountingOverview(db, period), averageCosts(db, ids),
+    profitReport(db, period, channel), listProductCosts(db, ids), listSales(db, 500, undefined, true),
+    channel === "mayorista" ? null : reservedSalesToCollect(db),
+  ]);
   const billing = new Map<string, number>();
   for (const row of report.rows) billing.set(row.day, (billing.get(row.day) ?? 0) + row.revenueMinor);
   const reportQuery = new URLSearchParams({ ...(period.from ? { desde: period.from } : {}), ...(period.to ? { hasta: period.to } : {}), ...(!filtered ? { todo: "1" } : {}) });
@@ -75,6 +80,7 @@ export default async function Ventas({ searchParams }: { searchParams: Promise<{
       <nav aria-label="Ventas y stock" className="mt-4 flex flex-wrap gap-2 text-sm">
         <Link href="/admin/ventas" aria-current="page" className="rounded-full border border-emerald bg-emerald px-4 py-1.5 text-paper">Registrar y ver ventas</Link>
         <Link href="/admin/ventas/movimientos" className="rounded-full border border-ink/30 bg-white px-4 py-1.5 hover:border-emerald">Movimientos de stock</Link>
+        <Link href="#por-cobrar" className="rounded-full border border-ink/30 bg-white px-4 py-1.5 hover:border-emerald">Por cobrar</Link>
         <Link href="#entregas" className="rounded-full border border-ink/30 bg-white px-4 py-1.5 hover:border-emerald">Entregas agendadas{scheduled.length > 0 && ` (${scheduled.length})`}</Link>
         <Link href="#gastos" className="rounded-full border border-ink/30 bg-white px-4 py-1.5 hover:border-emerald">Gastos</Link>
       </nav>
@@ -111,11 +117,12 @@ export default async function Ventas({ searchParams }: { searchParams: Promise<{
         })}
       </nav>
       <section className="mt-3 rounded-lg border border-ink/15 bg-white p-4">
-        <AdminAccountingSummary report={report} />
+        <AdminAccountingSummary report={report} outstandingLabel="Por cobrar de lo facturado" />
         <p className="mt-3 text-xs text-ink/75">Los pedidos mayoristas se suman al guardar el total acordado. La seña y el saldo se muestran en «Cobrado» cuando confirmás los pagos.</p>
-        <p className="mt-2 text-sm">Gastos generales registrados: <b>{formatARS(overview.spent)}</b> · <Link href={`/admin/costos?${reportQuery}`} className="font-semibold underline">Ver ganancia y comisiones de todos los canales</Link></p>
+        <p className="mt-2 text-sm">Gastos generales pagados: <b>{formatARS(overview.spent)}</b> · <Link href="#por-pagar" className="font-semibold underline">Por pagar {formatARS(overview.pendingSpent)}</Link> · <Link href={`/admin/costos?${reportQuery}`} className="font-semibold underline">Ver ganancia y comisiones de todos los canales</Link></p>
       </section>
       {overview.pending > 0 && <p className="mt-2 text-sm text-ink/75">{overview.pending} ventas con tarjeta tienen el importe recibido pendiente.</p>}
+      <AdminReceivables report={report} reservations={reserved} filtered={filtered} />
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         <AccountingChart title="Facturación por día" rows={[...billing].sort(([a], [b]) => a.localeCompare(b)).map(([day, total]) => ({ day, total }))} money from={period.from} to={period.to} empty="No hay facturación en estas fechas." />
@@ -160,7 +167,7 @@ export default async function Ventas({ searchParams }: { searchParams: Promise<{
       <div className="mt-6 grid gap-8 lg:grid-cols-[1.1fr_1fr] lg:items-start">
         <section aria-labelledby="registrar-title" className="min-w-0">
           <h2 id="registrar-title" className="text-lg font-semibold">Registrar una venta externa</h2>
-          <div className="mt-3"><AdminSaleForm products={products} /></div>
+          <div className="mt-3"><AdminSaleForm products={products} defaultRate10k={fx.rate10k} /></div>
         </section>
         <section aria-labelledby="ultimas-title" className="min-w-0">
           <h2 id="ultimas-title" className="text-lg font-semibold">{filtered ? "Ventas del período" : "Últimas ventas"}</h2>
@@ -172,33 +179,7 @@ export default async function Ventas({ searchParams }: { searchParams: Promise<{
         <h2 id="entregas-title" className="mb-3 text-lg font-semibold">Entregas agendadas</h2>
         {scheduled.length ? <AdminSalesList sales={scheduled} /> : <p className="text-sm text-ink/70">No hay entregas pendientes.</p>}
       </section>
-      <section id="gastos" className="mt-10 grid gap-8 border-t border-ink/20 pt-6 lg:grid-cols-[1.1fr_1fr]" aria-labelledby="gastos-title">
-        <div>
-          <h2 id="gastos-title" className="mb-3 text-lg font-semibold">Registrar un gasto</h2>
-          <AdminForm endpoint="/api/admin/contabilidad/gastos" submit="Guardar gasto" ok="Gasto registrado." fields={[
-            { name: "spentAt", label: "Fecha del gasto", type: "date", required: true },
-            { name: "amountMinor", label: "Importe del gasto ($)", type: "pesos", required: true },
-            { name: "description", label: "Concepto", type: "text", maxLength: 300, required: true },
-            { name: "paymentMethod", label: "Medio de pago del gasto", type: "select", required: true, options: [
-              { value: "efectivo", label: "Efectivo" }, { value: "transferencia", label: "Transferencia" },
-              { value: "tarjeta", label: "Tarjeta" }, { value: "otro", label: "Otro" },
-            ] },
-          ]} />
-        </div>
-        <div>
-          <h3 className="mb-3 text-lg font-semibold">{filtered ? "Gastos del período" : "Últimos gastos"}</h3>
-          {overview.expenses.length === 0 ? <p className="text-sm text-ink/70">{filtered ? "No hay gastos en este período." : "Todavía no registraste gastos."}</p> : (
-            <ul className="space-y-2">
-              {overview.expenses.map((expense) => (
-                <li key={expense.id} className="flex flex-wrap justify-between gap-2 rounded-lg border border-ink/15 bg-white p-3 text-sm">
-                  <div className="min-w-0"><p className="break-words font-semibold">{expense.description}</p><p className="text-ink/70">{new Date(expense.spentAt).toLocaleDateString("es-AR", { timeZone: "America/Argentina/Buenos_Aires" })} · {expense.paymentMethod}</p></div>
-                  <b>{formatARS(expense.amountMinor)}</b>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </section>
+      <AdminExpenses expenses={overview.expenses} pendingExpenses={overview.pendingExpenses} pendingSpent={overview.pendingSpent} filtered={filtered} />
     </div>
   );
 }

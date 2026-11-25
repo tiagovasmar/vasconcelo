@@ -1,0 +1,152 @@
+[
+  {
+    "id": "zh-xingcai-jingli-slim-caja",
+    "src": "/images/products/zh-xingcai-jingli-slim-caja/sobre-slim-v2.webp",
+    "width": 280,
+    "height": 480,
+    "view": "front",
+    "source": "supplier",
+    "origin": "/images/products/zh-xingcai-jingli-slim-caja/referencia-original.webp",
+    "license": "Sobre de referencia de la edición exacta. Solo recorte de margen y fondo exterior; sin recrear ilustraciones."
+  },
+  {
+    "id": "zh-jiucai-yuan-jumbo-caja",
+    "src": "/images/products/zh-jiucai-yuan-jumbo-caja/referencia-original.webp",
+    "width": 256,
+    "height": 467,
+    "view": "front",
+    "source": "supplier",
+    "origin": "Captura del proveedor aportada por el dueño el 24/11/2026",
+    "license": "Recorte del archivo original aportado por el dueño; colores y texto del envase conservados."
+  },
+  {
+    "id": "zh-jiucai-peng-jumbo-caja",
+    "src": "/images/products/zh-jiucai-peng-jumbo-caja/caja-original-noviembre.webp",
+    "width": 1006,
+    "height": 894,
+    "view": "display-open",
+    "source": "supplier",
+    "origin": "https://moxiecardshop.com/products/nine-colors-gathering-friend-jumbo-booster-box-1",
+    "license": "Foto de referencia comercial. Recorte del fondo original sin modificar el diseño del envase."
+  },
+  {
+    "id": "zh-heijing-chicheng-jumbo-caja",
+    "src": "/images/products/zh-heijing-chicheng-jumbo-caja/caja-original-noviembre.webp",
+    "width": 533,
+    "height": 980,
+    "view": "closed",
+    "source": "supplier",
+    "origin": "https://www.cardarmoury.co.uk/products/pokemon-dark-crystal-blaze-jumbo-csv5c-simplified-chinese-booster-box",
+    "license": "Foto de referencia comercial del envase. Fondo separado del original sin recrear ilustraciones ni textos."
+  },
+  {
+    "id": "zh-liren-mengxing-slim-caja",
+    "src": "/images/products/zh-liren-mengxing-slim-caja/sobre-slim-v2.webp",
+    "width": 267,
+    "height": 468,
+    "view": "front",
+    "source": "supplier",
+    "origin": "/images/products/zh-liren-mengxing-slim-caja/referencia-original.webp",
+    "license": "Sobre de referencia de la edición exacta. Solo recorte de margen y fondo exterior; sin recrear ilustraciones."
+  },
+  {
+    "id": "zh-baoshibao-vol7-caja",
+    "src": "/images/products/zh-baoshibao-vol7-caja/portada-recorte-v2.webp",
+    "width": 587,
+    "height": 977,
+    "view": "closed",
+    "source": "supplier",
+    "origin": "https://moonlightsoleil.com/products/pokemon-tcg-gem-pack-vol-7-chinese-booster-box",
+    "license": "Foto de referencia comercial del envase. Fondo separado del original sin recrear ilustraciones ni textos. Bordes exteriores blancos sobrantes eliminados; no se recreó el envase."
+  },
+  {
+    "id": "zh-baoshibao-vol5-caja",
+    "src": "/images/products/zh-baoshibao-vol5-caja/portada-recorte-v2.webp",
+    "width": 874,
+    "height": 1465,
+    "view": "closed",
+    "source": "supplier",
+    "origin": "https://tcgguy.com/products/pokemon-tcg-gem-pack-vol-5-booster-box-chinese",
+    "license": "Foto de referencia comercial del envase. Fondo separado del original sin recrear ilustraciones ni textos. Bordes exteriores blancos sobrantes eliminados; no se recreó el envase."
+  },
+  {
+    "id": "zh-baoshibao-vol6-caja",
+    "src": "/images/products/zh-baoshibao-vol6-caja/portada-recorte-v2.webp",
+    "width": 310,
+    "height": 502,
+    "view": "closed",
+    "source": "supplier",
+    "origin": "https://pokerangers.co.uk/products/pokemon-tcg-gem-pack-vol-6-booster-box",
+    "license": "Foto de referencia de una publicación comercial. Fondo recortado conservando el diseño original. Bordes exteriores blancos sobrantes eliminados; no se recreó el envase."
+  },
+  {
+    "id": "zh-baoshibao-vol4-caja",
+    "src": "/images/products/zh-baoshibao-vol4-caja/portada-recorte-v2.webp",
+    "width": 260,
+    "height": 448,
+    "view": "closed",
+    "source": "supplier",
+    "origin": "https://accountswordsandspoons.com/collections/pokemon-sealed",
+    "license": "Foto de referencia comercial. Recorte del fondo original sin modificar el diseño del envase. Bordes exteriores blancos sobrantes eliminados; no se recreó el envase."
+  },
+  {
+    "id": "zh-jiajiang-huihe-slim-caja",
+    "src": "/images/products/zh-jiajiang-huihe-slim-caja/sobre-slim-v2.webp",
+    "width": 279,
+    "height": 486,
+    "view": "front",
+    "source": "supplier",
+    "origin": "/images/products/zh-jiajiang-huihe-slim-caja/referencia-original.webp",
+    "license": "Sobre de referencia de la edición exacta. Solo recorte de margen y fondo exterior; sin recrear ilustraciones."
+  },
+  {
+    "id": "zh-umbreon-display-set",
+    "src": "/images/products/zh-umbreon-display-set/portada-recorte-v2.webp",
+    "width": 312,
+    "height": 440,
+    "view": "closed",
+    "source": "supplier",
+    "origin": "Captura del proveedor aportada por el dueño el 24/11/2026",
+    "license": "Recorte del archivo original aportado por el dueño; colores y texto del envase conservados. Bordes exteriores blancos sobrantes eliminados; no se recreó el envase."
+  },
+  {
+    "id": "zh-mew-display-set",
+    "src": "/images/products/zh-mew-display-set/portada-recorte-v2.webp",
+    "width": 299,
+    "height": 420,
+    "view": "closed",
+    "source": "supplier",
+    "origin": "Captura del proveedor aportada por el dueño el 24/11/2026",
+    "license": "Recorte del archivo original aportado por el dueño; colores y texto del envase conservados. Bordes exteriores blancos sobrantes eliminados; no se recreó el envase."
+  },
+  {
+    "id": "zh-151-lv-slim-caja",
+    "src": "/images/products/zh-151-lv-slim-caja/sobre-slim-v2.webp",
+    "width": 1523,
+    "height": 2676,
+    "view": "front",
+    "source": "manufacturer",
+    "origin": "https://www.pokemon.cn/tcg/product/15688.html",
+    "license": "Imagen de referencia del sobre de la edición exacta. Margen y fondo exterior recortados; sin alterar el arte ni recrear el envase."
+  },
+  {
+    "id": "zh-151-ju-slim-caja",
+    "src": "/images/products/zh-151-ju-slim-caja/sobre-slim-v2.webp",
+    "width": 1030,
+    "height": 1828,
+    "view": "front",
+    "source": "manufacturer",
+    "origin": "https://www.pokipair.com/collect-151-gathering-everything-you-need-to-know/",
+    "license": "Imagen de referencia del sobre de la edición exacta. Margen y fondo exterior recortados; sin alterar el arte ni recrear el envase."
+  },
+  {
+    "id": "zh-gongzhu-rongguang-slim-caja",
+    "src": "/images/products/zh-gongzhu-rongguang-slim-caja/sobre-slim-v2.webp",
+    "width": 347,
+    "height": 617,
+    "view": "front",
+    "source": "supplier",
+    "origin": "/images/products/zh/zh-gongzhu-rongguang-sobre-5-1.webp",
+    "license": "Sobre de referencia de la edición exacta. Solo recorte de margen y fondo exterior; sin recrear ilustraciones."
+  }
+]

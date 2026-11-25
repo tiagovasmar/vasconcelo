@@ -1,0 +1,133 @@
+[
+  {
+    "id": "battle-partners",
+    "src": "/images/products/battle-partners/portada-recorte-v2.webp",
+    "width": 1505,
+    "height": 893,
+    "view": "closed",
+    "sourcePage": "https://www.pokemoncenter-online.com/?p_cd=4521329427010",
+    "archivePage": "https://www.artofpkm.com/products/2800",
+    "sourceUrl": "https://cdn.artofpkm.com/hoixr541qgauu8bmwnvr6pvowam4",
+    "cropPolygon": [
+      [
+        259,
+        330
+      ],
+      [
+        1263,
+        330
+      ],
+      [
+        1457,
+        893
+      ],
+      [
+        1422,
+        1125
+      ],
+      [
+        87,
+        1125
+      ],
+      [
+        50,
+        894
+      ]
+    ],
+    "operation": "Contorno trazado siguiendo las aristas originales; sin interpolar ni reconstruir bordes del envase."
+  },
+  {
+    "id": "super-electric-breaker",
+    "src": "/images/products/super-electric-breaker/portada-recorte-v2.webp",
+    "width": 1149,
+    "height": 683,
+    "view": "closed",
+    "sourcePage": "https://www.pokemoncenter-online.com/?p_cd=4521329331737",
+    "archivePage": "https://www.artofpkm.com/products/2738",
+    "sourceUrl": "https://cdn.artofpkm.com/6jcn5k1fwhmw3amft4oz7dmixh58",
+    "cropPolygon": [
+      [
+        374,
+        534
+      ],
+      [
+        1141,
+        534
+      ],
+      [
+        1288,
+        962
+      ],
+      [
+        1260,
+        1141
+      ],
+      [
+        243,
+        1141
+      ],
+      [
+        215,
+        963
+      ]
+    ],
+    "operation": "Contorno trazado siguiendo las aristas originales; sin interpolar ni reconstruir bordes del envase."
+  },
+  {
+    "id": "ruler-of-the-black-flame",
+    "src": "/images/products/ruler-of-the-black-flame/portada-original.webp",
+    "width": 1082,
+    "height": 1246,
+    "view": "display-open",
+    "sourcePage": "https://www.pokemoncenter-online.com/?p_cd=4521329331386",
+    "archivePage": "https://www.artofpkm.com/products/190",
+    "sourceUrl": "https://cdn.artofpkm.com/uso30w0tqsypav7umburzp8jg1j5"
+  },
+  {
+    "id": "shiny-treasure-ex",
+    "src": "/images/products/shiny-treasure-ex/portada-original.webp",
+    "width": 585,
+    "height": 1385,
+    "view": "display-open",
+    "sourcePage": "https://www.pokemoncenter-online.com/?p_cd=4521329331539",
+    "archivePage": "https://www.artofpkm.com/products/127",
+    "sourceUrl": "https://cdn.artofpkm.com/l1sy0wv4jjoz6ffkb303os68tf3n"
+  },
+  {
+    "id": "mega-brave",
+    "src": "/images/products/mega-brave/portada-recorte-v2.webp",
+    "width": 1104,
+    "height": 656,
+    "view": "closed",
+    "sourcePage": "https://www.pokemoncenter-online.com/9900000006211.html",
+    "archivePage": null,
+    "sourceUrl": "https://www.pokemoncenter-online.com/a/img/item/9900000006211/L/60fc7a14f70b721fc5de98bcefaa716d0c592728dbcd6353bee8c3ce44f8b382.jpg",
+    "cropPolygon": [
+      [
+        376,
+        673
+      ],
+      [
+        1115,
+        673
+      ],
+      [
+        1256,
+        1087
+      ],
+      [
+        1230,
+        1257
+      ],
+      [
+        252,
+        1257
+      ],
+      [
+        224,
+        1086
+      ]
+    ],
+    "operation": "Contorno trazado siguiendo las aristas originales; sin interpolar ni reconstruir bordes del envase."
+  }
+]

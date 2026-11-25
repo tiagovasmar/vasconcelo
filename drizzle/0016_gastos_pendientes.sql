@@ -1,0 +1,1 @@
+ALTER TABLE "accounting_expenses" ADD COLUMN "paid_at" bigint;
