@@ -288,7 +288,7 @@ test("encargo de punta a punta: seguimiento, pago separado, comprobante privado 
   await expect(pago.getByRole("status")).toHaveText("Ingreso confirmado.");
   await go(page, `/cuenta/consultas/${ref}`);
   await expect(page.getByTestId("estado-pago")).toHaveText("Pago parcial confirmado");
-  await expect(page.getByTestId("etapa-actual")).toHaveText("Seña del 20% confirmada");
+  await expect(page.getByTestId("etapa-actual")).toHaveText("Seña confirmada");
   await expect(page.getByTestId("importe-sena")).toContainText("20.000");
   await expect(page.getByTestId("datos-transferencia")).toHaveCount(0);
   await expect(page.getByTestId("bloque-comprobantes")).toContainText("Aceptado");

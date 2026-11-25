@@ -13,7 +13,6 @@ import { noticeForOrder, type NoticeEvent } from "@/features/avisos/outbox";
 import { SaleError, type SaleErrorCode } from "@/features/sales/errors";
 import { formatARS } from "@/lib/format";
 import { formatUSD, toRate10k, usdToArsMinor } from "@/features/fx/convert";
-import { encargo } from "@/content/politicas";
 import {
   firstStage, isShippingStage, nextAction, rank, senaFor, shipmentRank, STAGE_LABEL, stagesFor, summarizePayments, type Stage, type TrackKind,
 } from "./etapas";
@@ -153,11 +152,11 @@ async function assertStageAllowed(tx: Tx, track: TrackRow, stage: Stage): Promis
     fail(409, "order_rule", "Primero confirmá el importe acordado del pedido.");
   }
   if (kind !== "stock" && stage === "sena_confirmada") {
-    const sena = senaFor(track.agreedMinor);
-    if (sena === null || confirmedMinor < sena) fail(409, "order_rule", `La seña del ${encargo.senaPercent}% (${sena === null ? "sin importe acordado" : formatARS(sena)}) todavía no está confirmada: registrá antes el pago recibido.`);
+    const sena = senaFor(track.agreedMinor, kind);
+    if (sena === null || confirmedMinor < sena) fail(409, "order_rule", `La seña (${sena === null ? "sin importe acordado" : formatARS(sena)}) todavía no está confirmada: registrá antes el pago recibido.`);
   }
   if (kind !== "stock" && rank(kind, stage) >= rank(kind, "comprado_proveedor") && rank(kind, track.stage) < rank(kind, "sena_confirmada")) {
-    const sena = senaFor(track.agreedMinor);
+    const sena = senaFor(track.agreedMinor, kind);
     if (sena === null || confirmedMinor < sena) fail(409, "order_rule", "No se puede comprar al proveedor sin la seña confirmada.");
   }
   if (isShippingStage(stage) && kind !== "stock") {
@@ -224,13 +223,15 @@ export async function advanceFromFacts(tx: Tx, inquiryId: string, stage: Stage, 
 
 export const AgreedSchema = z.object({
   agreedMinor: z.number({ error: "Escribí el importe acordado." }).int().min(10_000, "El importe acordado debe ser de al menos $100.").max(1_000_000_000_00, "El importe es demasiado alto.").multipleOf(100, "El importe debe estar en pesos enteros."),
+  adjustmentReason: z.string().trim().max(300).optional(),
 });
 const AgreedUsdSchema = z.object({
   agreedUsdMinor: z.number().int().min(1).max(100_000_000),
   rateMinor: z.number().int().positive().max(100_000_000).optional(),
+  adjustmentReason: z.string().trim().max(300).optional(),
 });
 
-/** Fija el importe acordado y confirmado por la tienda. Mientras no haya pagos confirmados se puede corregir; después, no (cambiaría el cálculo de lo ya abonado). */
+/** Mayorista permite corregir el total con motivo, conservando los pagos y la cotización histórica. */
 export async function setAgreedAmount(db: Db, inquiryId: string, body: unknown, actor: Actor, now = Date.now()): Promise<{ agreedMinor: number; changed: boolean }> {
   const input = parseOr400(z.union([AgreedSchema, AgreedUsdSchema]), body);
   return db.transaction(async (tx) => {
@@ -257,11 +258,16 @@ export async function setAgreedAmount(db: Db, inquiryId: string, body: unknown, 
     if (track.cancelledAt) return fail(409, "order_rule", "El pedido está cancelado.");
     if (unchanged) return { agreedMinor, changed: false };
     const { confirmedMinor } = await paymentTotals(tx, inquiryId);
-    if (confirmedMinor > 0) return fail(409, "order_rule", "Ya hay pagos confirmados: el importe acordado no se puede cambiar. Registrá la diferencia como una nota o un ajuste explícito.");
+    if (confirmedMinor > 0) {
+      if (track.kind !== "mayorista") return fail(409, "order_rule", "Ya hay pagos confirmados: el importe acordado no se puede cambiar. Registrá la diferencia como una nota o un ajuste explícito.");
+      if (replacementRate !== null) return fail(409, "order_rule", "La cotización de los pagos registrados se conserva. Ajustá el total sin cambiar esa cotización.");
+      if (track.stage === "entregado") return fail(409, "order_rule", "El pedido ya fue entregado. Revisá el ajuste desde la venta vinculada.");
+      if (!input.adjustmentReason || input.adjustmentReason.length < 5) return fail(400, "invalid_input", "Explicá el motivo de la corrección del total (mínimo 5 caracteres).");
+    }
     if (replacementRate !== null) await tx.update(inquiries).set({ fxRate10k: replacementRate, fxMode: "manual", fxAsOf: now, fxSource: null }).where(eq(inquiries.id, inquiryId));
     await tx.update(orderTracks).set({ agreedMinor, agreedUsdMinor, updatedAt: now }).where(eq(orderTracks.inquiryId, inquiryId));
     const label = agreedUsdMinor === null ? formatARS(agreedMinor) : `${formatUSD(agreedUsdMinor)} (equivalente de ${formatARS(agreedMinor)})`;
-    await tx.insert(orderEvents).values({ inquiryId, kind: "system", publicText: `Importe acordado: ${label}.`, internalText: track.agreedMinor === null ? null : `Antes: ${formatARS(track.agreedMinor)}`, occurredAt: now, createdAt: now, actorEmail: actor.email });
+    await tx.insert(orderEvents).values({ inquiryId, kind: "system", publicText: `Importe acordado: ${label}.`, internalText: track.agreedMinor === null ? null : `Antes: ${formatARS(track.agreedMinor)}${input.adjustmentReason ? ` · Motivo: ${input.adjustmentReason}` : ""}`, occurredAt: now, createdAt: now, actorEmail: actor.email });
     return { agreedMinor, changed: true };
   });
 }
@@ -389,7 +395,7 @@ export async function customerOrderView(db: Db, inquiryId: string): Promise<Cust
   const pay = summarizePayments({ agreedMinor: track.agreedMinor, ...totals });
   const cancelled = track.cancelledAt !== null || Boolean(hold?.expired);
   return {
-    preorder: hold ? { expiresAt: hold.expiresAt, status: hold.expired ? "liberada" : track.cancelledAt ? "cancelada" : totals.confirmedMinor >= (senaFor(track.agreedMinor) ?? Infinity) ? "confirmada" : "retenida" } : undefined,
+    preorder: hold ? { expiresAt: hold.expiresAt, status: hold.expired ? "liberada" : track.cancelledAt ? "cancelada" : totals.confirmedMinor >= (senaFor(track.agreedMinor, kind) ?? Infinity) ? "confirmada" : "retenida" } : undefined,
     reference: inquiryId, kind, stage: track.stage, stageLabel: STAGE_LABEL[track.stage as Stage] ?? track.stage, cancelled: cancelled, createdAt: inq?.createdAt ?? track.createdAt, agreedMinor: track.agreedMinor,
     steps: stages.map((s) => ({ stage: s, label: STAGE_LABEL[s], reachedAt: reachedAt.get(s) ?? null, current: s === track.stage })),
     // Solo texto PÚBLICO: `internalText` no se selecciona hacia afuera.
@@ -453,5 +459,5 @@ export async function adminOrderDetail(db: Db, inquiryId: string) {
     db.select().from(notificationOutbox).where(eq(notificationOutbox.inquiryId, inquiryId)).orderBy(desc(notificationOutbox.createdAt)),
   ]);
   const deliveries = await db.select().from(lineDeliveries).where(eq(lineDeliveries.inquiryId, inquiryId)).orderBy(desc(lineDeliveries.deliveredAt));
-  return { inquiry: inq, track: track ?? null, events, payments: pays, receipts, incidents, refunds, items, totals, notices, deliveries, senaMinor: senaFor(track?.agreedMinor ?? null) };
+  return { inquiry: inq, track: track ?? null, events, payments: pays, receipts, incidents, refunds, items, totals, notices, deliveries, senaMinor: senaFor(track?.agreedMinor ?? null, (track?.kind ?? "stock") as TrackKind) };
 }

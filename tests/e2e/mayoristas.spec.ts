@@ -13,7 +13,7 @@ test.describe("página informativa", () => {
     await expect(main).toContainText("exclusivamente por pedido");
     await expect(main).toContainText("aprueba a mano");
     await expect(main).toContainText("sin descuento adicional");
-    await expect(main).toContainText("seña del 20%");
+    await expect(main).toContainText("seña del 10%");
     await expect(page.getByTestId("mayorista-pendiente")).toContainText("combinar productos");
     await expect(page.getByTestId("mayorista-pendiente")).toContainText("Desde cuándo se cuenta la demora estimada");
     // el 30% ya no existe en ninguna parte y no se promete nada que el dueño no dio

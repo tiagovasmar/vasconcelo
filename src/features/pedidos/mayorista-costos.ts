@@ -40,7 +40,9 @@ export function wholesaleResult({ costs, agreed, agreedUsd, received, refunded, 
   const complete = BASIC_COSTS.every((category) => activeCosts.some((cost) => cost.category === category));
   const saleUsd = agreedUsd ?? (agreed === null ? null : orderUsdEquivalent(agreed, rate));
   const revenue = cancelled ? orderUsdEquivalent(received - refunded, rate) : saleUsd;
-  const refundedUsd = cancelled ? 0 : orderUsdEquivalent(refunded, rate);
+  // Devolver dinero recibido de más no es una devolución de la venta ni reduce su ganancia.
+  const excessReceived = agreed === null ? 0 : Math.max(0, received - agreed);
+  const refundedUsd = cancelled ? 0 : orderUsdEquivalent(Math.max(0, refunded - excessReceived), rate);
   const profit = revenue !== null && total !== null && refundedUsd !== null ? revenue - refundedUsd - total : null;
   return { activeCosts, commission, commissionUsd, total, complete, revenue, refundedUsd, profit };
 }

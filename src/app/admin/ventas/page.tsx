@@ -8,7 +8,7 @@ import { formatUSD } from "@/features/fx/convert";
 import proposal from "@/content/real/propuesta-mayorista.json";
 import { AdminExpenses } from "@/components/admin-expenses";
 import { currentAccountingMonth, parseAccountingPeriod, type AccountingChannel } from "@/features/contabilidad/period";
-import { accountingOverview, reservedSalesToCollect } from "@/features/contabilidad/service";
+import { accountingOverview, reservedSalesToCollect, wholesaleReceipts } from "@/features/contabilidad/service";
 import { formatARS } from "@/lib/format";
 import { AdminSaleForm, type SaleProduct } from "@/components/admin-sale-form";
 import { AdminSalesList } from "@/components/admin-sales-list";
@@ -55,10 +55,11 @@ export default async function Ventas({ searchParams }: { searchParams: Promise<{
   if (typeof selectedMonth === "string" && monthEnd && !months.includes(selectedMonth)) months.push(selectedMonth);
   const filtered = Boolean(period.from || period.to);
   const ids = catalog.products.map((product) => product.id);
-  const [fx, low, sales, overview, costs, report, manualCosts, scheduled, reserved] = await Promise.all([
+  const [fx, low, sales, overview, costs, report, manualCosts, scheduled, reserved, wholesaleCash] = await Promise.all([
     currentRate(db), getLowStock(db), listSales(db, 30, period), accountingOverview(db, period), averageCosts(db, ids),
     profitReport(db, period, channel), listProductCosts(db, ids), listSales(db, 500, undefined, true),
     channel === "mayorista" ? null : reservedSalesToCollect(db),
+    channel === "minorista" ? null : wholesaleReceipts(db, period),
   ]);
   const billing = new Map<string, number>();
   for (const row of report.rows) billing.set(row.day, (billing.get(row.day) ?? 0) + row.revenueMinor);
@@ -123,6 +124,17 @@ export default async function Ventas({ searchParams }: { searchParams: Promise<{
       </section>
       {overview.pending > 0 && <p className="mt-2 text-sm text-ink/75">{overview.pending} ventas con tarjeta tienen el importe recibido pendiente.</p>}
       <AdminReceivables report={report} reservations={reserved} filtered={filtered} />
+      {wholesaleCash && <section className="mt-6 rounded-lg border border-ink/15 bg-white p-4" aria-labelledby="cobros-mayoristas">
+        <h2 id="cobros-mayoristas" className="font-semibold">Ingresos mayoristas por fecha de cobro</h2>
+        <p className="mt-2 text-xl font-bold" data-testid="mayorista-ingresos-periodo">{formatARS(wholesaleCash.totalMinor)}</p>
+        <p className="mt-1 text-xs text-ink/75">Incluye señas y saldos confirmados en estas fechas, aunque el pedido sea anterior. Son ingresos brutos; los excedentes quedan a revisar. No se suman otra vez a lo vendido.</p>
+        {wholesaleCash.rows.length === 0 ? <p className="mt-3 text-sm text-ink/75">Sin ingresos mayoristas en estas fechas.</p> : <ul className="mt-3 divide-y divide-ink/10">
+          {wholesaleCash.rows.map((payment) => <li key={payment.id} className="flex flex-wrap justify-between gap-2 py-2 text-sm">
+            <span><Link href={`/admin/pedidos/${payment.reference}`} className="font-semibold underline">{payment.reference}</Link> · {payment.kind === "sena" ? "Seña" : payment.kind === "saldo" ? "Saldo" : "Pago"} · {new Intl.DateTimeFormat("es-AR", { dateStyle: "short", timeZone: "America/Argentina/Buenos_Aires" }).format(payment.paidAt)}</span>
+            <b>{formatARS(payment.amountMinor)}</b>
+          </li>)}
+        </ul>}
+      </section>}
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         <AccountingChart title="Facturación por día" rows={[...billing].sort(([a], [b]) => a.localeCompare(b)).map(([day, total]) => ({ day, total }))} money from={period.from} to={period.to} empty="No hay facturación en estas fechas." />

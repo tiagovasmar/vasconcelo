@@ -5,7 +5,7 @@
 
 /**
  * Cuenta y catálogo mayorista. Confirmado por el dueño (02/11/2026): la cuenta se solicita y el dueño la aprueba A MANO; es exclusivamente POR PEDIDO (el stock minorista no cuenta);
- * pago por transferencia o efectivo SIN descuento adicional ni beneficios minoristas; seña del 20% después de confirmar disponibilidad e importe, y el resto al retirar o antes del despacho,
+ * pago por transferencia o efectivo SIN descuento adicional ni beneficios minoristas; seña del 10% después de confirmar disponibilidad e importe, y el resto al retirar o antes del despacho,
  * con la mercadería ya en Argentina; los precios dependen de la cantidad. La referencia interna de precio es costo final × 1,5 (recargo del 50% sobre costo, NO un descuento sobre el minorista).
  * SIGUE SIN DEFINIR (y vive en el panel, vacío hasta que el dueño decida; el catálogo no se abre sin esto): compra mínima, si los productos se combinan para alcanzar el mínimo y cada tramo,
  * las cantidades y precios de los tramos y las demoras estimadas. La financiación a 3 o 6 meses solo se puede CONSULTAR: no se promete aprobación, cuotas ni tasas.
@@ -17,7 +17,7 @@ export const mayorista = {
   activationEnabled: true,
   /** Recargo interno sobre el costo final (referencia de trabajo para proponer precios; el dueño fija cada tramo). */
   referenceMarkupOverCostPercent: 50,
-  senaPercent: 20,
+  senaPercent: 10,
   paymentNote: "Transferencia o efectivo, sin descuento adicional.",
 } as const;
 

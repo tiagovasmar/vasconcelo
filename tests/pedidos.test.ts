@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import { wholesaleReceipts } from "@/features/contabilidad/service";
 import { eq } from "drizzle-orm";
 import { catalog } from "@/content/catalog";
 import { type Db } from "@/db/client";
@@ -74,12 +75,13 @@ describe("control del pedido mayorista", () => {
     const detail = await adminOrderDetail(db, ref);
     expect(detail?.inquiry).toMatchObject({ source: "manual", fxRate10k: 16_000_000, contactName: "Cliente de prueba" });
     expect(detail?.items).toMatchObject([{ quantity: 16, fulfillment: "mayorista" }]);
-    expect(detail?.senaMinor).toBe(54_592_000);
+    expect(detail?.senaMinor).toBe(27_296_000);
     await st(ref, "confirmado_tienda", 1);
-    await pay(ref, 54_592_000, 2);
+    await pay(ref, 27_296_000, 2);
+    expect((await adminOrderDetail(db, ref))?.track?.stage).toBe("sena_confirmada");
     expect(await code(setAgreedAmount(db, ref, { agreedUsdMinor: input.amountUsdMinor, rateMinor: 170_000 }, actor, day(3)))).toBe("order_rule");
     await setWholesaleGuide(db, ref, { carrier: "Courier de prueba", trackingNumber: "GUIA-1234" }, day(3));
-    expect(await listOrders(db, { kind: "mayorista", search: "GUIA-1234" })).toMatchObject([{ reference: ref, phone: input.contactPhone, tracking: "GUIA-1234", agreedUsdMinor: input.amountUsdMinor, confirmedMinor: 54_592_000 }]);
+    expect(await listOrders(db, { kind: "mayorista", search: "GUIA-1234" })).toMatchObject([{ reference: ref, phone: input.contactPhone, tracking: "GUIA-1234", agreedUsdMinor: input.amountUsdMinor, confirmedMinor: 27_296_000 }]);
     const { token } = await issueAccessLink(db, ref);
     const shared = await sharedWholesaleStatus(db, ref, token);
     expect(shared).toMatchObject({ trackingNumber: "GUIA-1234" });
@@ -106,6 +108,41 @@ describe("control del pedido mayorista", () => {
     await voidWholesaleCost(db, ref, correction, actor, day(2));
     expect((await listWholesaleOrderCosts(db, ref))[0]).toMatchObject({ voidReason: correction.reason, voidedAt: day(2) });
     expect((await listOrders(db, { kind: "mayorista", search: ref })).map((r) => r.reference)).toEqual([ref]);
+  });
+
+  it("registra el saldo real y su excedente sin duplicar pagos ni inflar la venta", async () => {
+    const ref = await mayorista();
+    await setAgreedAmount(db, ref, { agreedMinor: 10_000_000 }, actor, day(1));
+    await st(ref, "confirmado_tienda", 1);
+    await pay(ref, 1_000_000, 2);
+    expect((await adminOrderDetail(db, ref))?.track?.stage).toBe("sena_confirmada");
+    const body = { kind: "saldo", amountMinor: 9_100_000, method: "efectivo", paidAt: day(31), idempotencyKey: key() };
+    const results = await Promise.all([confirmPayment(db, ref, body, actor, day(31)), confirmPayment(db, ref, body, actor, day(31))]);
+    expect(results[0].payment.id).toBe(results[1].payment.id);
+    const detail = (await adminOrderDetail(db, ref))!;
+    expect(detail.totals.confirmedMinor).toBe(10_100_000);
+    expect(detail.track?.agreedMinor).toBe(10_000_000);
+    expect(detail.events.some((event) => event.internalText?.includes("Excedente acumulado"))).toBe(true);
+    expect((await profitReport(db)).totals).toMatchObject({ billedMinor: 10_000_000, collectedMinor: 10_100_000, outstandingMinor: 0 });
+    expect(await wholesaleReceipts(db, { from: "2026-12-01", to: "2026-12-31" })).toMatchObject({ totalMinor: 9_100_000, rows: [{ reference: ref, kind: "saldo" }] });
+    await voidPayment(db, results[0].payment.id, { reason: "Importe cargado por error" }, actor, day(32));
+    expect(await wholesaleReceipts(db, { from: "2026-12-01", to: "2026-12-31" })).toEqual({ rows: [], totalMinor: 0 });
+    expect((await profitReport(db)).totals).toMatchObject({ billedMinor: 10_000_000, collectedMinor: 1_000_000, outstandingMinor: 9_000_000 });
+    await pay(ref, 5_000, 33, { kind: "saldo" });
+    expect((await adminOrderDetail(db, ref))?.totals.confirmedMinor).toBe(1_005_000);
+  });
+
+  it("corrige un total mayorista después de la seña con motivo y conserva el ingreso", async () => {
+    const ref = await mayorista();
+    await setAgreedAmount(db, ref, { agreedMinor: 10_000_000 }, actor, day(1));
+    await pay(ref, 1_000_000, 2);
+    expect(await code(setAgreedAmount(db, ref, { agreedMinor: 11_000_000 }, actor, day(3)))).toBe("invalid_input");
+    await setAgreedAmount(db, ref, { agreedMinor: 11_000_000, adjustmentReason: "Se agregó un producto al pedido" }, actor, day(3));
+    const detail = (await adminOrderDetail(db, ref))!;
+    expect(detail.totals.confirmedMinor).toBe(1_000_000);
+    expect(detail.track?.agreedMinor).toBe(11_000_000);
+    expect(detail.events.some((event) => event.internalText?.includes("Se agregó un producto"))).toBe(true);
+    expect((await profitReport(db)).totals.outstandingMinor).toBe(10_000_000);
   });
 
   it("acepta dólares sin cotización de gasto, convierte pesos al cambio del pago y registra aduana en cero", async () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { nextAction, senaFor, transferDue, type OrderPaymentInput } from "@/features/pedidos/etapas";
+import { nextAction, senaFor, senaUsdFor, transferDue, type OrderPaymentInput } from "@/features/pedidos/etapas";
 
 const order: OrderPaymentInput = { kind: "encargo", stage: "confirmado_tienda", agreedMinor: 10_000_000, confirmedMinor: 0, pendingReceipts: 0, cancelled: false };
 const fmt = (n: number) => String(n);
@@ -8,7 +8,9 @@ describe("transferencia del encargo y mayorista", () => {
   it("calcula el 20% del importe confirmado en centavos", () => {
     expect(senaFor(order.agreedMinor)).toBe(2_000_000);
     expect(transferDue(order)).toEqual({ kind: "sena", amountMinor: 2_000_000 });
-    expect(transferDue({ ...order, kind: "mayorista" })).toEqual(transferDue(order));
+    expect(transferDue({ ...order, kind: "mayorista" })).toEqual({ kind: "sena", amountMinor: 1_000_000 });
+    expect(senaUsdFor(170_600, "mayorista")).toBe(17_060);
+    expect(nextAction({ ...order, kind: "mayorista" }, fmt)).toContain("seña del 10%");
   });
   it("no solicita dinero por una cotización sin confirmar, sin importe o en compras de stock", () => {
     for (const p of [{ ...order, stage: "solicitud_recibida" }, { ...order, agreedMinor: null }, { ...order, kind: "stock" as const }]) expect(transferDue(p)).toBeNull();

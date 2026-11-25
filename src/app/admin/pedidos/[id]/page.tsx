@@ -8,7 +8,7 @@ import { when } from "@/features/consultas/ui";
 import { shipmentProgressLabel, STAGE_LABEL, stagesFor, type Stage, type TrackKind } from "@/features/pedidos/etapas";
 import { adminOrderDetail, INCIDENT_KIND_LABEL } from "@/features/pedidos/service";
 import { linkedSaleCommission, listWholesaleOrderCosts, orderUsdEquivalent } from "@/features/pedidos/mayorista-admin";
-import { PAYMENT_STATUS_LABEL, remainingOrderBalance, senaFor, summarizePayments } from "@/features/pedidos/etapas";
+import { depositPercent, PAYMENT_STATUS_LABEL, remainingOrderBalance, senaUsdFor, summarizePayments } from "@/features/pedidos/etapas";
 import { averageCosts } from "@/features/costos/service";
 import { formatRate, formatUSD } from "@/features/fx/convert";
 import { formatARS } from "@/lib/format";
@@ -42,20 +42,22 @@ export default async function AdminPedidoDetalle({ params }: { params: Promise<{
   const paidRefunds = refunds.filter((r) => r.status === "reintegrado").reduce((sum, r) => sum + r.amountMinor, 0);
   const wholesaleRate = kind === "mayorista" ? i.fxRate10k : null;
   const confirmedUsd = wholesaleRate ? orderUsdEquivalent(totals.confirmedMinor, wholesaleRate) : null;
-  const depositUsd = wholesaleRate && d.senaMinor !== null ? senaFor(track?.agreedUsdMinor ?? null) ?? orderUsdEquivalent(d.senaMinor, wholesaleRate) : null;
+  const depositUsd = wholesaleRate && d.senaMinor !== null ? senaUsdFor(track?.agreedUsdMinor ?? null, kind) ?? orderUsdEquivalent(d.senaMinor, wholesaleRate) : null;
   const balance = remainingOrderBalance(track?.agreedMinor ?? null, totals.confirmedMinor);
   const useUsd = track?.agreedUsdMinor != null;
-  const paidUsd = balance === 0 ? track?.agreedUsdMinor ?? confirmedUsd
+  const paidUsd = balance === 0 && totals.confirmedMinor === track?.agreedMinor ? track?.agreedUsdMinor ?? confirmedUsd
     : totals.confirmedMinor === d.senaMinor ? depositUsd : confirmedUsd;
   const remainingDeposit = remainingOrderBalance(d.senaMinor, totals.confirmedMinor);
   const needsWholesaleDeposit = kind === "mayorista" && !track?.cancelledAt
     && (balance === null || (remainingDeposit !== null && remainingDeposit > 0));
   const amountForSummary = (ars: number, usd: number | null = null) => useUsd && usd !== null ? formatUSD(usd) : formatARS(ars);
-  const canEditRate = kind === "mayorista" && i.source === "manual";
+  const canEditRate = kind === "mayorista" && i.source === "manual" && totals.confirmedMinor === 0;
+  const excess = !track || track.agreedMinor === null ? 0 : Math.max(0, totals.confirmedMinor - paidRefunds - track.agreedMinor);
+  const adjustmentFields = totals.confirmedMinor > 0 ? [{ name: "adjustmentReason", label: "Motivo de la corrección", required: true, maxLength: 300 }] : [];
   const agreedInPesosForm = <AdminForm endpoint={ep} compact fixed={{ action: "agreed" }} fields={[{
     name: "agreedMinor", label: "Importe acordado", type: "pesos", required: true,
     defaultValue: track?.agreedMinor ? String(track.agreedMinor / 100) : "",
-  }]} submit="Guardar importe" ok="Importe guardado." idempotent={false} testId="form-importe" />;
+  }, ...adjustmentFields]} submit="Guardar importe" ok="Importe guardado." idempotent={false} testId="form-importe" />;
 
   const stageSection = track && (
           <section className={card} id="entrega" data-testid="admin-etapa">
@@ -98,6 +100,7 @@ export default async function AdminPedidoDetalle({ params }: { params: Promise<{
           </a>
         )}
         {!track.cancelledAt && <p className="mt-2 text-sm text-ink/75">La seña se resta del total cuando confirmás el pago.</p>}
+        {excess > 0 && <p className="mt-3 rounded-lg border border-amber-500/40 bg-amber-50 p-3 text-sm" data-testid="mayorista-excedente"><b>Excedente recibido: {formatARS(excess)}.</b> Está incluido en lo cobrado. Revisá si corresponde corregir el total acordado o devolver la diferencia; no se suma automáticamente a la venta ni a la ganancia.</p>}
         {wholesaleRate && <p className="mt-1 text-xs text-ink/75">Cotización acordada: {formatRate(wholesaleRate)} por USD.</p>}
         <nav aria-label="Gestión del pedido mayorista" className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm font-semibold">
           <a className="underline" href="#admin-pago">Pagos</a>
@@ -126,10 +129,10 @@ export default async function AdminPedidoDetalle({ params }: { params: Promise<{
           <section className={`${card} scroll-mt-32`} id="admin-pago" data-testid="admin-pago">
             <h2 className={h2}>{needsWholesaleDeposit ? "Registrar seña" : kind === "mayorista" ? "Pagos" : "Pago"}</h2>
             {needsWholesaleDeposit && balance === null && (
-              <p className="mt-2 text-sm text-ink/75">Primero guardá el total acordado. Después vas a poder registrar la seña del 20% acá mismo.</p>
+              <p className="mt-2 text-sm text-ink/75">Primero guardá el total acordado. Después vas a poder registrar la seña del {depositPercent(kind)}% acá mismo.</p>
             )}
             {kind === "mayorista" && d.senaMinor !== null && !track.cancelledAt && <p className="mt-2 text-sm text-ink/75">
-              {balance === 0 ? "Pago completo confirmado." : remainingDeposit ? <>Falta confirmar {formatARS(remainingDeposit)} de la seña del 20%.</> : "Seña confirmada. El saldo se paga cuando el pedido llega a Argentina, antes del despacho o al retirar."}
+              {balance === 0 ? "Pago completo confirmado." : remainingDeposit ? <>Falta confirmar {formatARS(remainingDeposit)} de la seña del {depositPercent(kind)}%.</> : "Seña confirmada. El saldo se paga cuando el pedido llega a Argentina, antes del despacho o al retirar."}
             </p>}
             {kind !== "mayorista" && <dl className="mt-2 grid gap-2 text-sm sm:grid-cols-3">
               <div><dt className="text-xs text-ink/75">Importe acordado</dt><dd className="font-extrabold">{track.agreedMinor === null ? "A confirmar" : track.agreedUsdMinor === null ? formatARS(track.agreedMinor) : <>{formatUSD(track.agreedUsdMinor)} <span className="block text-xs font-normal">Equivalente {formatARS(track.agreedMinor)}</span></>}</dd></div>
@@ -137,10 +140,10 @@ export default async function AdminPedidoDetalle({ params }: { params: Promise<{
               <div><dt className="text-xs text-ink/75">Estado</dt><dd className="font-semibold">{PAYMENT_STATUS_LABEL[pay.status]}</dd></div>
             </dl>}
             {d.senaMinor !== null && kind === "encargo" && <p className="mt-1 text-xs text-ink/70">Seña del 20% {formatARS(d.senaMinor)}. Los pagos confirmados se descuentan del total.</p>}
-            {!track.cancelledAt && (kind !== "mayorista" || totals.confirmedMinor === 0) && (
+            {!track.cancelledAt && track.stage !== "entregado" && (
               <details className="mt-3" open={kind !== "mayorista" || track.agreedMinor === null}>
                 <summary className="cursor-pointer text-sm font-semibold underline">{track.agreedMinor === null ? "Cargar total acordado" : "Editar total y cotización"}</summary>
-                <p className="my-2 text-xs text-ink/70">Podés corregirlo hasta confirmar el primer pago.</p>
+                <p className="my-2 text-xs text-ink/70">{kind === "mayorista" ? "Si cambió el precio final, corregí el total y dejá el motivo. Los ingresos ya registrados se conservan y el saldo se recalcula." : "Podés corregirlo hasta confirmar el primer pago."}</p>
                 {wholesaleRate || canEditRate ? <>
                   <AdminForm endpoint={ep} compact fixed={{ action: "agreed" }} fields={[{
                     name: "agreedUsdMinor", label: "Importe acordado en USD", type: "usd", required: true,
@@ -149,7 +152,7 @@ export default async function AdminPedidoDetalle({ params }: { params: Promise<{
                   }, ...(canEditRate ? [{
                     name: "rateMinor", label: "Nueva cotización (ARS por USD)", type: "pesos" as const, optional: true,
                     help: "Dejá el campo vacío para conservar la cotización guardada.",
-                  }] : [])]} submit="Guardar importe en USD" ok="Importe guardado." idempotent={false} testId="form-importe-usd" />
+                  }] : []), ...adjustmentFields]} submit="Guardar importe en USD" ok="Importe guardado." idempotent={false} testId="form-importe-usd" />
                   <details className="mt-3">
                     <summary className="mb-2 cursor-pointer text-sm font-semibold underline">Acordé el importe en pesos</summary>
                     {agreedInPesosForm}
@@ -168,13 +171,13 @@ export default async function AdminPedidoDetalle({ params }: { params: Promise<{
                 </li>
               ))}
             </ul>
-            {!track.cancelledAt && (kind !== "mayorista" || (balance !== null && balance > 0)) && (
+            {!track.cancelledAt && (kind !== "mayorista" || balance !== null) && (
               <div className="mt-4 border-t border-ink/10 pt-4">
                 {!needsWholesaleDeposit && <h3 className="text-sm font-semibold">Registrar pago recibido</h3>}
-                <p className="mb-2 text-xs text-ink/70">Cargá el importe recibido en pesos. Si hay un comprobante, podés vincularlo.</p>
-                <AdminForm endpoint={ep} fixed={{ action: "payment" }} fields={[
+                <p className="mb-2 text-sm text-ink/75">Cargá únicamente lo que recibiste en este pago, sin volver a sumar la seña. {balance !== null && <>Saldo pendiente: <b>{formatARS(balance)}</b>. </>}{kind === "mayorista" && "Si recibiste más, se guarda el ingreso real y la diferencia queda como excedente a revisar."}</p>
+                <AdminForm key={`payment-${totals.confirmedMinor}-${balance}`} endpoint={ep} fixed={{ action: "payment" }} fields={[
                   { name: "kind", label: "Tipo", type: "select", required: true, defaultValue: kind === "stock" ? "pago_total" : kind === "mayorista" && remainingDeposit === 0 ? "saldo" : "sena", options: kind === "stock" ? [{ value: "pago_total", label: "Pago total" }, { value: "otro", label: "Otro pago" }] : [{ value: "sena", label: "Seña" }, { value: "saldo", label: "Saldo" }, { value: "pago_total", label: "Pago total" }, { value: "otro", label: "Otro" }] },
-                  { name: "amountMinor", label: "Importe recibido en pesos", type: "pesos", required: true },
+                  { name: "amountMinor", label: "Importe recibido ahora en pesos", type: "pesos", required: true, defaultValue: kind === "mayorista" && balance !== null && balance > 0 ? String((needsWholesaleDeposit && remainingDeposit ? remainingDeposit : balance) / 100) : "" },
                   { name: "method", label: "Medio", type: "select", required: true, options: [{ value: "transferencia", label: "Transferencia" }, { value: "efectivo", label: "Efectivo" }, { value: "otro", label: "Otro" }] },
                   { name: "paidAt", label: "Fecha real del ingreso", type: "date", required: true },
                   { name: "receiptId", label: "Comprobante que respalda el pago", type: "select", optional: true, options: pendingReceipts.map((r) => ({ value: r.id, label: `${r.id} · ${when(r.createdAt)}${r.declaredAmountMinor ? ` · dice ${formatARS(r.declaredAmountMinor)}` : ""}` })) },

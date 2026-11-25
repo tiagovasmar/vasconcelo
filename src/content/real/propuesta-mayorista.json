@@ -1,4 +1,5 @@
 [
+  {"id":"aura-seeker-caja","providerRmb":null,"logisticsUsd":22,"retailUsd":140,"tiers":[[1,108]],"draft":false},
   {"id":"storm-caja","providerRmb":420,"logisticsUsd":20,"retailUsd":180,"tiers":[[1,128],[3,124],[6,121],[9,117]],"draft":false},
   {"id":"heat-wave-arena-caja","providerRmb":340,"logisticsUsd":20,"retailUsd":180,"tiers":[[1,128],[3,124],[6,121],[9,117]],"draft":false},
   {"id":"black-bolt-caja","providerRmb":400,"logisticsUsd":12,"retailUsd":155,"tiers":[[1,110],[3,107],[6,104],[9,101]],"draft":false},

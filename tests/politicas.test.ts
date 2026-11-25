@@ -17,10 +17,10 @@ describe("criterio monetario único", () => {
 });
 
 describe("mayorista: lo confirmado y lo que sigue sin definirse", () => {
-  it("aprobación manual, recargo de referencia de 50% sobre costo (no un descuento sobre el minorista) y seña del 20%", () => {
+  it("aprobación manual, recargo de referencia de 50% sobre costo (no un descuento sobre el minorista) y seña del 10%", () => {
     expect(mayorista.approval).toBe("manual");
     expect(mayorista.referenceMarkupOverCostPercent).toBe(50);
-    expect(mayorista.senaPercent).toBe(20);
+    expect(mayorista.senaPercent).toBe(10);
     expect(mayorista).not.toHaveProperty("discountPercent");
     expect(mayorista).not.toHaveProperty("stacksWithTransferDiscount");
   });

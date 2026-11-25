@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { mayorista } from "@/content/politicas";
 import styles from "./wholesale-catalog.module.css";
 import { useMemo, useRef, useState } from "react";
 import { quote, type WholesaleRow, type WholesaleRules } from "@/features/mayorista/calc";
@@ -61,7 +62,7 @@ export function WholesaleCatalog({ rows, rules, rate10k, defaultName }: { rows: 
     return (
       <div role="status" className="border-l-4 border-emerald bg-emerald/10 p-5" data-testid="pedido-mayorista-enviado">
         <p className="text-xl font-extrabold">Recibimos tu pedido {sent}.</p>
-        <p className="mt-2 text-sm">Todavía no es una compra: la tienda confirma disponibilidad e importe y recién entonces se paga la seña del 20%. Seguí cada etapa en <Link href={`/cuenta/consultas/${sent}`} className="font-semibold underline">tu seguimiento</Link>.</p>
+        <p className="mt-2 text-sm">Todavía no es una compra: la tienda confirma disponibilidad e importe y recién entonces se paga la seña del {mayorista.senaPercent}%. Seguí cada etapa en <Link href={`/cuenta/consultas/${sent}`} className="font-semibold underline">tu seguimiento</Link>.</p>
       </div>
     );
   }
@@ -110,7 +111,7 @@ export function WholesaleCatalog({ rows, rules, rate10k, defaultName }: { rows: 
         {rules.minAmountMinor !== null && <p className="text-xs text-ink/70">Compra mínima: {formatARS(rules.minAmountMinor)}.</p>}
         {lines.length > 0 && quoted.problems.length > 0 && <div role="alert" data-testid="problemas-pedido"><ul className="mt-2 list-disc pl-5 text-sm font-semibold text-vermilion">{quoted.problems.map((p) => <li key={p}>{p}</li>)}</ul></div>}
         <ul className="mt-3 list-disc space-y-1 pl-5 text-xs text-ink/75">
-          <li>Es un pedido, no una compra: la tienda confirma disponibilidad e importe y después se paga la seña del 20%. El resto se paga al retirar o antes del despacho, con la mercadería ya en Argentina.</li>
+          <li>Es un pedido, no una compra: la tienda confirma disponibilidad e importe y después se paga la seña del {mayorista.senaPercent}%. El resto se paga al retirar o antes del despacho, con la mercadería ya en Argentina.</li>
           <li>Pago por transferencia o efectivo, sin descuento adicional. La financiación mayorista a 3 o 6 meses se consulta con la tienda.</li>
           <li>Si el paquete se pierde o no se puede cumplir el pedido, se reintegra la seña.{rules.refundPeriod ? ` Plazo: ${rules.refundPeriod}` : ""}</li>
           {rules.cancellationPolicy && <li>Cancelación voluntaria: {rules.cancellationPolicy}</li>}

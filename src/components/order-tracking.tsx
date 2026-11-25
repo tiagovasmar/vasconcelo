@@ -1,5 +1,5 @@
 import { INCIDENT_KIND_LABEL, REFUND_STATUS_LABEL, type CustomerOrderView } from "@/features/pedidos/service";
-import { remainingOrderBalance, shipmentProgressLabel, senaFor, transferDue } from "@/features/pedidos/etapas";
+import { depositPercent, remainingOrderBalance, shipmentProgressLabel, senaFor, transferDue } from "@/features/pedidos/etapas";
 import { encargo, mayorista } from "@/content/politicas";
 import { transferencia } from "@/content/transferencia";
 import { formatARS } from "@/lib/format";
@@ -19,7 +19,7 @@ const receiptState: Record<string, string> = { pendiente_revision: "En revisión
 export function OrderTracking({ view, whatsappNumber, linkToken }: { view: CustomerOrderView; whatsappNumber: string | null; linkToken?: string }) {
   const wa = whatsappNumber ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(`Hola, consulto por mi pedido ${view.reference}.`)}` : null;
   const k = linkToken ? `?k=${encodeURIComponent(linkToken)}` : "";
-  const sena = view.kind === "stock" ? null : senaFor(view.agreedMinor);
+  const sena = view.kind === "stock" ? null : senaFor(view.agreedMinor, view.kind);
   const confirmedMinor = view.payments.reduce((sum, p) => sum + p.amountMinor, 0);
   const due = transferDue({ ...view, confirmedMinor });
   const balance = remainingOrderBalance(view.agreedMinor, confirmedMinor);
@@ -54,7 +54,7 @@ export function OrderTracking({ view, whatsappNumber, linkToken }: { view: Custo
           <h3 className="text-base font-bold">Pago</h3>
           <dl className="mt-2 space-y-1 text-sm">
             <div className="flex justify-between gap-4"><dt>Importe acordado</dt><dd className="font-extrabold" data-testid="importe-acordado">{view.agreedMinor === null ? "A confirmar por la tienda" : formatARS(view.agreedMinor)}</dd></div>
-            {sena !== null && <div className="flex flex-wrap justify-between gap-x-4 gap-y-1"><dt>Seña del {encargo.senaPercent}% del total</dt><dd className="text-lg font-extrabold" data-testid="importe-sena">{formatARS(sena)}</dd></div>}
+            {sena !== null && <div className="flex flex-wrap justify-between gap-x-4 gap-y-1"><dt>Seña del {depositPercent(view.kind)}% del total</dt><dd className="text-lg font-extrabold" data-testid="importe-sena">{formatARS(sena)}</dd></div>}
             {view.kind === "mayorista" && !view.cancelled && balance !== null && confirmedMinor > 0 && <>
               <div className="flex flex-wrap justify-between gap-x-4"><dt>Pagado</dt><dd className="font-semibold">{formatARS(confirmedMinor)}</dd></div>
               <div className="flex flex-wrap justify-between gap-x-4 border-t border-ink/15 pt-2"><dt>Queda por pagar</dt><dd className="font-extrabold" data-testid="saldo-pedido">{formatARS(balance)}</dd></div>

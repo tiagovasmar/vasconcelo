@@ -1,4 +1,4 @@
-import { encargo } from "@/content/politicas";
+import { encargo, mayorista } from "@/content/politicas";
 import { percentOf } from "@/lib/money";
 
 /**
@@ -30,7 +30,7 @@ export const firstStage = (kind: TrackKind): Stage => stagesFor(kind)[0];
 export const STAGE_LABEL: Record<Stage, string> = {
   solicitud_recibida: "Solicitud recibida",
   confirmado_tienda: "Producto, disponibilidad e importe confirmados por la tienda",
-  sena_confirmada: "Seña del 20% confirmada",
+  sena_confirmada: "Seña confirmada",
   comprado_proveedor: "Comprado al proveedor",
   enviado_proveedor: "Enviado por el proveedor",
   recibido_origen: "Recibido en el depósito de origen",
@@ -90,8 +90,11 @@ export const PAYMENT_STATUS_LABEL: Record<PaymentSummary["status"], string> = {
   completo: "Pago completo confirmado",
 };
 
-/** Importe de la seña (20% del importe acordado y confirmado). null mientras no haya importe acordado: nunca se calcula sobre un precio inexistente. */
-export const senaFor = (agreedMinor: number | null): number | null => (agreedMinor && agreedMinor > 0 ? percentOf(agreedMinor, encargo.senaPercent) : null);
+export const depositPercent = (kind: TrackKind): number => kind === "mayorista" ? mayorista.senaPercent : encargo.senaPercent;
+/** Seña según el tipo de pedido. null mientras no haya importe acordado. */
+export const senaFor = (agreedMinor: number | null, kind: TrackKind = "encargo"): number | null => (agreedMinor && agreedMinor > 0 ? percentOf(agreedMinor, depositPercent(kind)) : null);
+/** USD conserva centavos; el redondeo al peso solo corresponde a ARS. */
+export const senaUsdFor = (agreedUsdMinor: number | null, kind: TrackKind): number | null => agreedUsdMinor && agreedUsdMinor > 0 ? Math.round(agreedUsdMinor * depositPercent(kind) / 100) : null;
 
 export type OrderPaymentInput = { kind: TrackKind; stage: string; agreedMinor: number | null; confirmedMinor: number; pendingReceipts: number; cancelled: boolean };
 
@@ -102,7 +105,7 @@ export function remainingOrderBalance(agreedMinor: number | null, confirmedMinor
 /** Solo pide transferir con disponibilidad e importe confirmados. Nunca vuelve a cobrar lo ya confirmado. */
 export function transferDue(p: OrderPaymentInput): { kind: "sena" | "resto"; amountMinor: number } | null {
   if (p.kind === "stock" || p.cancelled || p.stage === "entregado" || p.pendingReceipts > 0) return null;
-  const sena = senaFor(p.agreedMinor);
+  const sena = senaFor(p.agreedMinor, p.kind);
   const r = rank(p.kind, p.stage);
   const balance = remainingOrderBalance(p.agreedMinor, p.confirmedMinor);
   if (sena === null || !balance || r < rank(p.kind, "confirmado_tienda")) return null;
@@ -113,7 +116,7 @@ export function transferDue(p: OrderPaymentInput): { kind: "sena" | "resto"; amo
 
 /**
  * Qué acción corresponde a la cliente, sin tablero de deuda: una frase según el tipo, la etapa y lo ya confirmado.
- * El saldo (80%) se pide recién cuando el pedido llegó a Argentina y antes del despacho o del retiro.
+ * El saldo se pide recién cuando el pedido llegó a Argentina y antes del despacho o del retiro.
  */
 export function nextAction(p: OrderPaymentInput, fmt: (minor: number) => string): string | null {
   if (p.cancelled || p.stage === "entregado") return null;
@@ -123,8 +126,8 @@ export function nextAction(p: OrderPaymentInput, fmt: (minor: number) => string)
     if (p.confirmedMinor >= p.agreedMinor) return "El pago completo ya está confirmado. No hace falta que transfieras más.";
     const due = transferDue(p);
     if (due?.kind === "sena") return p.confirmedMinor > 0
-      ? `Para completar la seña del ${encargo.senaPercent}%, falta abonar ${fmt(due.amountMinor)}. Podés adjuntar el comprobante acá.`
-      : `Para avanzar con la compra, abonar la seña del ${encargo.senaPercent}% (${fmt(due.amountMinor)}). Podés adjuntar el comprobante acá.`;
+      ? `Para completar la seña del ${depositPercent(p.kind)}%, falta abonar ${fmt(due.amountMinor)}. Podés adjuntar el comprobante acá.`
+      : `Para avanzar con la compra, abonar la seña del ${depositPercent(p.kind)}% (${fmt(due.amountMinor)}). Podés adjuntar el comprobante acá.`;
     if (due?.kind === "resto") return `Tu pedido ya está en Argentina. Falta abonar el resto del importe acordado (${fmt(due.amountMinor)}) antes del despacho o del retiro. Podés adjuntar el comprobante acá.`;
     return "La seña ya se descontó del total. Cuando el pedido llegue a Argentina te avisamos para abonar el saldo antes del despacho o del retiro.";
   }

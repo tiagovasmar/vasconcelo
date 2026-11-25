@@ -199,7 +199,7 @@ export const WholesaleOrderSchema = z.object({
 /**
  * Crea el pedido mayorista como una CONSULTA del sistema existente (`orderKind = mayorista`, líneas `mayorista`), con seguimiento abierto en «Solicitud recibida».
  * Guarda el precio por tramo que se mostró (con la cotización del momento), sin descuentos minoristas. No reserva ni descuenta stock. Idempotente por clave.
- * El importe acordado lo confirma la tienda después (disponibilidad e importe), y recién entonces corresponde la seña del 20%.
+ * El importe acordado lo confirma la tienda después (disponibilidad e importe), y recién entonces corresponde la seña mayorista del 10%.
  */
 export async function createWholesaleOrder(db: Db, userId: string, body: unknown, now = Date.now()): Promise<{ reference: string; replayed: boolean; quote: Quote }> {
   const v = parseOr400(WholesaleOrderSchema, body);

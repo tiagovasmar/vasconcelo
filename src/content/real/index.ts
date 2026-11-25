@@ -8,6 +8,7 @@ import { products as chinaNoviembre } from "./china-noviembre";
 import pricesNovember from "./precios-noviembre.json";
 import * as jaCajas from "./japon-cajas";
 import * as jaNoviembre from "./japon-noviembre";
+import * as auraSeeker from "./aura-seeker";
 import { products as accesorios } from "./accesorios";
 import { products as china151Slim } from "./china-151-slim";
 import * as china30thSets from "./china-30th-sets";
@@ -26,9 +27,9 @@ import { withSlimPackPhoto } from "./fotos-slim";
 export const realCatalog: Catalog = {
   // Destacados del inicio, en orden. Storm Emeralda es la expansión destacada del hero.
   featuredIds: ["storm-caja", "storm-sobre", "abyss-eye-caja", "30th-celebration-caja"],
-  sources: [...sourcesJa, ...jaCajas.sources, ...jaNoviembre.sources, ...zh.sources, china30thSets.source, ...chinaFigures.sources, chinaPikachuBalls.source, ...chinaBlackWhite.sources, ...bandai.sources],
-  expansions: [...expansionsJa, ...jaCajas.expansions, ...jaNoviembre.expansions, ...zh.expansions, ...chinaBlackWhite.expansions],
-  products: [...productsJa, ...jaCajas.products, ...jaNoviembre.products, ...zh.products.filter((p) => !chinaNoviembre.some((n) => n.id === p.id)), ...chinaNoviembre, ...china151Slim, ...china30thSets.products, ...chinaFigures.products, ...chinaPikachuBalls.products, ...chinaBlackWhite.products, ...accesorios].map((p) => { const usd = (pricesNovember as Record<string, number>)[p.id]; return withSlimPackPhoto(withSupplierPhotos(usd === undefined ? p : { ...p, priceBase: "usd", priceUsdMinor: Math.round(usd * 100) })); }).concat(bandai.products),
+  sources: [...sourcesJa, ...jaCajas.sources, ...jaNoviembre.sources, ...auraSeeker.sources, ...zh.sources, china30thSets.source, ...chinaFigures.sources, chinaPikachuBalls.source, ...chinaBlackWhite.sources, ...bandai.sources],
+  expansions: [...expansionsJa, ...jaCajas.expansions, ...jaNoviembre.expansions, ...auraSeeker.expansions, ...zh.expansions, ...chinaBlackWhite.expansions],
+  products: [...productsJa, ...jaCajas.products, ...jaNoviembre.products, ...auraSeeker.products, ...zh.products.filter((p) => !chinaNoviembre.some((n) => n.id === p.id)), ...chinaNoviembre, ...china151Slim, ...china30thSets.products, ...chinaFigures.products, ...chinaPikachuBalls.products, ...chinaBlackWhite.products, ...accesorios].map((p) => { const usd = (pricesNovember as Record<string, number>)[p.id]; return withSlimPackPhoto(withSupplierPhotos(usd === undefined ? p : { ...p, priceBase: "usd", priceUsdMinor: Math.round(usd * 100) })); }).concat(bandai.products),
   pullRates,
   guarantees: [...guaranteesJa, ...jaCajas.guarantees, ...zh.guarantees],
 };

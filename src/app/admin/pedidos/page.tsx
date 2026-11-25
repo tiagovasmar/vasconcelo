@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getDb } from "@/db/client";
-import { remainingOrderBalance, senaFor, STAGE_LABEL, stagesFor, type Stage } from "@/features/pedidos/etapas";
+import { remainingOrderBalance, senaFor, senaUsdFor, STAGE_LABEL, stagesFor, type Stage } from "@/features/pedidos/etapas";
 import { orderUsdEquivalent } from "@/features/pedidos/mayorista-costos";
 import { formatRate, formatUSD } from "@/features/fx/convert";
 import { listOrders } from "@/features/pedidos/service";
@@ -69,8 +69,8 @@ export default async function AdminPedidos({ searchParams }: { searchParams: Pro
                   const usd = wholesale && r.rate10k ? orderUsdEquivalent(minor, r.rate10k) : null;
                   return usd === null ? formatARS(minor) : formatUSD(usd);
                 };
-                const deposit = wholesale ? senaFor(r.agreedMinor) : null;
-                const depositUsd = senaFor(r.agreedUsdMinor);
+                const deposit = wholesale ? senaFor(r.agreedMinor, "mayorista") : null;
+                const depositUsd = senaUsdFor(r.agreedUsdMinor, "mayorista");
                 const depositText = deposit === null ? null : depositUsd !== null && r.confirmedMinor >= deposit ? formatUSD(depositUsd) : amount(Math.min(deposit, r.confirmedMinor));
                 return (
                 <tr key={r.reference} className="border-t border-ink/10" data-testid="pedido-fila">

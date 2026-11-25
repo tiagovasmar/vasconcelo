@@ -10,9 +10,8 @@ import { noticeForOrder } from "@/features/avisos/outbox";
 import { SaleError, type SaleErrorCode } from "@/features/sales/errors";
 import type { ReceiptStore } from "@/server/receipt-store";
 import { formatARS } from "@/lib/format";
-import { encargo } from "@/content/politicas";
 import { advanceFromFacts, ensureTrack, newId, paymentTotals, sha, trackLock } from "./service";
-import { rank, senaFor, type TrackKind } from "./etapas";
+import { depositPercent, rank, senaFor, type TrackKind } from "./etapas";
 
 /**
  * Pagos, comprobantes, incidentes y reintegros de un pedido. Reglas que NO se negocian:
@@ -140,7 +139,7 @@ export async function receiptFile(db: Db, store: ReceiptStore, receiptId: string
 
 export const PaymentSchema = z.object({
   kind: z.enum(["sena", "saldo", "pago_total", "otro"], { error: "Elegí el tipo de pago." }),
-  amountMinor: PESOS("Importe"),
+  amountMinor: z.number({ error: "Escribí el importe recibido." }).int().positive("El importe debe ser mayor que cero.").max(1_000_000_000_00).multipleOf(100, "Ingresá el importe en pesos enteros."),
   method: z.enum(["transferencia", "efectivo", "otro"], { error: "Elegí el medio de pago." }),
   paidAt: DATE,
   receiptId: z.string().min(1).max(40).nullish().transform((v) => v ?? null),
@@ -152,7 +151,8 @@ export type PaymentRow = typeof orderPayments.$inferSelect;
 
 /**
  * Registra un pago CONFIRMADO por el dueño (lo hace tras ver el ingreso). Idempotente por clave: repetir con los mismos datos devuelve el mismo pago; con otros datos, 422.
- * No admite pagar más que el importe acordado. Si es el pago de la seña de un encargo, la etapa «Seña del 20% confirmada» se registra con la fecha del pago.
+ * Mayorista registra el dinero efectivamente recibido aunque supere el saldo: el excedente no aumenta la venta acordada.
+ * La seña usa la política del tipo de pedido y queda registrada con la fecha del pago.
  */
 export async function confirmPayment(db: Db, inquiryId: string, body: unknown, actor: Actor, now = Date.now()): Promise<{ payment: PaymentRow; replayed: boolean }> {
   const input = parseOr400(PaymentSchema, body);
@@ -176,16 +176,17 @@ export async function confirmPayment(db: Db, inquiryId: string, body: unknown, a
       const { confirmedMinor } = await paymentTotals(tx, inquiryId);
       if (track.agreedMinor === null) return fail(409, "order_rule", "Primero confirmá el importe acordado del pedido.");
       if (hold && confirmedMinor === 0 && input.amountMinor !== senaFor(track.agreedMinor)) return fail(409, "order_rule", "El primer pago de preventa debe coincidir con la seña del 20%.");
-      if (confirmedMinor + input.amountMinor > track.agreedMinor) return fail(409, "order_rule", `El pago superaría el importe acordado (${formatARS(track.agreedMinor)}): ya hay confirmado ${formatARS(confirmedMinor)}.`);
+      if (track.kind !== "mayorista" && confirmedMinor + input.amountMinor > track.agreedMinor) return fail(409, "order_rule", `El pago superaría el importe acordado (${formatARS(track.agreedMinor)}): ya hay confirmado ${formatARS(confirmedMinor)}.`);
+      const excess = Math.max(0, confirmedMinor + input.amountMinor - track.agreedMinor);
       const id = newId("PG");
       const [payment] = await tx.insert(orderPayments).values({ id, inquiryId, kind: input.kind, amountMinor: input.amountMinor, method: input.method, status: "confirmado", receiptId: input.receiptId, paidAt: input.paidAt, internalNote: input.internalNote, idempotencyKey: input.idempotencyKey, createdAt: now, createdByEmail: actor.email }).returning();
       if (input.receiptId) await tx.update(paymentReceipts).set({ status: "aceptado", reviewedAt: now, reviewedByEmail: actor.email }).where(eq(paymentReceipts.id, input.receiptId));
-      await tx.insert(orderEvents).values({ inquiryId, kind: "payment", publicText: `Confirmamos tu pago de ${formatARS(input.amountMinor)}.`, internalText: `Pago ${id} (${input.kind}, ${input.method})${input.internalNote ? ` · ${input.internalNote}` : ""}`, occurredAt: input.paidAt, createdAt: now, actorEmail: actor.email });
+      await tx.insert(orderEvents).values({ inquiryId, kind: "payment", publicText: `Confirmamos tu pago de ${formatARS(input.amountMinor)}.`, internalText: `Pago ${id} (${input.kind}, ${input.method})${input.internalNote ? ` · ${input.internalNote}` : ""}${excess > 0 ? ` · Excedente acumulado sobre el total acordado: ${formatARS(excess)}. Revisar ajuste o devolución.` : ""}`, occurredAt: input.paidAt, createdAt: now, actorEmail: actor.email });
       await noticeForOrder(tx, inquiryId, "pago_confirmado", id, now, `Importe confirmado: ${formatARS(input.amountMinor)}.`);
       const kind = track.kind as TrackKind;
-      const sena = senaFor(track.agreedMinor);
+      const sena = senaFor(track.agreedMinor, kind);
       if (kind !== "stock" && sena !== null && confirmedMinor + input.amountMinor >= sena && rank(kind, track.stage) >= rank(kind, "confirmado_tienda") && rank(kind, track.stage) < rank(kind, "sena_confirmada")) {
-        await advanceFromFacts(tx, inquiryId, "sena_confirmada", input.paidAt, actor, now, id, `Abonaste la seña del ${encargo.senaPercent}%.`);
+        await advanceFromFacts(tx, inquiryId, "sena_confirmada", input.paidAt, actor, now, id, `Abonaste la seña del ${depositPercent(kind)}%.`);
       }
       if (hold) await syncPaidPreorder(tx, inquiryId, actor, now);
       return { payment, replayed: false };

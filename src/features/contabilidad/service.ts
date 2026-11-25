@@ -2,7 +2,7 @@ import { and, desc, eq, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { Db } from "@/db/client";
 import type { Tx } from "@/db/lock";
-import { accountingExpenses, sales, storefrontVisits } from "@/db/schema";
+import { accountingExpenses, orderPayments, orderTracks, sales, storefrontVisits } from "@/db/schema";
 import { accountingDateFilter, accountingDay, saleAccountingDay, type AccountingPeriod } from "./period";
 import { SaleError } from "@/features/sales/errors";
 
@@ -68,6 +68,17 @@ export async function accountingOverview(db: Db, period: AccountingPeriod = {}) 
       .groupBy(storefrontVisits.day).orderBy(storefrontVisits.day),
   ]);
   return { expenses, pendingExpenses, pendingSpent: pendingExpenses.reduce((sum, expense) => sum + expense.amountMinor, 0), billing: billing.map((row) => ({ day: row.day, total: Number(row.total) })), visits: visits.map((row) => ({ day: row.day, total: Number(row.total) })), gross: Number(salesTotals.gross), net: Number(salesTotals.net), pending: Number(salesTotals.pending), spent: Number(expenseTotals.total) };
+}
+
+/** Ingresos reales por fecha de cobro, aunque el pedido se haya creado en otro período. No duplica la venta. */
+export async function wholesaleReceipts(db: Db, period: AccountingPeriod = {}) {
+  const filter = and(eq(orderTracks.kind, "mayorista"), eq(orderPayments.status, "confirmado"), accountingDateFilter(accountingDay(sql`${orderPayments.paidAt}`), period));
+  const [rows, [totals]] = await Promise.all([
+    db.select({ id: orderPayments.id, reference: orderPayments.inquiryId, kind: orderPayments.kind, amountMinor: orderPayments.amountMinor, paidAt: orderPayments.paidAt, method: orderPayments.method })
+      .from(orderPayments).innerJoin(orderTracks, eq(orderTracks.inquiryId, orderPayments.inquiryId)).where(filter).orderBy(desc(orderPayments.paidAt), desc(orderPayments.createdAt)).limit(50),
+    db.select({ amount: sql<string>`coalesce(sum(${orderPayments.amountMinor}),0)` }).from(orderPayments).innerJoin(orderTracks, eq(orderTracks.inquiryId, orderPayments.inquiryId)).where(filter),
+  ]);
+  return { rows, totalMinor: Number(totals.amount) };
 }
 
 export async function reservedSalesToCollect(db: Db) {

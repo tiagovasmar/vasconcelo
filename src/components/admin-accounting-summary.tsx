@@ -4,6 +4,7 @@ import { formatARS } from "@/lib/format";
 export function AdminAccountingSummary({ report, outstandingLabel = "Por cobrar" }: { report: ProfitReport; outstandingLabel?: string }) {
   const { totals, rows } = report;
   const gain = rows.length > 0 && totals.pendingCostRows === rows.length ? "Pendiente" : formatARS(totals.profitMinor);
+  const excess = rows.reduce((sum, row) => sum + Math.max(0, (row.collectedMinor ?? 0) - row.revenueMinor), 0);
   const items = [
     ["Vendido", formatARS(totals.billedMinor)],
     ["Cobrado", formatARS(totals.collectedMinor)],
@@ -21,6 +22,7 @@ export function AdminAccountingSummary({ report, outstandingLabel = "Por cobrar"
         ))}
       </dl>
       {totals.pendingCostRows > 0 && <p className="mt-2 text-xs text-ink/75">Quedan {totals.pendingCostRows} operaciones con costos o conversión a pesos pendientes. Se excluyen de la ganancia calculada.</p>}
+      {excess > 0 && <p className="mt-2 text-sm font-semibold text-ink/80">Excedentes recibidos a revisar: {formatARS(excess)}. Incluidos en «Cobrado», sin aumentar «Vendido» ni la ganancia.</p>}
     </>
   );
 }
