@@ -3,7 +3,7 @@
 ## Actualización autorizada para publicar · 25/11/2026
 
 - Agregar «Eliminar de la lista» y «Restaurar» en pedidos mayoristas y órdenes de compra, tanto en listas como en el detalle.
-- Mostrar una vista de Eliminados con confirmación previa. La eliminación es recuperable y solo afecta las listas administrativas: no cancela pedidos ni borra pagos, ventas, costos o movimientos de stock.
+- Mostrar una vista de Eliminados con confirmación previa. La eliminación es recuperable: quita el pedido del resumen de importes acordados y del gráfico, sin borrar pagos, ventas, costos o movimientos de stock. Los ingresos reales siguen en el historial de cobros.
 - Migraciones `0017_eliminar_registros_admin` y `0018_pagos_pedidos_usd` aplicadas en Supabase, después de un respaldo verificado del 25/11/2026.
 - Registrar señas y saldos mayoristas directamente en USD con centavos. Conservar la moneda e importe originales, usar el equivalente histórico acordado para el saldo y mostrar el ingreso original en Facturación.
 - Autorización del dueño el 25/11/2026: subir todos los cambios pendientes directamente a la página. Pruebas de pedidos, pagos, restauración, facturación y respaldo verificadas; compilación de producción correcta.

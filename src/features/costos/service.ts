@@ -315,13 +315,20 @@ export async function profitReport(db: Db, period: AccountingPeriod = {}, channe
     inner join ${orderTracks} on ${orderTracks.inquiryId} = ${inquirySales.inquiryId}
     where ${inquirySales.saleId} = ${sales.id} and ${inquirySales.active} and ${orderTracks.kind} = 'mayorista'
   )`;
+  const linkedToDeletedWholesale = sql`exists (
+    select 1 from ${inquirySales}
+    inner join ${orderTracks} on ${orderTracks.inquiryId} = ${inquirySales.inquiryId}
+    where ${inquirySales.saleId} = ${sales.id} and ${inquirySales.active} and ${orderTracks.kind} = 'mayorista'
+    and ${recordArchiveFilter("wholesale", sql`${orderTracks.inquiryId}`, true)}
+  )`;
   const [saleRows, orders] = await Promise.all([
     db.select({ s: sales, day: sql<string>`${saleAccountingDay}::text` }).from(sales)
-      .where(and(eq(sales.status, "registrada"), accountingDateFilter(saleAccountingDay, period),
+      .where(and(eq(sales.status, "registrada"), accountingDateFilter(saleAccountingDay, period), sql`not ${linkedToDeletedWholesale}`,
         channel === "todos" ? undefined : channel === "mayorista" ? linkedToWholesale : sql`not ${linkedToWholesale}`)),
     db.select({ t: orderTracks, name: inquiries.contactName, rate: inquiries.fxRate10k, day: sql<string>`${orderDay}::text` })
       .from(orderTracks).innerJoin(inquiries, eq(inquiries.id, orderTracks.inquiryId))
       .where(and(inArray(orderTracks.kind, ["encargo", "mayorista"]), sql`${orderTracks.cancelledAt} is null`, sql`${orderTracks.agreedMinor} is not null`,
+        recordArchiveFilter("wholesale", sql`${orderTracks.inquiryId}`),
         channel === "todos" ? undefined : eq(orderTracks.kind, channel === "mayorista" ? "mayorista" : "encargo"),
         accountingDateFilter(orderDay, period),
         sql`not exists (select 1 from ${inquirySales} where ${inquirySales.inquiryId} = ${orderTracks.inquiryId} and ${inquirySales.active})`)),
